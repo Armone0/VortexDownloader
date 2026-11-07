@@ -137,4 +137,23 @@ public class EngineIntegrationTests
             }
         }
     }
+
+    [Fact]
+    public async Task DownloadEngine_CanDownloadRealHttpFile()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "vortex_live_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        string destFile = Path.Combine(tempDir, "real_test.bin");
+        await using var engine = new DownloadEngine(new StateStore(Path.Combine(tempDir, "tasks.json")));
+
+        var task = await engine.AddDownloadAsync("https://httpbin.org/bytes/65536", destFile, chunkCount: 2, autoStart: true);
+        var tcs = new TaskCompletionSource<bool>();
+        engine.TaskCompleted += t => { if (t.Id == task.Id) tcs.TrySetResult(true); };
+        engine.TaskFailed += (t, err) => { if (t.Id == task.Id) tcs.TrySetException(new Exception(err)); };
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(10000));
+        Assert.Same(tcs.Task, completed);
+        Assert.True(File.Exists(destFile));
+        Assert.Equal(65536, new FileInfo(destFile).Length);
+    }
 }

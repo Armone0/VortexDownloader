@@ -2,6 +2,23 @@
 const VORTEX_PING_URL = "http://127.0.0.1:19741/ping";
 const VORTEX_DOWNLOAD_URL = "http://127.0.0.1:19741/download/";
 
+// Extract cookies for authenticated quick downloads (symmetric to background.js)
+async function getCookiesForUrl(url) {
+  if (!url || typeof url !== 'string' || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    return null;
+  }
+  try {
+    if (!chrome.cookies || !chrome.cookies.getAll) return null;
+    const cookies = await chrome.cookies.getAll({ url: url });
+    if (cookies && cookies.length > 0) {
+      return cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    }
+  } catch (err) {
+    console.warn('[Vortex] Failed to extract cookies in popup for:', url, err);
+  }
+  return null;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const statusBadge = document.getElementById("statusBadge");
   const statusText = document.getElementById("statusText");
@@ -101,16 +118,8 @@ document.addEventListener("DOMContentLoaded", () => {
     sendFeedback.className = "feedback";
     sendFeedback.textContent = "Vortex'e iletiliyor...";
 
-    // Extract cookies for the URL if available
-    let cookieString = null;
-    try {
-      if (chrome.cookies && chrome.cookies.getAll) {
-        const cList = await chrome.cookies.getAll({ url: rawUrl });
-        if (cList && cList.length > 0) {
-          cookieString = cList.map(c => `${c.name}=${c.value}`).join('; ');
-        }
-      }
-    } catch (_) {}
+    // Extract cookies for the URL via unified helper
+    const cookieString = await getCookiesForUrl(rawUrl);
 
     try {
       const res = await fetch(VORTEX_DOWNLOAD_URL, {

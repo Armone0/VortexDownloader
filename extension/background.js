@@ -39,24 +39,104 @@ if (chrome.storage && chrome.storage.local) {
   });
 }
 
-// Check if two URLs share the same apex domain to prevent cross-origin credential leaks
-function isSameOriginDomain(url1, url2) {
-  try {
-    if (!url1 || !url2) return false;
-    const u1 = new URL(url1);
-    const u2 = new URL(url2);
-    if (u1.hostname === u2.hostname) return true;
-    const parts1 = u1.hostname.split('.');
-    const parts2 = u2.hostname.split('.');
-    if (parts1.length >= 2 && parts2.length >= 2) {
-      const apex1 = parts1.slice(-2).join('.');
-      const apex2 = parts2.slice(-2).join('.');
-      return apex1.toLowerCase() === apex2.toLowerCase();
+// Safely parse URL into protocol and hostname across browser service worker and test VM sandboxes
+function parseUrl(urlStr) {
+  if (!urlStr || typeof urlStr !== 'string') return null;
+  if (typeof URL !== 'undefined') {
+    try {
+      const u = new URL(urlStr);
+      if (!u.hostname) return null;
+      return { protocol: u.protocol.toLowerCase(), hostname: u.hostname.toLowerCase() };
+    } catch (_) {
+      return null;
     }
-    return false;
+  }
+  try {
+    const a = urlStr.indexOf('://');
+    if (a === -1) return null;
+    const protocol = urlStr.substring(0, a + 1).toLowerCase();
+    let rest = urlStr.substring(a + 3);
+    const slashIdx = rest.indexOf('/');
+    const qIdx = rest.indexOf('?');
+    const hIdx = rest.indexOf('#');
+    let endHost = rest.length;
+    if (slashIdx !== -1 && slashIdx < endHost) endHost = slashIdx;
+    if (qIdx !== -1 && qIdx < endHost) endHost = qIdx;
+    if (hIdx !== -1 && hIdx < endHost) endHost = hIdx;
+    let hostPort = rest.substring(0, endHost);
+    const atIdx = hostPort.lastIndexOf('@');
+    if (atIdx !== -1) hostPort = hostPort.substring(atIdx + 1);
+    let hostname = hostPort;
+    if (hostPort.startsWith('[') && hostPort.includes(']')) {
+      hostname = hostPort.substring(0, hostPort.indexOf(']') + 1);
+    } else {
+      const colonIdx = hostPort.indexOf(':');
+      if (colonIdx !== -1) hostname = hostPort.substring(0, colonIdx);
+    }
+    hostname = hostname.trim().toLowerCase();
+    if (!hostname) return null;
+    return { protocol, hostname };
   } catch (_) {
+    return null;
+  }
+}
+
+// Extract registrable domain (eTLD+1) supporting ccSLDs (.co.uk, .com.tr, etc.), IPs and localhost
+function getRootDomain(hostname) {
+  if (!hostname || typeof hostname !== 'string') return '';
+  const host = hostname.trim().toLowerCase();
+
+  // IPv4, IPv6, or single-label hostname (e.g. localhost)
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host) || host.includes(':') || !host.includes('.')) {
+    return host;
+  }
+
+  const parts = host.split('.');
+  if (parts.length <= 2) {
+    return host;
+  }
+
+  // Common second-level domains under country-code TLDs (.co.uk, .com.tr, .org.au, etc.)
+  const commonSecondLevelTLDs = new Set([
+    'co', 'com', 'org', 'net', 'edu', 'gov', 'ac', 'mil', 'nom', 'gen'
+  ]);
+
+  const last = parts[parts.length - 1];
+  const secondLast = parts[parts.length - 2];
+
+  if (last.length === 2 && commonSecondLevelTLDs.has(secondLast) && parts.length >= 3) {
+    return parts.slice(-3).join('.');
+  }
+
+  return parts.slice(-2).join('.');
+}
+
+// Enforce same security domain (eTLD+1) boundary and prevent HTTPS->HTTP credential downgrade
+function isSameSecurityDomain(sourceUrl, targetUrl) {
+  if (!sourceUrl || !targetUrl) return false;
+  const src = parseUrl(sourceUrl);
+  const tgt = parseUrl(targetUrl);
+
+  if (!src || !tgt || !src.hostname || !tgt.hostname) {
     return false;
   }
+
+  if (!['http:', 'https:'].includes(src.protocol) || !['http:', 'https:'].includes(tgt.protocol)) {
+    return false;
+  }
+
+  if (src.protocol === 'https:' && tgt.protocol === 'http:') {
+    return false;
+  }
+
+  if (src.hostname === tgt.hostname) {
+    return true;
+  }
+
+  const srcRoot = getRootDomain(src.hostname);
+  const tgtRoot = getRootDomain(tgt.hostname);
+
+  return Boolean(srcRoot && tgtRoot && srcRoot === tgtRoot);
 }
 
 // Extract cookies for authenticated downloads (Google Drive, GitHub, Mediafire, etc.)
@@ -136,11 +216,15 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
 
     let cookieString = null;
     try {
-      const targetUrl = downloadItem.finalUrl || downloadItem.url;
-      cookieString = await getCookiesForUrl(targetUrl);
-      // Only inherit cookies from initial URL if both belong to the exact same apex domain (prevents cross-origin leak e.g. S3 redirect)
-      if (!cookieString && downloadItem.url && downloadItem.url !== targetUrl && isSameOriginDomain(targetUrl, downloadItem.url)) {
-        cookieString = await getCookiesForUrl(downloadItem.url);
+      const destinationUrl = downloadItem.finalUrl || downloadItem.url;
+      cookieString = await getCookiesForUrl(destinationUrl);
+
+      // Enforce same security domain (eTLD+1) boundary before inheriting cookies from initial URL.
+      // This strictly prevents leaking sensitive session cookies to third-party CDNs or untrusted redirect targets.
+      if (!cookieString && downloadItem.finalUrl && downloadItem.url && downloadItem.finalUrl !== downloadItem.url) {
+        if (isSameSecurityDomain(downloadItem.url, downloadItem.finalUrl)) {
+          cookieString = await getCookiesForUrl(downloadItem.url);
+        }
       }
     } catch (_) {}
 
@@ -164,7 +248,16 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
         // ALWAYS call suggest() first so Chromium's filename determination promise resolves cleanly!
         suggest();
         chrome.downloads.cancel(downloadItem.id, () => {
-          try { chrome.downloads.erase({ id: downloadItem.id }); } catch (_) {}
+          if (chrome.runtime.lastError) {
+            // Suppress error if download was already cancelled, interrupted, or finished
+          }
+          try {
+            chrome.downloads.erase({ id: downloadItem.id }, () => {
+              if (chrome.runtime.lastError) {
+                // Suppress error if download item was already removed
+              }
+            });
+          } catch (_) {}
         });
 
         chrome.action.setBadgeText({ text: "⚡" });
