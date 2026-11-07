@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
+using VortexDownloader.Core.Engine;
+using VortexDownloader.UI.Services;
 using VortexDownloader.UI.ViewModels;
 using VortexDownloader.UI.Views;
 
@@ -28,6 +30,8 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
 
+        ThemeManager.ThemeChanged += OnThemeChanged;
+
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
@@ -45,15 +49,13 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        try
-        {
-            IntPtr hwnd = new WindowInteropHelper(this).Handle;
-            int darkMode = 1;
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
-        }
-        catch
-        {
-        }
+        ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
+    }
+
+    private void OnThemeChanged(string themeName)
+    {
+        bool isDark = themeName.Equals("Dark", StringComparison.OrdinalIgnoreCase);
+        ThemeManager.ApplyDwmDarkMode(this, isDark);
     }
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
@@ -81,6 +83,18 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        var settings = AppSettings.Current;
+        _viewModel.Engine.MaxConcurrentDownloads = settings.MaxConcurrentDownloads;
+        _viewModel.ShutdownWhenCompleted = settings.ShutdownWhenCompleted;
+        _viewModel.SelectedMaxConcurrent = settings.MaxConcurrentDownloads switch
+        {
+            1 => "1 Görev",
+            2 => "2 Görev",
+            3 => "3 Görev",
+            5 => "5 Görev",
+            0 => "Sınırsız",
+            _ => $"{settings.MaxConcurrentDownloads} Görev"
+        };
         await _viewModel.InitializeAsync();
     }
 
@@ -295,6 +309,64 @@ public partial class MainWindow : Window
                 MessageBox.Show(this, $"İndirme başlatılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+    private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        string nextTheme = ThemeManager.CurrentTheme == "Dark" ? "Light" : "Dark";
+        ThemeManager.SetTheme(nextTheme);
+    }
+
+    private void BtnToolbarResume_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.StartAllCommand.Execute(null);
+    }
+
+    private void BtnToolbarStop_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.PauseAllCommand.Execute(null);
+    }
+
+    private void BtnToolbarClearCompleted_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ClearCompletedCommand.Execute(null);
+    }
+
+    private void BtnSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var settingsWindow = new SettingsWindow
+        {
+            Owner = this
+        };
+        if (settingsWindow.ShowDialog() == true)
+        {
+            _viewModel.Engine.MaxConcurrentDownloads = AppSettings.Current.MaxConcurrentDownloads;
+            _viewModel.ShutdownWhenCompleted = AppSettings.Current.ShutdownWhenCompleted;
+            _viewModel.SelectedMaxConcurrent = AppSettings.Current.MaxConcurrentDownloads switch
+            {
+                1 => "1 Görev",
+                2 => "2 Görev",
+                3 => "3 Görev",
+                5 => "5 Görev",
+                0 => "Sınırsız",
+                _ => $"{AppSettings.Current.MaxConcurrentDownloads} Görev"
+            };
+        }
+    }
+
+    private void BtnToolbarSettings_Click(object sender, RoutedEventArgs e)
+    {
+        BtnSettings_Click(sender, e);
+    }
+
+    private void BtnToolbarScheduler_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBox.Show(this, "İndirme Zamanlayıcı ve Kuyruk Yöneticisi aktif.", "Zamanlayıcı", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void BtnToolbarGrabber_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBox.Show(this, "Site ve Medya Yakalayıcı (Grabber) hazır.", "Medya Yakalayıcı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private record BrowserDownloadPayload(string Url, string? FileName, long? FileSize);

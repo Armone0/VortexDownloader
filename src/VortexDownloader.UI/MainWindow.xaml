@@ -10,8 +10,8 @@
         MinHeight="520" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/Assets/vortex_app.ico"
-        Background="#080C14"
-        Foreground="#F8FAFC"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
 
     <Window.Resources>
@@ -23,17 +23,12 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryAccentBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" CornerRadius="8">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#4F46E5" Offset="0"/>
-                                    <GradientStop Color="#6366F1" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -52,7 +47,7 @@
         <!-- Sidebar Category Button Style -->
         <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -68,11 +63,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#131B2A"/>
-                                <Setter Property="Foreground" Value="#F8FAFC"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1C273D"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -80,29 +75,29 @@
             </Setter>
         </Style>
 
-        <!-- Secondary Dark Button -->
+        <!-- Secondary Button -->
         <Style x:Key="SecondaryDarkButton" TargetType="Button">
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="Background" Value="#131B2A"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}"
-                                BorderBrush="#202C42" BorderThickness="1" CornerRadius="6"
+                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1C273D"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#334566"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#0F1622"/>
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="border" Property="Opacity" Value="0.4"/>
@@ -115,8 +110,8 @@
 
         <!-- Compact Item Action Button -->
         <Style x:Key="ItemActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#162032"/>
-            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontSize" Value="11"/>
@@ -126,17 +121,16 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" 
-                                BorderBrush="#253550" BorderThickness="1" CornerRadius="5" 
+                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="5" 
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#22314D"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#385078"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#111927"/>
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -144,7 +138,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern Dark ComboBox Toggle Button -->
+        <!-- Modern ComboBox Toggle Button -->
         <ControlTemplate x:Key="DarkComboBoxToggleButton" TargetType="ToggleButton">
             <Border x:Name="templateRoot" Background="{TemplateBinding Background}" 
                     BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
@@ -154,26 +148,25 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="22"/>
                     </Grid.ColumnDefinitions>
-                    <Path x:Name="arrow" Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#94A3B8" 
+                    <Path x:Name="arrow" Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="{DynamicResource TextSecondaryBrush}" 
                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="true">
-                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="#4B6085"/>
-                    <Setter Property="Background" TargetName="templateRoot" Value="#1C273C"/>
+                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{DynamicResource PrimaryAccentBrush}"/>
                 </Trigger>
                 <Trigger Property="IsChecked" Value="true">
-                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="#6366F1"/>
+                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{DynamicResource PrimaryAccentBrush}"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
 
-        <!-- Fully Themed Dark ComboBox (Working Popup Binding) -->
+        <!-- Fully Themed ComboBox -->
         <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#131B2A"/>
-            <Setter Property="Foreground" Value="#F8FAFC"/>
-            <Setter Property="BorderBrush" Value="#253550"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Height" Value="30"/>
@@ -198,7 +191,7 @@
                             <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" 
                                    IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
                                    Placement="Bottom" PopupAnimation="Slide">
-                                <Border x:Name="dropDownBorder" Background="#111827" BorderBrush="#253550" 
+                                <Border x:Name="dropDownBorder" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
                                         BorderThickness="1" CornerRadius="6" 
                                         MaxHeight="{TemplateBinding MaxDropDownHeight}" 
                                         MinWidth="{Binding ActualWidth, ElementName=templateRoot}" 
@@ -215,10 +208,10 @@
             </Setter>
         </Style>
 
-        <!-- Dark ComboBox Items -->
+        <!-- ComboBox Items -->
         <Style TargetType="ComboBoxItem">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -231,10 +224,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1E2A3E"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#4F46E5"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource PrimaryAccentBrush}"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -245,23 +239,23 @@
         <!-- Modern ProgressBar -->
         <Style TargetType="ProgressBar">
             <Setter Property="Height" Value="5"/>
-            <Setter Property="Background" Value="#131B2A"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Grid>
                             <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="3"/>
-                            <Border x:Name="PART_Indicator" Background="#00F2FE" CornerRadius="3" HorizontalAlignment="Left"/>
+                            <Border x:Name="PART_Indicator" Background="{DynamicResource PrimaryAccentBrush}" CornerRadius="3" HorizontalAlignment="Left"/>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- Modern Dark CheckBox Style -->
+        <!-- Modern CheckBox Style -->
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -271,9 +265,9 @@
                         <BulletDecorator Background="Transparent">
                             <BulletDecorator.Bullet>
                                 <Border x:Name="border" Width="16" Height="16" CornerRadius="4" 
-                                        Background="#131B2A" BorderBrush="#253550" BorderThickness="1" 
+                                        Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
                                         Margin="0,0,6,0" VerticalAlignment="Center">
-                                    <Path x:Name="checkMark" Data="M 3 8 L 6 11 L 13 4" Stroke="#00F2FE" StrokeThickness="2" 
+                                    <Path x:Name="checkMark" Data="M 3 8 L 6 11 L 13 4" Stroke="{DynamicResource PrimaryAccentBrush}" StrokeThickness="2" 
                                           Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                             </BulletDecorator.Bullet>
@@ -281,13 +275,11 @@
                         </BulletDecorator>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1E293B"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#00F2FE"/>
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
-                                <Setter Property="Foreground" Value="#38BDF8"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#4F46E5"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -306,7 +298,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- ==================== LEFT SIDEBAR ==================== -->
-        <Border Grid.Column="0" Background="#0B0F19" BorderBrush="#162032" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,1,0">
             <Grid Margin="16,20,16,16">
                 <Grid.RowDefinitions>
                     <!-- Brand Header -->
@@ -315,7 +307,7 @@
                     <RowDefinition Height="Auto"/>
                     <!-- Navigation Categories -->
                     <RowDefinition Height="*"/>
-                    <!-- Engine & Speed Status Widget -->
+                    <!-- Sidebar Bottom: Speed & Settings (Motrix style) -->
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -324,12 +316,12 @@
                     <Image Source="pack://application:,,,/Assets/vortex_logo.png" Width="30" Height="30" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <StackPanel VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="VORTEX" FontSize="15" FontWeight="Black" Foreground="#00F2FE"/>
-                            <Border Background="#1E293B" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.2" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                            <TextBlock Text="{DynamicResource Str_BrandTitle}" FontSize="15" FontWeight="Black" Foreground="{DynamicResource AccentHighlightBrush}"/>
+                            <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="v1.2" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                         </StackPanel>
-                        <TextBlock Text="DOWNLOAD MANAGER" FontSize="8" FontWeight="Bold" Foreground="#64748B" Margin="0,1,0,0"/>
+                        <TextBlock Text="DOWNLOAD MANAGER" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,1,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -338,13 +330,13 @@
                         Margin="0,18,0,18" Click="BtnNewDownload_Click">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock Text="＋" FontSize="14" FontWeight="Bold" Margin="0,0,6,0"/>
-                        <TextBlock Text="Yeni İndirme Ekle" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="{DynamicResource Str_NewDownload}" FontSize="12" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
 
                 <!-- 3. Navigation Categories (Clickable Filter Buttons) -->
                 <StackPanel Grid.Row="2">
-                    <TextBlock Text="KATEGORİLER" FontSize="10" FontWeight="Bold" Foreground="#475569" Margin="8,0,0,8"/>
+                    <TextBlock Text="{DynamicResource Str_Categories}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="8,0,0,8"/>
 
                     <!-- Category: All Tasks Button -->
                     <Button Style="{StaticResource SidebarNavButtonStyle}" 
@@ -356,9 +348,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="📥" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="Tüm Görevler" FontSize="12" FontWeight="SemiBold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding TotalDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_AllTasks}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding TotalDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                         </Grid>
                     </Button>
@@ -373,9 +365,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="⚡" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="İndirilenler" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="#064E3B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding ActiveDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#34D399"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Downloading}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ActiveDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#10B981"/>
                             </Border>
                         </Grid>
                     </Button>
@@ -390,9 +382,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="⏸" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="Duraklatılanlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding PausedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Paused}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PausedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                         </Grid>
                     </Button>
@@ -407,53 +399,61 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="✅" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="Tamamlananlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CompletedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Completed}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CompletedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                         </Grid>
                     </Button>
                 </StackPanel>
 
-                <!-- 4. Engine & Speed Status Widget -->
-                <Border Grid.Row="3" Background="#0F1626" BorderBrush="#1C273D" BorderThickness="1" CornerRadius="10" Padding="12,10">
-                    <StackPanel>
-                        <!-- Speed Row -->
-                        <Grid Margin="0,0,0,6">
+                <!-- 4. Sidebar Bottom: Speed Readout & Settings Button (Motrix style) -->
+                <StackPanel Grid.Row="3">
+                    <!-- Live Speed Card -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
+                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,6,0"/>
-                                <TextBlock Text="İndirme Hızı:" FontSize="11" Foreground="#94A3B8"/>
+                                <TextBlock Text="{DynamicResource Str_DownloadSpeed}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="{Binding TotalSpeedFormatted}" HorizontalAlignment="Right" 
-                                       FontWeight="Bold" FontSize="12" Foreground="#34D399"/>
+                                       FontWeight="Bold" FontSize="12" Foreground="#10B981"/>
                         </Grid>
+                    </Border>
 
-                        <!-- Port status -->
-                        <Border Background="#162033" CornerRadius="4" Padding="6,3" Margin="0,2,0,0">
-                            <TextBlock Text="🌐 Tarayıcı Köprüsü: Port 19741" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
+                    <!-- Settings Button -->
+                    <Button x:Name="BtnSettings" Style="{StaticResource SidebarNavButtonStyle}" 
+                            Click="BtnSettings_Click" Margin="0" Padding="10,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="⚙️" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Settings}" FontSize="12" FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
         <!-- ==================== RIGHT MAIN WORK AREA ==================== -->
-        <Grid Grid.Column="1" Background="#070A11">
+        <Grid Grid.Column="1" Background="{DynamicResource WindowBackgroundBrush}">
             <Grid.RowDefinitions>
                 <!-- Top Toolbar -->
                 <RowDefinition Height="Auto"/>
                 <!-- Downloads Content or Clean Empty State -->
                 <RowDefinition Height="*"/>
-                <!-- Bottom Engine Stats Footer -->
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- 1. TOP TOOLBAR -->
-            <Border Grid.Row="0" Background="#0C101A" BorderBrush="#162032" BorderThickness="0,0,0,1" Padding="20,12">
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- View Title & Count -->
@@ -465,9 +465,9 @@
 
                     <!-- Left: Breadcrumb / Section Title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
-                        <Border Background="#131B2A" BorderBrush="#1F2A3F" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding TotalDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                        <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TotalDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
                     </StackPanel>
 
@@ -477,8 +477,8 @@
                         <Button Style="{StaticResource SecondaryDarkButton}" Margin="0,0,8,0"
                                 Command="{Binding StartAllCommand}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="▶" Margin="0,0,5,0" Foreground="#34D399"/>
-                                <TextBlock Text="Tümünü Başlat"/>
+                                <TextBlock Text="▶" Margin="0,0,5,0" Foreground="#10B981"/>
+                                <TextBlock Text="{DynamicResource Str_StartAll}"/>
                             </StackPanel>
                         </Button>
 
@@ -487,26 +487,26 @@
                                 Command="{Binding PauseAllCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⏸" Margin="0,0,5,0" Foreground="#FBBF24"/>
-                                <TextBlock Text="Tümünü Duraklat"/>
+                                <TextBlock Text="{DynamicResource Str_PauseAll}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Separator -->
-                        <Rectangle Width="1" Height="18" Fill="#1E283D" Margin="0,0,12,0"/>
+                        <Rectangle Width="1" Height="18" Fill="{DynamicResource CardBorderBrush}" Margin="0,0,12,0"/>
 
                         <!-- Max Concurrent Selector -->
-                        <TextBlock Text="Maks Eşzamanlı:" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Margin="0,0,6,0"/>
+                        <TextBlock Text="{DynamicResource Str_MaxConcurrent}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding MaxConcurrentOptions}" SelectedItem="{Binding SelectedMaxConcurrent}" Width="92" Margin="0,0,12,0"/>
 
                         <!-- Speed Limit Selector -->
-                        <TextBlock Text="Hız Sınırı:" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Margin="0,0,6,0"/>
+                        <TextBlock Text="{DynamicResource Str_SpeedLimit}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,6,0"/>
                         <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="92" Margin="0,0,12,0"/>
 
                         <!-- Separator -->
-                        <Rectangle Width="1" Height="18" Fill="#1E283D" Margin="0,0,12,0"/>
+                        <Rectangle Width="1" Height="18" Fill="{DynamicResource CardBorderBrush}" Margin="0,0,12,0"/>
 
                         <!-- Auto Shutdown Checkbox -->
-                        <CheckBox Content="⚡ Bitince Kapat"
+                        <CheckBox Content="{DynamicResource Str_ShutdownWhenDone}"
                                   IsChecked="{Binding ShutdownWhenCompleted, Mode=TwoWay}"
                                   VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
                                   ToolTip="Tüm indirmeler tamamlandığında bilgisayarı otomatik kapatır"/>
@@ -519,22 +519,22 @@
                 <!-- Clean Minimalist Empty State (Shown when 0 downloads) -->
                 <Border HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440" 
                         Visibility="{Binding HasNoDownloads, Converter={StaticResource BoolToVis}}"
-                        Background="#0D121F" BorderBrush="#182338" BorderThickness="1" CornerRadius="14" Padding="32,28">
+                        Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="14" Padding="32,28">
                     <StackPanel HorizontalAlignment="Center">
                         <!-- Minimalist Icon -->
-                        <Border Width="52" Height="52" CornerRadius="26" Background="#131B2C" BorderBrush="#1F2C46" BorderThickness="1" 
+                        <Border Width="52" Height="52" CornerRadius="26" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
                                 HorizontalAlignment="Center" Margin="0,0,0,16">
                             <TextBlock Text="📥" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
                         <!-- Text -->
-                        <TextBlock Text="Henüz indirme eklenmedi" FontSize="15" FontWeight="SemiBold" Foreground="#F8FAFC" HorizontalAlignment="Center"/>
-                        <TextBlock Text="İndirme başlatmak için sol menüden Yeni İndirme'ye tıklayın veya Chrome/Edge eklentisiyle indirin." 
-                                   FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,6,0,18" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource Str_EmptyTitle}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Str_EmptyDesc}" 
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,6,0,18" TextWrapping="Wrap"/>
 
                         <!-- Hint chip -->
-                        <Border Background="#101726" BorderBrush="#1B253B" BorderThickness="1" CornerRadius="6" Padding="10,6" HorizontalAlignment="Center">
-                            <TextBlock Text="💡 Chrome &amp; Edge tarayıcı eklentisi indirmeleri otomatik yakalar" FontSize="11" Foreground="#94A3B8"/>
+                        <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" HorizontalAlignment="Center">
+                            <TextBlock Text="{DynamicResource Str_EmptyHint}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -545,7 +545,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:DownloadItemViewModel}">
                                 <!-- Modern Sleek Download Card -->
-                                <Border Background="#0E1320" BorderBrush="#182236" BorderThickness="1" 
+                                <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
                                         CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
                                     <Grid>
                                         <Grid.RowDefinitions>
@@ -564,13 +564,13 @@
                                             <!-- File Name & URL -->
                                             <StackPanel Grid.Column="0" Orientation="Vertical">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding FileName}" FontSize="14" FontWeight="SemiBold" Foreground="#F8FAFC" Margin="0,0,10,0"/>
+                                                    <TextBlock Text="{Binding FileName}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0"/>
                                                     <!-- Status Badge -->
                                                     <Border Background="{Binding StatusBgColor}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" ToolTip="{Binding ErrorMessage}">
                                                         <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="10" FontWeight="Bold"/>
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Url}" FontSize="11" Foreground="#475569" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" MaxWidth="520"/>
+                                                <TextBlock Text="{Binding Url}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" MaxWidth="520"/>
                                             </StackPanel>
 
                                             <!-- Item Action Buttons -->
@@ -615,23 +615,23 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- Downloaded / Total Size -->
-                                            <TextBlock Grid.Column="0" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center">
+                                            <TextBlock Grid.Column="0" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center">
                                                 <Run Text="{Binding DownloadedBytesFormatted, Mode=OneWay}"/>
-                                                <Run Text=" / " Foreground="#475569"/>
+                                                <Run Text=" / " Foreground="{DynamicResource TextMutedBrush}"/>
                                                 <Run Text="{Binding TotalBytesFormatted, Mode=OneWay}"/>
                                             </TextBlock>
 
                                             <!-- Progress Percent & Speed -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding ProgressPercentage, StringFormat='{}{0:F1}%', Mode=OneWay}" 
-                                                           FontWeight="Bold" FontSize="11" Foreground="#00F2FE" Margin="0,0,14,0"/>
+                                                           FontWeight="Bold" FontSize="11" Foreground="{DynamicResource AccentHighlightBrush}" Margin="0,0,14,0"/>
                                                 <TextBlock Text="{Binding SpeedFormatted, Mode=OneWay}" 
-                                                           FontSize="11" Foreground="#34D399" FontWeight="SemiBold"/>
+                                                           FontSize="11" Foreground="#10B981" FontWeight="SemiBold"/>
                                             </StackPanel>
 
                                             <!-- Chunks indicator -->
-                                            <Border Grid.Column="2" Background="#131B2A" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding ChunksCount, StringFormat='{}{0} Parça'}" FontSize="10" Foreground="#64748B"/>
+                                            <Border Grid.Column="2" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ChunksCount, StringFormat='{}{0} Parça'}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
                                             </Border>
                                         </Grid>
                                     </Grid>
@@ -641,24 +641,6 @@
                     </ItemsControl>
                 </ScrollViewer>
             </Grid>
-
-            <!-- 3. BOTTOM ENGINE STATS FOOTER -->
-            <Border Grid.Row="2" Background="#080C14" BorderBrush="#141C2B" BorderThickness="0,1,0,0" Padding="20,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Column="0" Text="Dinamik Çok Kanallı Motor • SocketsHttpHandler • Zero-Alloc Buffer • Win11 Native Shell" 
-                               FontSize="10" Foreground="#475569" VerticalAlignment="Center"/>
-
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="6" Height="6" Fill="#10B981" Margin="0,0,6,0"/>
-                        <TextBlock Text="Motor Aktif" FontSize="10" Foreground="#10B981" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
         </Grid>
     </Grid>
 </Window>

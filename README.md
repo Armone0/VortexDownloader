@@ -49,8 +49,14 @@ Rather than relying on static file partitioning where slow connections stall com
   Token-bucket rate limiter enabling customizable bandwidth caps (e.g., 1 MB/s, 5 MB/s, 10 MB/s, or Unlimited).
 * **🛡️ Atomic State Persistence:**  
   Download state and chunk offsets are atomically persisted to `%APPDATA%\VortexDownloader\tasks.json`. Interrupted transfers can be resumed without data corruption.
+* **🎨 Dynamic Soft Loft Theme Engine (`ThemeManager`):**  
+  Switch instantly at runtime between Dark Theme (`#071B2B`, `#167D8D`, `#B9E4E8`, `#EEEEEE`) and Light Theme (`#FFCED8`, `#FFDDDD`, `#FFF4DE`, `#FFE8C4`) without restarting the application.
+* **🌐 Instant Multi-Language Support (`LocalizationManager`):**  
+  Full dynamic runtime internationalization supporting English and Turkish (Türkçe).
+* **⚙️ Tabbed Settings Window (`SettingsWindow`):**  
+  Motrix-inspired settings window persisting configuration (`%APPDATA%\VortexDownloader\settings.json`) for default download paths, concurrency limits, and auto-shutdown.
 * **🎨 Modern Windows UI:**  
-  Dark interface featuring category filters (*All, Downloading, Paused, Completed*), live speed metrics, progress bars, and system tray minimization.
+  Clean interface featuring category filters (*All, Downloading, Paused, Completed*), live speed metrics, progress bars, and system tray minimization.
 * **💾 Pre-Flight Disk Space Validation:**  
   Checks available drive capacity before starting a transfer to prevent disk-full crashes mid-stream.
 

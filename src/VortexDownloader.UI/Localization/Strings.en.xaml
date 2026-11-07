@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="Str_BrandTitle">VORTEX</sys:String>
+    <sys:String x:Key="Str_NewDownload">New Download</sys:String>
+    <sys:String x:Key="Str_AllTasks">All Tasks</sys:String>
+    <sys:String x:Key="Str_Downloading">Downloading</sys:String>
+    <sys:String x:Key="Str_Paused">Paused</sys:String>
+    <sys:String x:Key="Str_Completed">Completed</sys:String>
+    <sys:String x:Key="Str_SpeedLimit">Speed Limit:</sys:String>
+    <sys:String x:Key="Str_MaxConcurrent">Max Concurrent:</sys:String>
+    <sys:String x:Key="Str_ShutdownWhenDone">Shutdown When Done</sys:String>
+    <sys:String x:Key="Str_StartAll">Start All</sys:String>
+    <sys:String x:Key="Str_PauseAll">Pause All</sys:String>
+    <sys:String x:Key="Str_Settings">Settings</sys:String>
+    <sys:String x:Key="Str_Language">Language</sys:String>
+    <sys:String x:Key="Str_Theme">Theme</sys:String>
+    <sys:String x:Key="Str_DarkMode">Dark Mode</sys:String>
+    <sys:String x:Key="Str_LightMode">Light Mode</sys:String>
+    <sys:String x:Key="Str_DefaultFolder">Default Folder:</sys:String>
+    <sys:String x:Key="Str_Save">Save</sys:String>
+    <sys:String x:Key="Str_Cancel">Cancel</sys:String>
+    <sys:String x:Key="Str_About">About</sys:String>
+    <sys:String x:Key="Str_General">General</sys:String>
+    <sys:String x:Key="Str_Appearance">Appearance &amp; Language</sys:String>
+    <sys:String x:Key="Str_DefaultChunks">Default Chunk Count:</sys:String>
+    <sys:String x:Key="Str_Browse">Browse...</sys:String>
+    <sys:String x:Key="Str_SaveAndClose">Save &amp; Close</sys:String>
+    <sys:String x:Key="Str_Categories">CATEGORIES</sys:String>
+    <sys:String x:Key="Str_EmptyTitle">No downloads yet</sys:String>
+    <sys:String x:Key="Str_EmptyDesc">Click New Download on the left menu to start downloading or use the Chrome/Edge extension.</sys:String>
+    <sys:String x:Key="Str_EmptyHint">💡 Chrome &amp; Edge extension captures downloads automatically</sys:String>
+    <sys:String x:Key="Str_Tasks">Tasks</sys:String>
+    <sys:String x:Key="Str_Chunks">Chunks</sys:String>
+    <sys:String x:Key="Str_Unlimited">Unlimited</sys:String>
+    <sys:String x:Key="Str_DownloadSpeed">Download Speed:</sys:String>
+</ResourceDictionary>

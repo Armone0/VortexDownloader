@@ -72,6 +72,13 @@ public class MainViewModel : ViewModelBase
         "Downloading" => "Aktif İndirmeler",
         "Paused" => "Duraklatılan İndirmeler",
         "Completed" => "Tamamlanan İndirmeler",
+        "Compressed" => "Sıkıştırılmış Dosyalar (Arşivler)",
+        "Documents" => "Belgeler",
+        "Music" => "Müzik ve Ses",
+        "Programs" => "Programlar ve Kurulumlar",
+        "Video" => "Videolar",
+        "Grabber" => "Yakalayıcı Projeleri",
+        "Queues" => "İndirme Kuyrukları",
         _ => "Tüm İndirmeler"
     };
 
@@ -80,8 +87,20 @@ public class MainViewModel : ViewModelBase
         "Downloading" => Downloads.Where(d => d.Status == DownloadStatus.Downloading),
         "Paused" => Downloads.Where(d => d.Status == DownloadStatus.Paused),
         "Completed" => Downloads.Where(d => d.Status == DownloadStatus.Completed),
+        "Compressed" => Downloads.Where(d => HasExtension(d.FileName, ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2")),
+        "Documents" => Downloads.Where(d => HasExtension(d.FileName, ".pdf", ".docx", ".doc", ".xlsx", ".txt", ".pptx", ".epub")),
+        "Music" => Downloads.Where(d => HasExtension(d.FileName, ".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a")),
+        "Programs" => Downloads.Where(d => HasExtension(d.FileName, ".exe", ".msi", ".iso", ".bat", ".cmd", ".apk")),
+        "Video" => Downloads.Where(d => HasExtension(d.FileName, ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm")),
         _ => Downloads
     };
+
+    private static bool HasExtension(string? fileName, params string[] exts)
+    {
+        if (string.IsNullOrEmpty(fileName)) return false;
+        string ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return exts.Contains(ext);
+    }
 
     public ICommand SetFilterCommand { get; }
 
@@ -192,6 +211,7 @@ public class MainViewModel : ViewModelBase
 
     public ICommand StartAllCommand { get; }
     public ICommand PauseAllCommand { get; }
+    public ICommand ClearCompletedCommand { get; }
     public ICommand PauseTaskCommand { get; }
     public ICommand ResumeTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
@@ -208,6 +228,14 @@ public class MainViewModel : ViewModelBase
 
         StartAllCommand = new RelayCommand(() => _engine.StartAll());
         PauseAllCommand = new RelayCommand(async () => await _engine.PauseAllAsync());
+        ClearCompletedCommand = new RelayCommand(async () =>
+        {
+            var completed = Downloads.Where(d => d.Status == DownloadStatus.Completed).ToList();
+            foreach (var item in completed)
+            {
+                await _engine.RemoveTaskAsync(item.Id);
+            }
+        });
         PauseTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
             if (item != null) await _engine.PauseTaskAsync(item.Id);

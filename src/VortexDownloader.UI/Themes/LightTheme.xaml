@@ -1,0 +1,54 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ========================================================================= -->
+    <!-- VORTEXDOWNLOADER - SOFT LOFT LIGHT THEME PALETTE                          -->
+    <!-- 1. Ana Zemin:       #FFCED8 (Pastel Gül / Ana Kanvas)                    -->
+    <!-- 2. İkincil Detay:   #FFDDDD (Yumuşak Gül / Kart & Panel Yüzeyleri)       -->
+    <!-- 3. Üçüncül Detay:   #FFF4DE (Sıcak Krem / Input & Rozet & Hover)         -->
+    <!-- 4. Dördüncü Detay:  #FFE8C4 (Şeftali Bal / Aksiyon & Buton & Progress)   -->
+    <!-- ========================================================================= -->
+
+    <!-- 1. Kök Zemin ve Kanvas Renkleri -->
+    <Color x:Key="Color.Canvas.Background">#FFCED8</Color>
+    <Color x:Key="Color.Sidebar.Background">#F8C3CE</Color>
+    <Color x:Key="Color.Card.Background">#FFDDDD</Color>
+    <Color x:Key="Color.Input.Background">#FFF4DE</Color>
+
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource Color.Canvas.Background}" />
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{StaticResource Color.Sidebar.Background}" />
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource Color.Card.Background}" />
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="{StaticResource Color.Input.Background}" />
+
+    <!-- 2. İkincil Detay: Kart Çerçevesi, Ayraç ve Hover Renkleri -->
+    <Color x:Key="Color.Border.Base">#F0B6C3</Color>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource Color.Border.Base}" />
+    <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource Color.Border.Base}" Opacity="0.5" />
+    <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#FFE8C4" />
+    <SolidColorBrush x:Key="HoverTintBrush" Color="#FFF4DE" Opacity="0.8" />
+    <SolidColorBrush x:Key="SelectedRowBrush" Color="#FCE0E7" />
+
+    <!-- 3. Üçüncül Detay: Girdi, Rozet ve Vurgu -->
+    <Color x:Key="Color.Accent.Highlight">#FFE8C4</Color>
+    <SolidColorBrush x:Key="AccentHighlightBrush" Color="{StaticResource Color.Accent.Highlight}" />
+    <SolidColorBrush x:Key="IconBrush" Color="#663A48" />
+    <SolidColorBrush x:Key="ProgressBarForegroundBrush" Color="#E58A60" />
+    <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#FFF4DE" />
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#6B3F50" />
+
+    <!-- 4. Dördüncü Detay: Tipografi & Göz Yormayan Okunaklı Gül-Kahve Metinler -->
+    <Color x:Key="Color.Text.Primary">#2E1822</Color>
+    <Color x:Key="Color.Text.Secondary">#5C3646</Color>
+    <Color x:Key="Color.Text.Muted">#8A5E70</Color>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource Color.Text.Primary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource Color.Text.Muted}" />
+
+    <!-- Durum Renkleri (Pastel & Yumuşak) -->
+    <SolidColorBrush x:Key="StatusDownloadingBrush" Color="#0284C7" />
+    <SolidColorBrush x:Key="StatusCompletedBrush" Color="#059669" />
+    <SolidColorBrush x:Key="StatusPausedBrush" Color="#D97706" />
+    <SolidColorBrush x:Key="StatusErrorBrush" Color="#DC2626" />
+
+</ResourceDictionary>

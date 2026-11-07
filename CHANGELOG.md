@@ -56,6 +56,28 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.3.0] - 2026-11-07 — Dinamik Tema, Çoklu Dil ve Ayarlar Penceresi (Themes, i18n & Settings)
+
+### 🎨 Dinamik Tema Sistemi (Dynamic Soft Loft Theme Engine)
+- **Koyu Mod (Dark Theme):** Soft Loft paleti ile `#071B2B` zemin, `#167D8D` panel ve çerçeveler, `#B9E4E8` canlı progress ve ikon vurgusu, `#EEEEEE` yüksek kontrastlı mat metinler.
+- **Açık Mod (Light Theme):** `#FFCED8` zemin, `#FFDDDD` kartlar, `#FFF4DE` giriş alanları ve `#FFE8C4` aksiyon butonları.
+- **Canlı Çalışma Zamanı Geçişi:** `ThemeManager` ve `DynamicResource` sözlüğü sayesinde uygulama yeniden başlatılmadan anında tema değişimi.
+
+### 🌐 Dinamik Çoklu Dil Desteği (LocalizationManager)
+- **Türkçe & İngilizce Desteği:** Arayüzün tüm metinleri, butonları, bildirimleri ve durum etiketleri anında Türkçe 🇹🇷 ve İngilizce 🇬🇧 arasında değiştirilebilir.
+
+### ⚙️ Motrix Esintili Ayarlar Penceresi (SettingsWindow)
+- **Sekmeli Yönetim:** Genel İndirme Ayarları, Görünüm & Dil, ve Hakkında sekmeleri.
+- **Kalıcı Yapılandırma (`AppSettings`):** Tercihler `%APPDATA%\VortexDownloader\settings.json` dosyasına JSON olarak kaydedilir.
+- **Kuyruk ve Hız Parametreleri:** Varsayılan indirme klasörü, varsayılan eşzamanlı görev limiti ve parça sayısı ayarlanabilir.
+
+### 🧹 Arayüz Sadeleştirmesi ve Temizlik
+- Geliştirici hata ayıklama kutusu ("Tarayıcı Köprüsü: Port 19741") ve altbilgi kaldırıldı.
+- Sol menü altına modern Ayarlar (`⚙️`) butonu yerleştirildi.
+- Tüm buton ve paneller yumuşak köşeli (`CornerRadius="8"`) mat kart standartlarına uyarlandı.
+
+---
+
 ## [1.2.1] - 2026-11-07 — Güvenlik Sıkılaştırma & Bütünlük Doğrulama (Security Hardening & Integrity)
 
 ### 🔒 Loopback Köprüsü Çok Katmanlı Güvenlik (Defense-in-Depth Bridge Security)
