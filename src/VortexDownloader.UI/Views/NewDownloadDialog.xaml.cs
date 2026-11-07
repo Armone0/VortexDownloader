@@ -1,6 +1,8 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
 
@@ -8,11 +10,28 @@ namespace VortexDownloader.UI.Views;
 
 public partial class NewDownloadDialog : Window
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
     private readonly DownloadEngine _engine;
 
     public string ResultUrl { get; private set; } = string.Empty;
     public string ResultDestinationPath { get; private set; } = string.Empty;
     public int ResultChunkCount { get; private set; } = 8;
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        try
+        {
+            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            int darkMode = 1;
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+        }
+        catch { }
+    }
 
     public NewDownloadDialog(DownloadEngine engine)
     {

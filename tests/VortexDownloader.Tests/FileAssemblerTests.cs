@@ -108,4 +108,55 @@ public class FileAssemblerTests
             }
         }
     }
+
+    [Fact]
+    public async Task AssembleAsync_ReportsProgressMonotonically_AndFinishesAt100()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "vortex_asm_prog_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            string chunk0Path = Path.Combine(tempDir, "chunk_0.part");
+            string chunk1Path = Path.Combine(tempDir, "chunk_1.part");
+            await File.WriteAllBytesAsync(chunk0Path, new byte[100_000]);
+            await File.WriteAllBytesAsync(chunk1Path, new byte[100_000]);
+
+            string destPath = Path.Combine(tempDir, "progress_output.bin");
+            var taskId = Guid.NewGuid();
+            var task = new DownloadTask
+            {
+                Id = taskId,
+                DestinationPath = destPath,
+                TotalBytes = 200_000,
+                Chunks =
+                [
+                    new() { Id = 0, TaskId = taskId, StartPos = 0, CurrentPos = 100_000, EndPos = 99_999, TempFilePath = chunk0Path, IsCompleted = true },
+                    new() { Id = 1, TaskId = taskId, StartPos = 100_000, CurrentPos = 200_000, EndPos = 199_999, TempFilePath = chunk1Path, IsCompleted = true }
+                ]
+            };
+
+            var reports = new List<double>();
+            var progress = new Progress<double>(p => reports.Add(p));
+
+            await FileAssembler.AssembleAsync(task, progress);
+
+            Assert.True(File.Exists(destPath));
+            // Ensure 100.0 is the final progress reported
+            Assert.NotEmpty(reports);
+            Assert.Equal(100.0, reports[^1]);
+            // Ensure monotonic progression
+            for (int i = 1; i < reports.Count; i++)
+            {
+                Assert.True(reports[i] >= reports[i - 1], $"Progress went backwards: {reports[i]} < {reports[i-1]}");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+    }
 }

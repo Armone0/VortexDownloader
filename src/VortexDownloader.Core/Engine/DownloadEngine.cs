@@ -20,6 +20,8 @@ public class DownloadEngine : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, long> _lastDownloadedBytes = new();
     private readonly Timer _monitorTimer;
     private long _lastMonitorTicks;
+    private int _stateSaveTickCounter;
+    private const int StateSaveIntervalTicks = 10; // Save state at most once every 5 seconds (10 * 500ms) during active downloads
     private bool _isDisposed;
 
     public event Action<DownloadTask>? TaskAdded;
@@ -184,8 +186,24 @@ public class DownloadEngine : IAsyncDisposable
         if (_tasks.TryRemove(taskId, out var task))
         {
             _lastDownloadedBytes.TryRemove(taskId, out _);
+            CleanupTaskTempDirectorySafe(task.TempDirectory);
             TaskRemoved?.Invoke(task);
             await SaveStateAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static void CleanupTaskTempDirectorySafe(string? tempDir)
+    {
+        if (!string.IsNullOrWhiteSpace(tempDir) && Directory.Exists(tempDir))
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch
+            {
+                // Best-effort cleanup
+            }
         }
     }
 
@@ -265,7 +283,7 @@ public class DownloadEngine : IAsyncDisposable
                         task.Url,
                         singleChunk,
                         _globalSpeedLimiter,
-                        _ => task.RecalculateDownloadedBytes(),
+                        onBytesReceived: null,
                         cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -280,6 +298,15 @@ public class DownloadEngine : IAsyncDisposable
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Strict verification: ensure all chunks are completed before assembly
+            lock (task.ChunksLock)
+            {
+                if (task.Chunks.Any(c => !c.IsCompleted))
+                {
+                    throw new InvalidOperationException("Bazı indirme parçaları tamamlanamadı; birleştirme iptal edildi.");
+                }
+            }
 
             // All chunks downloaded -> Assemble file
             task.Status = DownloadStatus.Assembling;
@@ -327,7 +354,7 @@ public class DownloadEngine : IAsyncDisposable
     {
         using var activeWorkersSemaphore = new SemaphoreSlim(task.MaxChunks, task.MaxChunks);
         List<Task> activeWorkerTasks = [];
-        object chunkListLock = task.Chunks;
+        object chunkListLock = task.ChunksLock;
 
         async Task WorkerLoopAsync(DownloadChunk initialChunk)
         {
@@ -343,7 +370,7 @@ public class DownloadEngine : IAsyncDisposable
                         task.Url,
                         currentChunk,
                         _globalSpeedLimiter,
-                        _ => task.RecalculateDownloadedBytes(),
+                        onBytesReceived: null,
                         cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -441,9 +468,9 @@ public class DownloadEngine : IAsyncDisposable
             }
         }
 
-        if (hasChanges)
+        if (hasChanges && Interlocked.Increment(ref _stateSaveTickCounter) % StateSaveIntervalTicks == 0)
         {
-            // Non-blocking background save
+            // Decoupled periodic background save (every 5 seconds) prevents disk thrashing and lock contention
             _ = SaveStateAsync();
         }
     }
@@ -452,7 +479,33 @@ public class DownloadEngine : IAsyncDisposable
     {
         try
         {
-            await _stateStore.SaveTasksAsync(Tasks.ToList()).ConfigureAwait(false);
+            var snapshot = Tasks.Select(t =>
+            {
+                lock (t.ChunksLock)
+                {
+                    return new DownloadTask
+                    {
+                        Id = t.Id,
+                        Url = t.Url,
+                        DestinationPath = t.DestinationPath,
+                        FileName = t.FileName,
+                        TotalBytes = t.TotalBytes,
+                        DownloadedBytes = t.DownloadedBytes,
+                        SpeedBytesPerSec = t.SpeedBytesPerSec,
+                        Status = t.Status,
+                        ETag = t.ETag,
+                        SupportsRange = t.SupportsRange,
+                        MaxChunks = t.MaxChunks,
+                        Chunks = new List<DownloadChunk>(t.Chunks),
+                        ErrorMessage = t.ErrorMessage,
+                        CreatedAt = t.CreatedAt,
+                        CompletedAt = t.CompletedAt,
+                        TempDirectory = t.TempDirectory
+                    };
+                }
+            }).ToList();
+
+            await _stateStore.SaveTasksAsync(snapshot).ConfigureAwait(false);
         }
         catch
         {
@@ -467,12 +520,26 @@ public class DownloadEngine : IAsyncDisposable
 
         await _monitorTimer.DisposeAsync().ConfigureAwait(false);
 
+        // 1. Signal cancellation to all workers
         foreach (var cts in _runningTokens.Values)
         {
-            cts.Cancel();
-            cts.Dispose();
+            try { cts.Cancel(); } catch { }
+        }
+
+        // 2. Await background execution tasks so they finish cleanly
+        var runningTasks = _runningExecutionTasks.Values.ToArray();
+        if (runningTasks.Length > 0)
+        {
+            try { await Task.WhenAll(runningTasks).ConfigureAwait(false); } catch { }
+        }
+
+        // 3. Dispose CTS instances safely
+        foreach (var cts in _runningTokens.Values)
+        {
+            try { cts.Dispose(); } catch { }
         }
         _runningTokens.Clear();
+        _runningExecutionTasks.Clear();
 
         await SaveStateAsync().ConfigureAwait(false);
         _httpClient.Dispose();

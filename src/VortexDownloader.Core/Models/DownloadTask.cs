@@ -22,6 +22,11 @@ public class DownloadTask
     public DateTime? CompletedAt { get; set; }
     public string TempDirectory { get; set; } = string.Empty;
 
+    private readonly object _chunksLock = new();
+
+    [JsonIgnore]
+    public object ChunksLock => _chunksLock;
+
     [JsonIgnore]
     public double ProgressPercentage
     {
@@ -42,24 +47,50 @@ public class DownloadTask
         : $"{FormatBytes(DownloadedBytes)} (Bilinmiyor)";
 
     [JsonIgnore]
-    public int CompletedChunkCount => Chunks.Count(c => c.IsCompleted);
+    public int CompletedChunkCount
+    {
+        get
+        {
+            lock (_chunksLock)
+            {
+                return Chunks.Count(c => c.IsCompleted);
+            }
+        }
+    }
 
     [JsonIgnore]
-    public int ActiveChunkCount => Chunks.Count(c => c.IsActive && !c.IsCompleted);
+    public int ActiveChunkCount
+    {
+        get
+        {
+            lock (_chunksLock)
+            {
+                return Chunks.Count(c => c.IsActive && !c.IsCompleted);
+            }
+        }
+    }
+
+    public List<DownloadChunk> CloneChunks()
+    {
+        lock (_chunksLock)
+        {
+            return new List<DownloadChunk>(Chunks);
+        }
+    }
 
     public void RecalculateDownloadedBytes()
     {
-        if (Chunks.Count > 0)
+        lock (_chunksLock)
         {
-            long sum = 0;
-            lock (Chunks)
+            if (Chunks.Count > 0)
             {
+                long sum = 0;
                 foreach (var chunk in Chunks)
                 {
                     sum += chunk.DownloadedBytes;
                 }
+                DownloadedBytes = sum;
             }
-            DownloadedBytes = sum;
         }
     }
 

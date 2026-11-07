@@ -64,7 +64,16 @@ public class VortexTrayIcon : IDisposable
     private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
 
     [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr CopyIcon(IntPtr hIcon);
+
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyMenu(IntPtr hMenu);
+
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
     private static extern IntPtr CreatePopupMenu();
@@ -101,11 +110,31 @@ public class VortexTrayIcon : IDisposable
         _hwndSource = HwndSource.FromHwnd(hwnd);
         _hwndSource?.AddHook(WndProc);
 
-        string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "vortex_tray.ico");
         IntPtr hIcon = IntPtr.Zero;
-        if (File.Exists(iconPath))
+        try
         {
-            hIcon = LoadImage(IntPtr.Zero, iconPath, 1 /*IMAGE_ICON*/, 16, 16, 0x00000010 /*LR_LOADFROMFILE*/);
+            var streamUri = new Uri("pack://application:,,,/Assets/vortex_tray.ico", UriKind.Absolute);
+            var sri = Application.GetResourceStream(streamUri);
+            if (sri?.Stream != null)
+            {
+                using var icon = new System.Drawing.Icon(sri.Stream, 16, 16);
+                hIcon = CopyIcon(icon.Handle);
+            }
+        }
+        catch
+        {
+            try
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "vortex_tray.ico");
+                if (File.Exists(iconPath))
+                {
+                    hIcon = LoadImage(IntPtr.Zero, iconPath, 1 /*IMAGE_ICON*/, 16, 16, 0x00000010 /*LR_LOADFROMFILE*/);
+                }
+            }
+            catch
+            {
+                // Non-fatal: Tray will use default icon if loading fails
+            }
         }
 
         _nid = new NOTIFYICONDATA
@@ -145,36 +174,61 @@ public class VortexTrayIcon : IDisposable
     private void ShowContextMenu(IntPtr hwnd)
     {
         IntPtr hMenu = CreatePopupMenu();
-        AppendMenu(hMenu, 0, 1, "VortexDownloader'ı Aç");
-        AppendMenu(hMenu, 0x00000800 /*MF_SEPARATOR*/, 0, string.Empty);
-        AppendMenu(hMenu, 0, 2, "Tümünü Başlat");
-        AppendMenu(hMenu, 0, 3, "Tümünü Duraklat");
-        AppendMenu(hMenu, 0x00000800 /*MF_SEPARATOR*/, 0, string.Empty);
-        AppendMenu(hMenu, 0, 4, "Çıkış");
-
-        GetCursorPos(out var pt);
-        SetForegroundWindow(hwnd);
-        uint cmd = TrackPopupMenu(hMenu, 0x0100 /*TPM_RETURNCMD*/ | 0x0002 /*TPM_RIGHTBUTTON*/, pt.X, pt.Y, 0, hwnd, IntPtr.Zero);
-
-        switch (cmd)
+        try
         {
-            case 1: _onRestore(); break;
-            case 2: _onStartAll(); break;
-            case 3: _onPauseAll(); break;
-            case 4: _onExit(); break;
+            AppendMenu(hMenu, 0, 1, "VortexDownloader'ı Aç");
+            AppendMenu(hMenu, 0x00000800 /*MF_SEPARATOR*/, 0, string.Empty);
+            AppendMenu(hMenu, 0, 2, "Tümünü Başlat");
+            AppendMenu(hMenu, 0, 3, "Tümünü Duraklat");
+            AppendMenu(hMenu, 0x00000800 /*MF_SEPARATOR*/, 0, string.Empty);
+            AppendMenu(hMenu, 0, 4, "Çıkış");
+
+            GetCursorPos(out var pt);
+            SetForegroundWindow(hwnd);
+            uint cmd = TrackPopupMenu(hMenu, 0x0100 /*TPM_RETURNCMD*/ | 0x0002 /*TPM_RIGHTBUTTON*/, pt.X, pt.Y, 0, hwnd, IntPtr.Zero);
+            PostMessage(hwnd, 0 /*WM_NULL*/, IntPtr.Zero, IntPtr.Zero);
+
+            switch (cmd)
+            {
+                case 1: _onRestore(); break;
+                case 2: _onStartAll(); break;
+                case 3: _onPauseAll(); break;
+                case 4: _onExit(); break;
+            }
+        }
+        finally
+        {
+            if (hMenu != IntPtr.Zero)
+            {
+                DestroyMenu(hMenu);
+            }
         }
     }
 
     public void Dispose()
     {
+        if (_hwndSource != null)
+        {
+            try
+            {
+                _hwndSource.RemoveHook(WndProc);
+            }
+            catch
+            {
+            }
+            _hwndSource = null;
+        }
+
         if (_isCreated)
         {
             Shell_NotifyIcon(NIM_DELETE, ref _nid);
-            if (_nid.hIcon != IntPtr.Zero)
-            {
-                DestroyIcon(_nid.hIcon);
-            }
             _isCreated = false;
+        }
+
+        if (_nid.hIcon != IntPtr.Zero)
+        {
+            DestroyIcon(_nid.hIcon);
+            _nid.hIcon = IntPtr.Zero;
         }
     }
 }

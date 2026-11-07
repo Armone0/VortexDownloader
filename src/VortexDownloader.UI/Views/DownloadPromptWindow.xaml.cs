@@ -144,12 +144,24 @@ public partial class DownloadPromptWindow : Window
 
     private void UpdateDestinationPath()
     {
-        string fileName = TxtFileName.Text.Trim();
+        string fileName = Path.GetFileName(TxtFileName.Text.Trim());
+        char[] invalid = Path.GetInvalidFileNameChars();
+        foreach (char c in invalid)
+        {
+            fileName = fileName.Replace(c, '_');
+        }
         if (string.IsNullOrWhiteSpace(fileName))
         {
             fileName = "download.bin";
         }
-        ResultDestinationPath = Path.Combine(_currentDirectory, fileName);
+
+        string target = Path.GetFullPath(Path.Combine(_currentDirectory, fileName));
+        string currentDir = Path.GetFullPath(_currentDirectory);
+        if (!target.StartsWith(currentDir, StringComparison.OrdinalIgnoreCase))
+        {
+            target = Path.Combine(currentDir, "download.bin");
+        }
+        ResultDestinationPath = target;
     }
 
     private static string FormatBytes(long bytes)

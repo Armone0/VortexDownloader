@@ -9,7 +9,7 @@
         Height="620" Width="980"
         MinHeight="480" MinWidth="750"
         WindowStartupLocation="CenterScreen"
-        Icon="Assets/vortex_app.ico"
+        Icon="pack://application:,,,/Assets/vortex_app.ico"
         Background="#0B0F19"
         Foreground="#F8FAFC"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
@@ -114,7 +114,7 @@
 
                 <!-- Left: Brand & Primary Actions -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="Assets/vortex_logo.png" Width="38" Height="38" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Image Source="pack://application:,,,/Assets/vortex_logo.png" Width="38" Height="38" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                         <TextBlock Text="VORTEX" FontSize="16" FontWeight="Black" Foreground="#00F2FE"/>
                         <TextBlock Text="DOWNLOADER" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" Margin="0,-2,0,0"/>
@@ -155,13 +155,75 @@
             </Grid>
         </Border>
 
-        <!-- MAIN DOWNLOADS LIST -->
+        <!-- MAIN DOWNLOADS LIST & EMPTY STATE -->
         <Grid Grid.Row="1">
-            <!-- Empty State Notice -->
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" 
-                        Visibility="{Binding Downloads.Count, Converter={x:Null}, FallbackValue=Collapsed}">
-                <!-- Handled dynamically if needed -->
-            </StackPanel>
+            <!-- Empty State Hero (Visible when no downloads) -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="580" Margin="24"
+                    Visibility="{Binding HasNoDownloads, Converter={StaticResource BoolToVis}}"
+                    Background="#111827" BorderBrush="#1F2937" BorderThickness="1" CornerRadius="16" Padding="36,32">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Glowing Logo Container -->
+                    <Border Width="84" Height="84" CornerRadius="20" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#00F2FE" Offset="0"/>
+                                <GradientStop Color="#7F00FF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="30" Color="#00F2FE" Opacity="0.4" ShadowDepth="0"/>
+                        </Border.Effect>
+                        <Image Source="pack://application:,,,/Assets/vortex_logo.png" Margin="14" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+
+                    <!-- Title & Tagline -->
+                    <TextBlock Text="VORTEX DOWNLOADER" FontSize="20" FontWeight="Black" Foreground="#F8FAFC" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Yüksek hızlı, dinamik çok kanallı indirme motoru hazır." FontSize="13" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,6,0,20"/>
+
+                    <!-- CTA Button -->
+                    <Button Style="{StaticResource ActionButtonStyle}" 
+                            Background="#4F46E5" Foreground="#FFFFFF" BorderThickness="0" 
+                            Content="⚡ Yeni İndirme Başlat" Padding="24,12" FontSize="14" FontWeight="Bold"
+                            HorizontalAlignment="Center" Margin="0,0,0,22" Click="BtnNewDownload_Click"/>
+
+                    <!-- Feature Pillars Grid -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Feature 1 -->
+                        <Border Grid.Column="0" Background="#1E293B" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="⚡ 32 Parça" FontSize="12" FontWeight="Bold" Foreground="#00F2FE" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Dinamik Bölme" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Feature 2 -->
+                        <Border Grid.Column="1" Background="#1E293B" CornerRadius="8" Padding="12,10" Margin="4,0,4,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🌐 Tarayıcı Köprüsü" FontSize="12" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Chrome / Edge" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Feature 3 -->
+                        <Border Grid.Column="2" Background="#1E293B" CornerRadius="8" Padding="12,10" Margin="6,0,0,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🛡️ Bellek Koruması" FontSize="12" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Center"/>
+                                <TextBlock Text="RAM/Disk Güvenliği" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- System Tray Note -->
+                    <TextBlock Text="💡 İpucu: Uygulama kapatıldığında Windows sistem tepsisinde (saat yanı) çalışır." 
+                               FontSize="11" Foreground="#64748B" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
                 <ItemsControl ItemsSource="{Binding Downloads}">

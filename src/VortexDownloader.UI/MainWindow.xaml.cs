@@ -1,7 +1,9 @@
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Interop;
 using VortexDownloader.UI.ViewModels;
 using VortexDownloader.UI.Views;
 
@@ -9,6 +11,11 @@ namespace VortexDownloader.UI;
 
 public partial class MainWindow : Window
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
     private readonly MainViewModel _viewModel;
     private VortexTrayIcon? _trayIcon;
     private HttpListener? _extensionBridgeListener;
@@ -33,6 +40,20 @@ public partial class MainWindow : Window
             RealExit);
 
         StartBrowserExtensionBridge();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        try
+        {
+            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            int darkMode = 1;
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+        }
+        catch
+        {
+        }
     }
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
@@ -74,7 +95,8 @@ public partial class MainWindow : Window
         }
 
         _bridgeCts?.Cancel();
-        _extensionBridgeListener?.Stop();
+        try { _extensionBridgeListener?.Close(); } catch { }
+        _bridgeCts?.Dispose();
         _trayIcon?.Dispose();
         await _viewModel.Engine.DisposeAsync();
     }
@@ -84,7 +106,7 @@ public partial class MainWindow : Window
         try
         {
             _extensionBridgeListener = new HttpListener();
-            _extensionBridgeListener.Prefixes.Add("http://127.0.0.1:1001/download/");
+            _extensionBridgeListener.Prefixes.Add("http://127.0.0.1:19741/download/");
             _extensionBridgeListener.Start();
 
             _bridgeCts = new CancellationTokenSource();
@@ -116,14 +138,33 @@ public partial class MainWindow : Window
     {
         try
         {
-            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+            // Security: Prevent malicious webpage CSRF drive-by downloads.
+            // Check the Origin header: only allow browser extensions or local requests without web Origin.
+            string? origin = context.Request.Headers["Origin"];
+            if (!string.IsNullOrEmpty(origin))
+            {
+                bool isExtension = origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase) ||
+                                   origin.StartsWith("edge-extension://", StringComparison.OrdinalIgnoreCase) ||
+                                   origin.StartsWith("moz-extension://", StringComparison.OrdinalIgnoreCase);
+                if (!isExtension)
+                {
+                    // Block web origins attempting drive-by downloads
+                    context.Response.StatusCode = 403;
+                    return;
+                }
+                context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
+            }
+            else
+            {
+                context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            }
+
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
             context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
 
             if (context.Request.HttpMethod == "OPTIONS")
             {
                 context.Response.StatusCode = 200;
-                context.Response.Close();
                 return;
             }
 
@@ -135,10 +176,20 @@ public partial class MainWindow : Window
 
                 if (data != null && !string.IsNullOrWhiteSpace(data.Url))
                 {
+                    // Security: Enforce HTTP/HTTPS scheme validation to prevent file:// or command injection URIs
+                    if (!Uri.TryCreate(data.Url, UriKind.Absolute, out var uri) ||
+                        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                    {
+                        context.Response.StatusCode = 400;
+                        return;
+                    }
+
+                    string safeFileName = SanitizeFileName(data.FileName);
+
                     await Dispatcher.InvokeAsync(() =>
                     {
                         RestoreFromTray();
-                        PromptNewDownloadFromBrowser(data.Url, data.FileName, data.FileSize);
+                        PromptNewDownloadFromBrowser(uri.AbsoluteUri, safeFileName, data.FileSize);
                     });
                 }
             }
@@ -149,12 +200,24 @@ public partial class MainWindow : Window
         }
         catch
         {
-            context.Response.StatusCode = 500;
+            try { context.Response.StatusCode = 500; } catch { }
         }
         finally
         {
-            context.Response.Close();
+            try { context.Response.Close(); } catch { }
         }
+    }
+
+    public static string SanitizeFileName(string? rawFileName)
+    {
+        if (string.IsNullOrWhiteSpace(rawFileName)) return "download.bin";
+        string fileName = Path.GetFileName(rawFileName.Trim());
+        char[] invalid = Path.GetInvalidFileNameChars();
+        foreach (char c in invalid)
+        {
+            fileName = fileName.Replace(c, '_');
+        }
+        return string.IsNullOrWhiteSpace(fileName) ? "download.bin" : fileName;
     }
 
     private async void PromptNewDownloadFromBrowser(string url, string? fileName, long? size)

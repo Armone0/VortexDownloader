@@ -93,24 +93,44 @@ public class DownloadItemViewModel : ViewModelBase
         _ => Status.ToString()
     };
 
+    private static readonly SolidColorBrush EmeraldBrush = FreezeBrush(new SolidColorBrush(Color.FromRgb(52, 211, 153)));
+    private static readonly SolidColorBrush AmberBrush   = FreezeBrush(new SolidColorBrush(Color.FromRgb(251, 191, 36)));
+    private static readonly SolidColorBrush PurpleBrush  = FreezeBrush(new SolidColorBrush(Color.FromRgb(192, 132, 252)));
+    private static readonly SolidColorBrush BlueBrush    = FreezeBrush(new SolidColorBrush(Color.FromRgb(96, 165, 250)));
+    private static readonly SolidColorBrush RoseBrush    = FreezeBrush(new SolidColorBrush(Color.FromRgb(248, 113, 113)));
+    private static readonly SolidColorBrush SlateBrush   = FreezeBrush(new SolidColorBrush(Color.FromRgb(148, 163, 184)));
+
+    private static readonly SolidColorBrush EmeraldBgBrush = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 52, 211, 153)));
+    private static readonly SolidColorBrush AmberBgBrush   = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 251, 191, 36)));
+    private static readonly SolidColorBrush PurpleBgBrush  = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 192, 132, 252)));
+    private static readonly SolidColorBrush BlueBgBrush    = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 96, 165, 250)));
+    private static readonly SolidColorBrush RoseBgBrush    = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 248, 113, 113)));
+    private static readonly SolidColorBrush SlateBgBrush   = FreezeBrush(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)));
+
+    private static SolidColorBrush FreezeBrush(SolidColorBrush brush)
+    {
+        brush.Freeze();
+        return brush;
+    }
+
     public Brush StatusColor => Status switch
     {
-        DownloadStatus.Downloading => new SolidColorBrush(Color.FromRgb(52, 211, 153)), // Emerald
-        DownloadStatus.Paused => new SolidColorBrush(Color.FromRgb(251, 191, 36)),     // Amber
-        DownloadStatus.Assembling => new SolidColorBrush(Color.FromRgb(192, 132, 252)), // Purple
-        DownloadStatus.Completed => new SolidColorBrush(Color.FromRgb(96, 165, 250)),   // Blue
-        DownloadStatus.Failed => new SolidColorBrush(Color.FromRgb(248, 113, 113)),    // Rose
-        _ => new SolidColorBrush(Color.FromRgb(148, 163, 184))                         // Slate
+        DownloadStatus.Downloading => EmeraldBrush,
+        DownloadStatus.Paused => AmberBrush,
+        DownloadStatus.Assembling => PurpleBrush,
+        DownloadStatus.Completed => BlueBrush,
+        DownloadStatus.Failed => RoseBrush,
+        _ => SlateBrush
     };
 
     public Brush StatusBgColor => Status switch
     {
-        DownloadStatus.Downloading => new SolidColorBrush(Color.FromArgb(40, 52, 211, 153)),
-        DownloadStatus.Paused => new SolidColorBrush(Color.FromArgb(40, 251, 191, 36)),
-        DownloadStatus.Assembling => new SolidColorBrush(Color.FromArgb(40, 192, 132, 252)),
-        DownloadStatus.Completed => new SolidColorBrush(Color.FromArgb(40, 96, 165, 250)),
-        DownloadStatus.Failed => new SolidColorBrush(Color.FromArgb(40, 248, 113, 113)),
-        _ => new SolidColorBrush(Color.FromArgb(40, 148, 163, 184))
+        DownloadStatus.Downloading => EmeraldBgBrush,
+        DownloadStatus.Paused => AmberBgBrush,
+        DownloadStatus.Assembling => PurpleBgBrush,
+        DownloadStatus.Completed => BlueBgBrush,
+        DownloadStatus.Failed => RoseBgBrush,
+        _ => SlateBgBrush
     };
 
     public bool CanPause => Status == DownloadStatus.Downloading;

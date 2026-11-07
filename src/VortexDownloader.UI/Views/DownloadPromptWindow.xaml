@@ -100,7 +100,7 @@
                             <GradientStop Color="#7F00FF" Offset="1"/>
                         </LinearGradientBrush>
                     </Border.Background>
-                    <Image Source="/Assets/vortex_logo.png" Margin="6" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Image Source="pack://application:,,,/Assets/vortex_logo.png" Margin="6" RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
 
                 <!-- Titles -->

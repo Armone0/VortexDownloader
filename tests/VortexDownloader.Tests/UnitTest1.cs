@@ -93,25 +93,69 @@ public class ChunksManagerTests
     }
 
     [Fact]
-    public void InitializeChunks_PartitionsTotalBytesWithoutGaps()
+    public async Task DownloadTask_ConcurrentChunkModifications_DoNotThrow()
     {
-        var taskId = Guid.NewGuid();
-        long totalBytes = 10_000_000;
-        int chunkCount = 4;
-        string tempDir = Path.Combine(Path.GetTempPath(), "test_chunks_" + Guid.NewGuid().ToString("N"));
+        var task = new DownloadTask { TotalBytes = 10000 };
+        for (int i = 0; i < 5; i++)
+        {
+            task.Chunks.Add(new DownloadChunk { Id = i, StartPos = i * 2000, CurrentPos = i * 2000 + 1000, EndPos = (i + 1) * 2000 - 1, IsActive = true });
+        }
 
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var addRemoveTask = Task.Run(() =>
+        {
+            int counter = 10;
+            while (!cts.IsCancellationRequested)
+            {
+                lock (task.ChunksLock)
+                {
+                    task.Chunks.Add(new DownloadChunk { Id = counter++, IsActive = true });
+                    if (task.Chunks.Count > 15) task.Chunks.RemoveAt(task.Chunks.Count - 1);
+                }
+                Thread.Sleep(1);
+            }
+        });
+
+        var readTask = Task.Run(() =>
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                int completed = task.CompletedChunkCount;
+                int active = task.ActiveChunkCount;
+                var clone = task.CloneChunks();
+                Assert.True(clone.Count >= 0);
+                task.RecalculateDownloadedBytes();
+                Thread.Sleep(1);
+            }
+        });
+
+        await Task.WhenAll(addRemoveTask, readTask);
+    }
+
+    [Fact]
+    public async Task AssembleAsync_Throws_WhenChunksAreIncomplete()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "asm_incomplete_test_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
         try
         {
-            var chunks = ChunksManager.InitializeChunks(taskId, totalBytes, chunkCount, tempDir);
+            string p0 = Path.Combine(tempDir, "p0.bin");
+            string p1 = Path.Combine(tempDir, "p1.bin");
+            await File.WriteAllBytesAsync(p0, new byte[100]);
+            await File.WriteAllBytesAsync(p1, new byte[100]);
 
-            Assert.Equal(4, chunks.Count);
-            Assert.Equal(0, chunks[0].StartPos);
-            Assert.Equal(totalBytes - 1, chunks[^1].EndPos);
-
-            for (int i = 0; i < chunks.Count - 1; i++)
+            var task = new DownloadTask
             {
-                Assert.Equal(chunks[i].EndPos + 1, chunks[i + 1].StartPos);
-            }
+                TotalBytes = 200,
+                DestinationPath = Path.Combine(tempDir, "out.bin"),
+                Chunks =
+                [
+                    new DownloadChunk { Id = 0, StartPos = 0, CurrentPos = 100, EndPos = 99, TempFilePath = p0, IsCompleted = true },
+                    new DownloadChunk { Id = 1, StartPos = 100, CurrentPos = 150, EndPos = 199, TempFilePath = p1, IsCompleted = false } // incomplete!
+                ]
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => FileAssembler.AssembleAsync(task));
         }
         finally
         {

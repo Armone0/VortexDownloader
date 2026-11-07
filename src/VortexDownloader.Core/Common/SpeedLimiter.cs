@@ -118,11 +118,14 @@ public class SpeedLimiter
             double missingTokens = byteCount - _availableTokens;
             delaySeconds = missingTokens / _bytesPerSecondLimit;
 
-            // Debit tokens so following calls also account for this
-            _availableTokens -= byteCount;
+            // Debit tokens so following calls also account for this (clamped to prevent runaway debt)
+            _availableTokens = Math.Max(-_bucketCapacity, _availableTokens - byteCount);
         }
 
-        if (delaySeconds > 0)
+        // Timer optimization: Only invoke Task.Delay if delay exceeds 10ms to prevent
+        // Windows system timer tick quantization (default 15.6ms resolution) from crushing throughput.
+        // Deficits smaller than 10ms accumulate safely in _availableTokens until the threshold is crossed.
+        if (delaySeconds >= 0.010)
         {
             TimeSpan delay = TimeSpan.FromSeconds(delaySeconds);
             await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);

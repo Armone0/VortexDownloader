@@ -10,7 +10,7 @@ namespace VortexDownloader.Core.Network;
 
 public class ChunkDownloader
 {
-    private const int BufferSize = 81920; // 80 KB chunk buffer
+    private const int BufferSize = 131072; // 128 KB buffer, perfectly aligned with ArrayPool 2^17 bucket
 
     public static HttpClient CreateOptimizedHttpClient()
     {
@@ -20,6 +20,8 @@ public class ChunkDownloader
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             MaxConnectionsPerServer = 64,
             EnableMultipleHttp2Connections = true,
+            InitialHttp2StreamWindowSize = 16 * 1024 * 1024, // 16 MB flow control window prevents Gigabit BDP bottleneck
+            ConnectTimeout = TimeSpan.FromSeconds(15),
             AutomaticDecompression = DecompressionMethods.None // Essential for byte-range integrity
         };
 
@@ -43,6 +45,33 @@ public class ChunkDownloader
         ArgumentNullException.ThrowIfNull(chunk);
         ArgumentNullException.ThrowIfNull(speedLimiter);
 
+        const int maxRetries = 3;
+        int attempt = 0;
+
+        while (attempt < maxRetries)
+        {
+            try
+            {
+                await DownloadChunkInternalAsync(httpClient, url, chunk, speedLimiter, onBytesReceived, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or IOException && attempt < maxRetries - 1 && !cancellationToken.IsCancellationRequested)
+            {
+                attempt++;
+                int delayMs = attempt * 1000;
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task DownloadChunkInternalAsync(
+        HttpClient httpClient,
+        string url,
+        DownloadChunk chunk,
+        SpeedLimiter speedLimiter,
+        Action<int>? onBytesReceived,
+        CancellationToken cancellationToken)
+    {
         if (chunk.IsCompleted)
         {
             return;
@@ -68,7 +97,7 @@ public class ChunkDownloader
             FileMode.OpenOrCreate,
             FileAccess.Write,
             FileShare.ReadWrite,
-            BufferSize,
+            bufferSize: 4096, // 4 KB stream buffer: 128 KB writes bypass managed buffer directly to OS
             useAsync: true);
 
         // Position file pointer to current downloaded offset
@@ -143,10 +172,22 @@ public class ChunkDownloader
 
                 await speedLimiter.ConsumeAsync(bytesRead, cancellationToken).ConfigureAwait(false);
 
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+                int maxBytesToWrite = bytesRead;
+                if (chunk.EndPos >= 0)
+                {
+                    long allowedToWrite = chunk.EndPos - chunk.CurrentPos + 1;
+                    if (allowedToWrite <= 0)
+                    {
+                        chunk.IsCompleted = true;
+                        break;
+                    }
+                    maxBytesToWrite = (int)Math.Min(bytesRead, allowedToWrite);
+                }
 
-                chunk.CurrentPos += bytesRead;
-                onBytesReceived?.Invoke(bytesRead);
+                await fileStream.WriteAsync(buffer.AsMemory(0, maxBytesToWrite), cancellationToken).ConfigureAwait(false);
+
+                chunk.CurrentPos += maxBytesToWrite;
+                onBytesReceived?.Invoke(maxBytesToWrite);
 
                 if (chunk.EndPos >= 0 && chunk.CurrentPos > chunk.EndPos)
                 {

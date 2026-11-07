@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VortexDownloader.Core\VortexDownloader.Core.csproj" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -14,18 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\vortex_app.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\vortex_tray.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\vortex_logo.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\vortex_logo.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Assets\vortex_app.ico" />
+    <Resource Include="Assets\vortex_tray.ico" />
+    <Resource Include="Assets\vortex_logo.png" />
+    <Resource Include="Assets\vortex_logo.svg" />
   </ItemGroup>
 
 </Project>

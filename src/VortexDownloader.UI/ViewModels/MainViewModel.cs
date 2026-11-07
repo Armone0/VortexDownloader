@@ -40,6 +40,7 @@ public class MainViewModel : ViewModelBase
     }
 
     public int TotalDownloadsCount => Downloads.Count;
+    public bool HasNoDownloads => Downloads.Count == 0;
 
     public string SelectedSpeedLimit
     {
@@ -155,6 +156,7 @@ public class MainViewModel : ViewModelBase
         TotalSpeedFormatted = DownloadTask.FormatBytesPerSec(sumSpeed);
         ActiveDownloadsCount = Downloads.Count(d => d.Status == DownloadStatus.Downloading);
         OnPropertyChanged(nameof(TotalDownloadsCount));
+        OnPropertyChanged(nameof(HasNoDownloads));
     }
 
     private void PostToUi(Action action)

@@ -71,10 +71,25 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Yeni İndirme Başlat" FontSize="20" FontWeight="Bold" Foreground="#F8FAFC"/>
-            <TextBlock Text="İndirme URL'sini yapıştırın ve parça sayısını belirleyin." FontSize="13" Foreground="#94A3B8" Margin="0,4,0,0"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Margin="0,0,14,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#00F2FE" Offset="0"/>
+                        <GradientStop Color="#7F00FF" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Image Source="pack://application:,,,/Assets/vortex_logo.png" Margin="6" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="Yeni İndirme Başlat" FontSize="18" FontWeight="Bold" Foreground="#F8FAFC"/>
+                <TextBlock Text="İndirme bağlantısını yapıştırın ve çok kanallı indirmeyi başlatın." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Input Form -->
         <StackPanel Grid.Row="1" VerticalAlignment="Top">
