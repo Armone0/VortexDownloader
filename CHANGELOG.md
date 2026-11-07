@@ -56,6 +56,26 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.3.0] - 2026-11-07 — Kristal Açık Mod, 5px İnce Scrollbar ve Üst Bar Yenilemesi
+
+### 💎 Kristal Netliğinde Slate Açık Mod (Crystal Clear Light Theme)
+- Saf süt beyazı kartlar (`#FFFFFF`), ferah Slate 50 arka plan (`#F8FAFC`), zarif kenarlıklar (`#E2E8F0`) ve yüksek kontrastlı Slate 900 metinler (`#0F172A`).
+- Tüm buton stilleri ve metinler gözü yormayan yüksek kontrastlı profesyonel görünüme kavuşturuldu.
+
+### 🎚️ 5px Ultra-Slim Modern Scrollbar
+- Windows'un kaba gri kaydırma çubuğu yerine yalnızca üzerine gelindiğinde beliren 5px genişliğinde şeffaf hap scrollbar (`Themes/Styles.xaml`).
+- Sol kategori menüsündeki gereksiz taşmalar ve çift scrollbar sorunları tamamen giderildi.
+
+### 🧭 Segmented Control Pill Üst Araç Çubuğu
+- Tümünü Başlat, Tümünü Duraklat ve Bitenleri Temizle butonları tek bir zarif Segmented Control kartı altında birleştirildi.
+- Hız sınırı ve Bitince Kapat kontrolleri kompakt yatay dengeye oturtuldu.
+
+### 📐 Küçük Ekran & Responsive İyileştirmeleri
+- Minimum pencere boyutları 740x460 olarak ayarlandı, düşük çözünürlüklü ekranlarda taşma ve kırpılmalar engellendi.
+- Görünüm & Dil sekmesinde metin kayması (TextWrapping) düzeltildi, klavye odak çerçeveleri temizlendi.
+
+---
+
 ## [1.2.1] - 2026-11-07 — Kararlı Yama Sürümü (Soft Loft Temaları, Dil Desteği, Ayarlar & Güvenlik)
 
 ### 🎨 Lo-Fi Soft Loft Çift Tema Motoru (Dynamic Themes)
