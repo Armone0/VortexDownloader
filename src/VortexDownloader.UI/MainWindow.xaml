@@ -580,73 +580,84 @@
             </Grid.RowDefinitions>
 
             <!-- 1. TOP TOOLBAR -->
-            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="16,8">
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="18,10,18,10">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <!-- Left: Section Title & Count Badge -->
-                        <ColumnDefinition Width="Auto"/>
-                        <!-- Right: Structured Action Groups (Flexible & Wrappable) -->
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <!-- Row 0: Context Header (Title + Preferences) -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Row 1: Action Toolbar -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <!-- Left: Breadcrumb / Section Title with guaranteed right margin -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
-                        <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding FilteredDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        </Border>
-                    </StackPanel>
+                    <!-- ROW 0: Title & Count on Left, Speed Limiter & Auto Shutdown on Right -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <!-- Left: Section Title & Count Badge -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- Middle Spacer -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- Right: Speed Limiter & Auto Shutdown -->
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Right: Dynamic WrapPanel - automatically wraps on narrow windows so NOTHING is ever clipped or pushed off screen! -->
-                    <WrapPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <!-- Group A: Batch Operations Segmented Pill -->
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="3,2" Margin="0,3,10,3" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <!-- Start All -->
-                                <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="10,5" Command="{Binding StartAllCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="▶" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{DynamicResource Str_StartAll}" FontSize="11" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Button>
+                        <!-- Left: Title & Badge -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                            <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FilteredDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </Border>
+                        </StackPanel>
 
-                                <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
+                        <!-- Right: Quick Preferences (Speed & Shutdown) -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Speed Limit Dropdown -->
+                            <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="⚡" FontSize="11" Foreground="#10B981" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                                    <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="82" Height="24" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
 
-                                <!-- Pause All -->
-                                <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="10,5" Command="{Binding PauseAllCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="⏸" Foreground="#FBBF24" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{DynamicResource Str_PauseAll}" FontSize="11" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Button>
+                            <!-- Auto Shutdown Checkbox -->
+                            <CheckBox Content="{DynamicResource Str_ShutdownWhenDone}"
+                                      IsChecked="{Binding ShutdownWhenCompleted, Mode=TwoWay}"
+                                      VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"
+                                      ToolTip="Tüm indirmeler tamamlandığında bilgisayarı otomatik kapatır"/>
+                        </StackPanel>
+                    </Grid>
 
-                                <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
+                    <!-- ROW 1: Action Toolbar (Full width to breathe, never cut off!) -->
+                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="3,2" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Start All -->
+                            <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="12,5" Command="{Binding StartAllCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="▶" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource Str_StartAll}" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
 
-                                <!-- Clear Completed -->
-                                <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="10,5" Command="{Binding ClearCompletedCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🧹" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{DynamicResource Str_ClearCompleted}" FontSize="11" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Border>
+                            <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
 
-                        <!-- Group B: Speed Limit Dropdown -->
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="6,2" Margin="0,3,10,3" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="⚡" FontSize="11" Foreground="#10B981" VerticalAlignment="Center" Margin="2,0,4,0"/>
-                                <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="82" Height="26" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
+                            <!-- Pause All -->
+                            <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="12,5" Command="{Binding PauseAllCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⏸" Foreground="#FBBF24" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource Str_PauseAll}" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
 
-                        <!-- Group C: Auto-Shutdown Checkbox (Properly aligned with 8px spacing, NEVER disappears) -->
-                        <CheckBox Content="{DynamicResource Str_ShutdownWhenDone}"
-                                  IsChecked="{Binding ShutdownWhenCompleted, Mode=TwoWay}"
-                                  VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"
-                                  Padding="8,0,0,0" Margin="2,3,4,3"
-                                  ToolTip="Tüm indirmeler tamamlandığında bilgisayarı otomatik kapatır"/>
-                    </WrapPanel>
+                            <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
+
+                            <!-- Clear Completed -->
+                            <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="12,5" Command="{Binding ClearCompletedCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🧹" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource Str_ClearCompleted}" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 
