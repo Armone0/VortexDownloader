@@ -177,43 +177,58 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Security 2: Sec-Fetch-Site validation (Block cross-site web page requests)
-            string? secFetchSite = context.Request.Headers["Sec-Fetch-Site"];
-            if (secFetchSite == "cross-site")
-            {
-                context.Response.StatusCode = 403;
-                return;
-            }
-
-            // Security 3: Origin validation (Only allow recognized extension schemes)
+            // Security 2: Origin validation & CORS setup
             string? origin = context.Request.Headers["Origin"];
             if (!string.IsNullOrEmpty(origin))
             {
                 bool isExtension = origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("edge-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("moz-extension://", StringComparison.OrdinalIgnoreCase);
-                if (!isExtension)
+                if (isExtension)
                 {
-                    context.Response.StatusCode = 403;
-                    return;
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
                 }
-                context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
+                else
+                {
+                    // Non-extension origins (e.g. websites) are rejected unless auth token matches
+                    string? authCheck = context.Request.Headers["X-Vortex-Auth"];
+                    if (authCheck != "vortex-bridge-extension-auth-token")
+                    {
+                        context.Response.StatusCode = 403;
+                        return;
+                    }
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                }
             }
             else
             {
                 context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
             }
 
-            context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Vortex-Auth");
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Vortex-Auth, Access-Control-Request-Private-Network");
+            context.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
 
+            // Handle CORS Preflight
             if (context.Request.HttpMethod == "OPTIONS")
             {
                 context.Response.StatusCode = 200;
                 return;
             }
 
-            // Security 4: Shared auth token header verification between extension and desktop bridge
+            // Ping / Health Check Endpoint for Extension Status
+            if (context.Request.HttpMethod == "GET")
+            {
+                context.Response.StatusCode = 200;
+                context.Response.ContentType = "application/json";
+                using (var pingWriter = new StreamWriter(context.Response.OutputStream))
+                {
+                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.3.1\"}");
+                }
+                return;
+            }
+
+            // Security 3: Shared auth token header verification between extension and desktop bridge
             string? authToken = context.Request.Headers["X-Vortex-Auth"];
             if (authToken != "vortex-bridge-extension-auth-token")
             {
@@ -239,17 +254,32 @@ public partial class MainWindow : Window
 
                     string safeFileName = SanitizeFileName(data.FileName);
 
-                    await Dispatcher.InvokeAsync(() =>
+                    // Send HTTP 200 response IMMEDIATELY so the browser extension can cancel browser download without timeout!
+                    context.Response.StatusCode = 200;
+                    context.Response.ContentType = "application/json";
+                    using (var writer = new StreamWriter(context.Response.OutputStream))
+                    {
+                        await writer.WriteAsync("{\"status\":\"ok\"}");
+                    }
+                    try { context.Response.Close(); } catch { }
+
+                    // Launch the download prompt on the UI thread asynchronously without holding the HTTP socket
+                    _ = Dispatcher.InvokeAsync(() =>
                     {
                         RestoreFromTray();
                         PromptNewDownloadFromBrowser(uri.AbsoluteUri, safeFileName, data.FileSize);
                     });
+
+                    return;
                 }
             }
 
             context.Response.StatusCode = 200;
-            using var writer = new StreamWriter(context.Response.OutputStream);
-            await writer.WriteAsync("{\"status\":\"ok\"}");
+            context.Response.ContentType = "application/json";
+            using (var fallbackWriter = new StreamWriter(context.Response.OutputStream))
+            {
+                await fallbackWriter.WriteAsync("{\"status\":\"ok\"}");
+            }
         }
         catch
         {

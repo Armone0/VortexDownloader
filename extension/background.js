@@ -1,5 +1,6 @@
 // VortexDownloader Chrome / Edge Integration Service Worker
 const VORTEX_BRIDGE_URL = "http://127.0.0.1:19741/download/";
+const VORTEX_PING_URL = "http://127.0.0.1:19741/download/ping";
 
 // Track fallback downloads initiated when desktop bridge is offline to prevent intercept loops
 const fallbackUrls = new Set();
@@ -11,7 +12,31 @@ function sanitizeFileName(name) {
   return clean || "video.mp4";
 }
 
-// Intercept browser downloads and route to VortexDownloader
+// Reusable function to dispatch download requests to the Vortex desktop engine
+async function sendToVortex(payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+
+  try {
+    const response = await fetch(VORTEX_BRIDGE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    return response.ok;
+  } catch (err) {
+    clearTimeout(timeout);
+    return false;
+  }
+}
+
+// 1. Intercept browser downloads and route to VortexDownloader
 chrome.downloads.onCreated.addListener(async (downloadItem) => {
   const url = downloadItem.finalUrl || downloadItem.url;
   
@@ -26,7 +51,7 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
     return;
   }
 
-  // Immediately pause browser download to negotiate with Vortex
+  // Immediately pause browser download while negotiating with Vortex
   try {
     await chrome.downloads.pause(downloadItem.id);
   } catch (e) {
@@ -40,37 +65,25 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
     mime: downloadItem.mime || null
   };
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+  const captured = await sendToVortex(payload);
 
-    const response = await fetch(VORTEX_BRIDGE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-
-    if (response.ok) {
-      // Vortex captured the download! Cancel browser download cleanly
+  if (captured) {
+    // Vortex captured the download! Cancel browser download cleanly
+    try {
       await chrome.downloads.cancel(downloadItem.id);
+    } catch (_) {}
+
+    try {
       await chrome.downloads.erase({ id: downloadItem.id });
-      
-      chrome.action.setBadgeText({ text: "⚡" });
-      chrome.action.setBadgeBackgroundColor({ color: "#00F2FE" });
-      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
-      return;
-    }
-  } catch (err) {
-    // VortexDownloader is not running or rejected; safely resume in browser!
+    } catch (_) {}
+    
+    chrome.action.setBadgeText({ text: "⚡" });
+    chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+    return;
   }
 
-  // Safe fallback: Resume in Chrome/Edge without breaking user download
+  // Safe fallback: If Vortex is closed or unreachable, resume in Chrome/Edge without breaking user download
   try {
     await chrome.downloads.resume(downloadItem.id);
   } catch (e) {
@@ -78,7 +91,7 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
   }
 });
 
-// Handle media download requests from content scripts (Video Sniffer / Grabber)
+// 2. Handle media download requests from content scripts (Video Sniffer / Grabber)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.action === "download_media") {
     handleMediaDownload(message, sender).then(sendResponse);
@@ -103,40 +116,23 @@ async function handleMediaDownload(message, sender) {
   };
 
   // 1. Attempt transfer to local VortexDownloader desktop bridge
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+  const captured = await sendToVortex(payload);
 
-    const response = await fetch(VORTEX_BRIDGE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+  if (captured) {
+    chrome.action.setBadgeText({ text: "⚡" });
+    chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
 
-    clearTimeout(timeout);
+    try {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "VortexDownloader",
+        message: `Video Vortex'e aktarıldı: ${suggestedFileName}`
+      });
+    } catch (_) {}
 
-    if (response.ok) {
-      chrome.action.setBadgeText({ text: "⚡" });
-      chrome.action.setBadgeBackgroundColor({ color: "#00F2FE" });
-      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
-
-      try {
-        chrome.notifications.create({
-          type: "basic",
-          iconUrl: "icons/icon128.png",
-          title: "VortexDownloader",
-          message: `Video Vortex'e aktarıldı: ${suggestedFileName}`
-        });
-      } catch (_) {}
-
-      return { success: true, bridge: true };
-    }
-  } catch (err) {
-    // Vortex bridge is not reachable (desktop app is closed)
+    return { success: true, bridge: true };
   }
 
   // 2. Graceful Fallback: Initiate native browser download
@@ -163,3 +159,90 @@ async function handleMediaDownload(message, sender) {
     return { success: false, error: downloadErr.message || "İndirme başlatılamadı" };
   }
 }
+
+// 3. Right-Click Context Menu ("⚡ Vortex ile İndir")
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "vortex-download-context",
+    title: "⚡ Vortex ile İndir",
+    contexts: ["link", "video", "audio", "image"]
+  });
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  const targetUrl = info.linkUrl || info.srcUrl;
+  if (!targetUrl || (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://"))) {
+    return;
+  }
+
+  const payload = {
+    url: targetUrl,
+    fileName: null,
+    pageUrl: tab ? tab.url : null
+  };
+
+  const captured = await sendToVortex(payload);
+
+  if (captured) {
+    chrome.action.setBadgeText({ text: "⚡" });
+    chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+
+    try {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "VortexDownloader",
+        message: "Bağlantı VortexDownloader'a aktarıldı!"
+      });
+    } catch (_) {}
+  } else {
+    // If Vortex is offline, fall back to browser download
+    try {
+      fallbackUrls.add(targetUrl);
+      setTimeout(() => fallbackUrls.delete(targetUrl), 10000);
+
+      await chrome.downloads.download({ url: targetUrl });
+    } catch (_) {}
+  }
+});
+
+// 4. Click Extension Icon in Toolbar: Test Connection & Display Status
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
+    const res = await fetch(VORTEX_PING_URL, {
+      method: "GET",
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      chrome.action.setBadgeText({ text: "ON" });
+      chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 4000);
+
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "VortexDownloader Aktif ⚡",
+        message: "Masaüstü motoruna bağlı (Port 19741). Dosya ve videolar otomatik yakalanıyor."
+      });
+      return;
+    }
+  } catch (_) {}
+
+  // Offline notification
+  chrome.action.setBadgeText({ text: "OFF" });
+  chrome.action.setBadgeBackgroundColor({ color: "#EF4444" });
+  setTimeout(() => chrome.action.setBadgeText({ text: "" }), 4000);
+
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "icons/icon128.png",
+    title: "VortexDownloader Çevrimdışı ⚠️",
+    message: "Masaüstü uygulaması kapalı görünüyor. Lütfen VortexDownloader'ı başlatın."
+  });
+});

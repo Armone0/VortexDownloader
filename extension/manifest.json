@@ -5,7 +5,8 @@
   "description": "Otomatik indirme yakalama, video yakalayıcı (Video Sniffer) ve VortexDownloader hızlı aktarım eklentisi.",
   "permissions": [
     "downloads",
-    "notifications"
+    "notifications",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"

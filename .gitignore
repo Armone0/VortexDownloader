@@ -48,6 +48,7 @@ scripts/
 *.crx
 *.xpi
 *.zip
+*.pem
 *.tar.gz
 *.tgz
 *.rar
