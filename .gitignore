@@ -1,17 +1,30 @@
 # ==============================================================================
-# VORTEXDOWNLOADER / SECURE REPO .GITIGNORE
-# Rock-solid sanitization preventing proprietary binaries, dumps, and build artifacts
+# VORTEXDOWNLOADER — ENTERPRISE .GITIGNORE
+# Comprehensive sanitization for .NET 9, WPF, C#, IDEs, and Clean-Room isolation
 # ==============================================================================
 
-# --- .NET Build Outputs ---
+# --- .NET Build & Compilation Outputs ---
 [Bb]in/
 [Oo]bj/
+[Oo]ut/
+[Bb]uild/
+[Dd]ist/
+[Tt]arget/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+*.userprefs
+*.launchSettings.json
 
-# --- Proprietary & Compiled Binaries ---
+# --- Single-File & Self-Contained Publish Artifacts ---
+publish/
+publish_light/
+*.pdb
+*.FileListAbsolute.txt
+*.GeneratedMSBuildEditorConfig.editorconfig
+
+# --- Proprietary & Compiled Binaries (Strict Zero-Binary Rule) ---
 *.exe
 *.dll
 *.so
@@ -21,6 +34,7 @@
 *.bin
 *.hex
 *.msi
+*.msp
 *.cab
 
 # --- Browser Extension Packages & Archives ---
@@ -29,6 +43,8 @@
 *.zip
 *.tar.gz
 *.tgz
+*.rar
+*.7z
 
 # --- Reverse Engineering Databases & Project Files ---
 *.idb
@@ -46,20 +62,24 @@
 *.radare2
 *.bndb
 
-# --- Memory Dumps & Diagnostics ---
+# --- Memory Dumps, Traces & Diagnostics ---
 *.dmp
 *.mdmp
 core.[0-9]*
 *.stackdump
 *.crash
+*.trx
+TestResults/
+*.coverage
+*.coveragexml
 
-# --- Network & Packet Captures ---
+# --- Network, Packet Captures & Har Archives ---
 *.pcap
 *.pcapng
 *.cap
 *.har
 
-# --- Temporary Chunks, Merges & Cache ---
+# --- Temporary Chunks, Buffer Streams & Cache ---
 *.tmp
 *.temp
 *.part
@@ -70,29 +90,25 @@ chunks_storage/
 temp_downloads/
 merged_output/
 
-# --- IDE & Environment Settings ---
+# --- IDE & Editor Artifacts ---
 .vs/
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.DotSettings.user
+
+# --- OS-Generated Artifacts ---
 .DS_Store
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
 
-# --- Build Outputs ---
-/build/
-/dist/
-/out/
-/target/
-node_modules/
-
-# --- Sensitive Credentials ---
+# --- Sensitive Environment & Secret Variables ---
 .env
 .env.*
 secrets.json
 cookies.txt
-
-*.pdb
-publish/
-publish_light/
+appsettings.Development.json
+appsettings.Production.json
