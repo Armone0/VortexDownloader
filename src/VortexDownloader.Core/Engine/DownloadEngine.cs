@@ -34,7 +34,7 @@ public class DownloadEngine : IAsyncDisposable
     public IReadOnlyCollection<DownloadTask> Tasks => _tasks.Values.ToList();
 
     private readonly object _queueLock = new();
-    private int _maxConcurrentDownloads = 3;
+    private volatile int _maxConcurrentDownloads = 3;
 
     public int MaxConcurrentDownloads
     {
@@ -129,8 +129,10 @@ public class DownloadEngine : IAsyncDisposable
 
     private void ProcessDownloadQueue()
     {
+        if (_isDisposed) return;
         lock (_queueLock)
         {
+            if (_isDisposed) return;
             while (true)
             {
                 int activeCount = _tasks.Values.Count(t =>
