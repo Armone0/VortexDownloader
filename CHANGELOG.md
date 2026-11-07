@@ -56,6 +56,26 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.4.0] - 2026-11-07 — İndirme Kilitlenmesi Çözümü, Çerez/Referrer İletimi ve Güvenlik Sıkılaştırması
+
+### 🚀 Kesintisiz İndirme Yakalama (Download Interception Overhaul)
+- **onDeterminingFilename Geçişi:** `chrome.downloads.onCreated` döngü ve kilitlenme sorunu çözülerek `onDeterminingFilename` API'sine geçildi.
+- **Topmost Prompt Penceresi:** İndirme onay penceresi (`DownloadPromptWindow`) doğrudan en üstte (`Topmost = true`) ve odaklanmış olarak açılır; arkada kalma veya gizlenme sorunu sıfırlandı.
+- **Çerez (Cookie) ve Referrer İletimi:** Oturum ve yetkilendirme gerektiren siteler (Google Drive, GitHub, Mediafire vb.) için tarayıcı çerezleri ve referrer başlıkları otomatik olarak yakalanıp masaüstü motoruna iletilir.
+- **eTLD+1 Çerez Güvenlik Sınırı:** Hassas çerezlerin üçüncü taraf CDN veya farklı apex domainlere sızmasını önlemek için eTLD+1 güvenlik sınırı (`isSameSecurityDomain`) ve HTTPS->HTTP düşürme koruması getirildi.
+
+### 🌐 Eklenti İnteraktif Popup Menüsü (Interactive Extension Popup)
+- Tarayıcı araç çubuğundaki eklenti simgesine tıklandığında açılan modern popup eklendi: Canlı masaüstü bağlantı durumu (Bağlı / Çevrimdışı), hızlı URL gönderme kutusu ve tek tıkla yakalama açma/kapama anahtarı.
+- Masaüstü köprüsüne hafif `/ping` uç noktası ve tarayıcı sağ tık bağlam menüsü (`contextMenu`) eklendi.
+
+### 🛡️ İndirme Klasörü Yazma İzni Kontrolü
+- Seçilen hedef klasörün yazılabilir olup olmadığı indirme başlamadan önce test edilir; salt okunur veya yetkisiz dizinlerde sessiz başarısızlıklar engellenir.
+
+### 🎨 İki Kademeli (Two-Tier) Çakışmasız Üst Çubuk
+- Üst araç çubuğu iki kademeli esnek yerleşime geçirilerek en dar pencere boyutlarında dahi kontrollerin üst üste binmesi kesin olarak engellendi.
+
+---
+
 ## [1.3.1] - 2026-11-07 — Üst Çubuk Taşma Koruması, Responsive Wrap ve Ayarlar Buton Düzeltmesi
 
 ### 📐 Üst Çubuk Taşma ve Çakışma Düzeltmesi (Topbar Responsive Wrap)
