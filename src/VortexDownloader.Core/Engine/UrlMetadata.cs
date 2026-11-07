@@ -9,7 +9,8 @@ public record UrlMetadata(
     string SuggestedFileName,
     long ContentLength,
     bool SupportsRange,
-    string? ETag);
+    string? ETag,
+    string? LastModified = null);
 
 public static class UrlMetadataInspector
 {
@@ -25,6 +26,7 @@ public static class UrlMetadataInspector
         long contentLength = -1;
         bool supportsRange = false;
         string? etag = null;
+        string? lastModified = null;
 
         // Try HEAD first
         HttpResponseMessage? headResponse = null;
@@ -35,6 +37,10 @@ public static class UrlMetadataInspector
             if (headResponse.IsSuccessStatusCode)
             {
                 etag = headResponse.Headers.ETag?.Tag;
+                if (headResponse.Content.Headers.LastModified.HasValue)
+                {
+                    lastModified = headResponse.Content.Headers.LastModified.Value.ToString("R");
+                }
                 if (headResponse.Content.Headers.ContentLength.HasValue)
                 {
                     contentLength = headResponse.Content.Headers.ContentLength.Value;
@@ -114,7 +120,8 @@ public static class UrlMetadataInspector
             CleanFileName(fileName),
             contentLength,
             supportsRange,
-            etag);
+            etag,
+            lastModified);
     }
 
     private static string ExtractFileNameFromUrl(string url)
@@ -153,13 +160,15 @@ public static class UrlMetadataInspector
         return null;
     }
 
-    private static string CleanFileName(string rawFileName)
+    public static string CleanFileName(string? rawFileName)
     {
-        string invalid = new string(Path.GetInvalidFileNameChars());
+        if (string.IsNullOrWhiteSpace(rawFileName)) return "download.bin";
+        string safeName = Path.GetFileName(rawFileName.Trim());
+        char[] invalid = Path.GetInvalidFileNameChars();
         foreach (char c in invalid)
         {
-            rawFileName = rawFileName.Replace(c, '_');
+            safeName = safeName.Replace(c, '_');
         }
-        return string.IsNullOrWhiteSpace(rawFileName) ? "download.bin" : rawFileName;
+        return string.IsNullOrWhiteSpace(safeName) ? "download.bin" : safeName;
     }
 }

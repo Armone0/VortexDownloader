@@ -4,17 +4,17 @@
 
 # VortexDownloader ⚡
 
-**Ultra-fast, multi-threaded dynamic segmented download manager built with .NET 9 and modern WPF.**  
-*Clean-Room Engineered • Zero-Allocation Socket Streaming • Real-Time Dynamic Chunk Re-Allocation • Browser Integration*
+**High-performance, multi-threaded segmented download manager built with .NET 9 and modern WPF.**  
+*Independent Clean-Room Implementation • Low-Allocation Pooled Streaming • Dynamic Chunk Bisection • Browser Companion*
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://microsoft.com/windows)
 [![Release](https://img.shields.io/github/v/release/Armone0/VortexDownloader?color=brightgreen)](https://github.com/Armone0/VortexDownloader/releases)
-[![Tests](https://img.shields.io/badge/Tests-29%2F29%20Passing-success.svg)](tests/)
-[![Clean-Room Certified](https://img.shields.io/badge/Clean--Room-Certified-teal.svg)](docs/LEGAL_COMPLIANCE_AUDIT.md)
+[![Tests](https://img.shields.io/badge/Tests-37%2F37%20Passing-success.svg)](tests/)
+[![Implementation](https://img.shields.io/badge/Implementation-Clean--Room%20Independent-blue.svg)](DISCLAIMER.md)
 
-[Features](#-key-features) • [Installation & Setup](#-installation--setup-guide) • [Browser Extension](#-browser-extension-setup) • [Architecture](#-architecture) • [Benchmarks](#-performance-benchmark) • [Legal](#-legal--clean-room-compliance)
+[Features](#-key-features) • [Installation & Setup](#-installation--setup-guide) • [Browser Extension](#-browser-extension-setup) • [Architecture](#-architecture) • [Comparison](#-feature-comparison) • [Security](#-security--integrity) • [Legal Notice](#-legal-notice)
 
 </div>
 
@@ -22,36 +22,37 @@
 
 ## 📖 Overview
 
-**VortexDownloader** is an open-source, high-efficiency download accelerator inspired by high-speed segmented download algorithms. Developed entirely from scratch using **Clean-Room Software Engineering**, it avoids legacy monolithic designs and memory leaks in favor of modern **C# 13**, **.NET 9 `SocketsHttpHandler`**, pooled memory buffers, and a sleek **Windows 11 Dark Mica UI**.
+**VortexDownloader** is an open-source download manager engineered from scratch using clean-room principles. Built with **C# 13**, **.NET 9 `SocketsHttpHandler`**, memory-pooled stream buffers, and a dark **WPF UI**, it delivers efficient multi-part downloads over HTTP/1.1 and HTTP/2.
 
-Unlike basic download managers that slice files into static, rigid partitions at the start of an operation, VortexDownloader actively monitors all in-flight workers. When a worker completes its segment, it dynamically locates the slowest active chunk and splits its remaining bytes in half on the fly—ensuring **100% bandwidth saturation right up to the final byte** and eliminating tail latency.
+Rather than relying on static file partitioning where slow connections stall completion at the end of a transfer, VortexDownloader actively monitors in-flight workers. When an active thread finishes its assigned segment, it dynamically locates the chunk with the largest remaining byte range and splits it in half (`FindMaxFreeChunk`), mitigating tail latency.
 
 ---
 
 ## 🚀 Key Features
 
-* **⚡ Dynamic Chunk Slicing (`FindMaxFreeChunk`):**  
-  Eliminates the dreaded *last 99% bottleneck*. If 15 workers have finished and 1 worker is still downloading a slow block, an idle worker dynamically bisects the remaining span and downloads the second half concurrently.
-* **🧠 Zero-Allocation Socket Streaming:**  
-  Employs `SocketsHttpHandler` with `ArrayPool<byte>.Shared` memory pooling (80 KB buffer slices). Network stream data is flushed directly to pre-allocated disk regions without generating garbage collector pressure.
+* **⚡ Dynamic Chunk Bisection (`FindMaxFreeChunk`):**  
+  Mitigates tail latency at the end of downloads. When an active worker finishes early, it dynamically bisects the largest remaining active chunk so idle threads assist with the remaining data.
+* **🧠 Low-Allocation Pooled Buffer Streaming:**  
+  Uses `SocketsHttpHandler` combined with `ArrayPool<byte>.Shared` (80 KB pooled buffers) to stream network chunks directly to disk with minimal GC allocations in the hot path.
 * **📦 Remote ZIP Central Directory Peek (`ZipInspector`):**  
-  Inspects the contents, uncompressed sizes, and file tree of massive remote `.zip` archives via HTTP Range requests without downloading the archive.
-* **🚦 Intelligent Concurrency Queue Manager:**  
-  Configurable active download slots (1, 2, 3, 5, or Unlimited). Automatically promotes and starts queued downloads in FIFO order as slots become free.
-* **💤 Auto-Shutdown & Sleep on Completion (`ShutdownManager`):**  
-  Safely powers off or sleeps Windows when all active transfers finish, without hanging or unsafe command prompts.
+  Queries the end of remote `.zip` archives via HTTP Range requests to parse Central Directory records, displaying file listings and uncompressed sizes before downloading the archive.
+* **🚦 Concurrency Queue Manager:**  
+  Configurable concurrent download slots (1, 2, 3, 5, or Unlimited). Automatically manages queued tasks in FIFO order as slots become available.
+* **💤 System Sleep Management (`ShutdownManager`):**  
+  Prevents Windows from entering sleep mode during active transfers via `SetThreadExecutionState`, and optionally powers off or sleeps the computer upon queue completion.
 * **🎥 Floating Video Grabber Companion Extension:**  
-  Detects HTML5 `<video>`, MP4, WebM, and HLS streams on any web page and offers a 1-click floating download button sending the stream directly to Vortex.
+  Browser extension with a content script that detects HTML5 `<video>` tags, direct MP4, WebM, and media stream URLs, displaying a one-click button to send the URL to VortexDownloader.  
+  *(Note: Multi-segment HLS `.m3u8` playlist transmuxing requires separate segment concatenation and is planned for a future release).*
 * **📋 Batch Multi-URL Downloads:**  
-  Paste dozens of URLs separated by newlines or commas to enqueue entire collections at once.
-* **🎯 High-Precision Token-Bucket Speed Limiter:**  
-  Microsecond-accurate token-bucket rate limiter enabling customizable bandwidth caps (e.g., 1 MB/s, 5 MB/s, 10 MB/s, or Unlimited) without dropped frames or CPU spikes.
-* **🛡️ Crash-Resilient Atomic Persistence:**  
-  Task metadata and byte boundaries are atomically synced to `%APPDATA%\VortexDownloader\tasks.json`. If power cuts out or your connection drops, Vortex verifies disk offsets and resumes instantly without redownloading a single byte.
-* **🎨 Modern Windows 11 Dark UI:**  
-  Raycast/Linear-inspired dark workspace featuring category filters (*All, Downloading, Paused, Completed*), live bandwidth readouts, smooth progress animations, and system tray minimization.
-* **🔒 Pre-Flight Disk & Sleep Safety:**  
-  Validates available disk space before writing and prevents Windows from entering system sleep while transfers are actively in flight (`SetThreadExecutionState`).
+  Enqueue collections of URLs separated by newlines or commas in a single step.
+* **🎯 Token-Bucket Speed Limiter:**  
+  Token-bucket rate limiter enabling customizable bandwidth caps (e.g., 1 MB/s, 5 MB/s, 10 MB/s, or Unlimited).
+* **🛡️ Atomic State Persistence:**  
+  Download state and chunk offsets are atomically persisted to `%APPDATA%\VortexDownloader\tasks.json`. Interrupted transfers can be resumed without data corruption.
+* **🎨 Modern Windows UI:**  
+  Dark interface featuring category filters (*All, Downloading, Paused, Completed*), live speed metrics, progress bars, and system tray minimization.
+* **💾 Pre-Flight Disk Space Validation:**  
+  Checks available drive capacity before starting a transfer to prevent disk-full crashes mid-stream.
 
 ---
 
@@ -60,36 +61,40 @@ Unlike basic download managers that slice files into static, rigid partitions at
 ```mermaid
 flowchart TD
     subgraph Browser["Browser Environment (Chrome / Edge / Brave)"]
-        EXT["VortexExtension (Manifest V3)\n(background.js service worker)"]
-        DL["User Initiates File Download"]
+        CS["content.js (DOM Media Sniffer)"]
+        EXT["background.js (Service Worker)"]
+        DL["Browser Download Event"]
         DL -->|chrome.downloads API| EXT
+        CS -->|Stream URL Found| EXT
     end
 
-    subgraph DesktopApp["VortexDownloader Desktop App (.NET 9 / WPF)"]
-        BRIDGE["Loopback Bridge (Port 19741)\n(HttpListener / CORS validated)"]
-        PROMPT["DownloadPromptWindow\n(File preview & Category selection)"]
+    subgraph DesktopApp["VortexDownloader Desktop (.NET 9 / WPF)"]
+        BRIDGE["Hardened Loopback Bridge (Port 19741)\n• Host & Origin Whitelist\n• Sec-Fetch-Site Block\n• Shared Auth Token (X-Vortex-Auth)"]
+        PROMPT["DownloadPromptWindow\n(Path validation & File naming)"]
         ENGINE["DownloadEngine Coordinator"]
-        CHUNKS["ChunksManager\n(Dynamic Bisection & Splitting)"]
+        INTEG["Resume Integrity Checker\n(ETag / Last-Modified / Length)"]
+        CHUNKS["ChunksManager\n(Dynamic Bisection & Rebalancing)"]
         LIMITER["Token Bucket SpeedLimiter"]
-        SOCKETS["ChunkDownloader Workers (SocketsHttpHandler)"]
+        SOCKETS["ChunkDownloader Workers\n(ArrayPool<byte> SocketsHttpHandler)"]
         STATE["Atomic StateStore (%APPDATA%)"]
-        ASSEMBLER["Optimized FileAssembler\n(Fast Rename + Pooled Append)"]
+        ASSEMBLER["Optimized FileAssembler\n(Fast Rename / Sequential Append)"]
     end
 
     subgraph Remote["Remote Web Server"]
         HTTP["HTTP/1.1 & HTTP/2 Endpoints\n(RFC 9110 / RFC 7233 Range)"]
     end
 
-    EXT -->|JSON POST| BRIDGE
+    EXT -->|Authenticated POST| BRIDGE
     BRIDGE --> PROMPT
     PROMPT --> ENGINE
-    ENGINE --> CHUNKS
-    ENGINE --> LIMITER
+    ENGINE --> INTEG
+    INTEG --> CHUNKS
+    CHUNKS --> LIMITER
     LIMITER --> SOCKETS
     SOCKETS <-->|Parallel Range Requests| HTTP
     SOCKETS --> STATE
     SOCKETS --> ASSEMBLER
-    ASSEMBLER --> TARGET["Final Assembled File on Disk"]
+    ASSEMBLER --> TARGET["Final File on Storage"]
 ```
 
 ---
@@ -98,13 +103,16 @@ flowchart TD
 
 ### Option 1: Download Ready-to-Run Portable Package (Recommended)
 
-1. Go to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases) page.
-2. Download `VortexDownloader-v1.1.0-win-x64.zip` (or the latest release).
-3. Extract the ZIP archive anywhere on your PC.
+1. Navigate to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases/tag/v1.2.0) page.
+2. Download **`VortexDownloader-v1.2.0-win-x64.zip`**.
+3. Extract the ZIP archive to your preferred location.
 4. Run **`VortexDownloader.exe`**.
-   * Completely **portable & self-contained** (0 dependencies, no .NET install required).
-   * Runs in the system tray when minimized.
-5. (Optional) Run **`Tarayici-Eklentisi-Kur.bat`** to connect Chrome, Edge, or Brave in seconds!
+   * Completely **self-contained portable executable** (no external .NET runtime installation required).
+   * Minimizes cleanly to the Windows notification tray.
+
+> [!NOTE]
+> **Windows SmartScreen Notice:**  
+> Because open-source binaries are not signed with an expensive commercial EV code-signing certificate, Windows SmartScreen may show an informational banner on first run (*"Windows protected your PC"*). Click **"More info" (Ek bilgi)** and select **"Run anyway" (Yine de çalıştır)** to proceed.
 
 ---
 
@@ -112,16 +120,10 @@ flowchart TD
 
 #### Prerequisites
 * Windows 10 (Build 19041+) or Windows 11
-* [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or higher
+* [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 * Git
 
-#### Quick 1-Click Build
-```cmd
-build.bat
-```
-*(Or run `powershell -File scripts/build.ps1`)*
-
-#### Manual Step-by-Step Instructions
+#### Step-by-Step Instructions
 
 1. **Clone the repository:**
    ```bash
@@ -135,34 +137,36 @@ build.bat
    dotnet build -c Release
    ```
 
-3. **Run the desktop app:**
+3. **Run unit tests:**
+   ```bash
+   dotnet test
+   ```
+   *(All 37 unit tests verify dynamic range arithmetic, speed throttling, resume integrity, path traversal prevention, state serialization, and safe file assembly).*
+
+4. **Launch the application:**
    ```bash
    dotnet run --project src/VortexDownloader.UI -c Release
    ```
 
-4. **Run the automated test suite:**
+5. **(Optional) Publish single-file self-contained binary:**
    ```bash
-   dotnet test
-   ```
-   *(All 18 unit tests verify dynamic range math, speed limiting, file assembly byte fidelity, and state serialization.)*
-
-5. **Package a release ZIP (portable exe + extension):**
-   ```powershell
-   powershell -File scripts/package-release.ps1 -Version 1.1.0
+   dotnet publish src/VortexDownloader.UI -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
    ```
 
 ---
 
 ## 🌐 Browser Extension Setup
 
-VortexDownloader comes with a lightweight Manifest V3 companion extension located in the [`extension/`](extension/) directory.
+VortexDownloader includes a Manifest V3 companion extension in the [`extension/`](extension/) directory.
 
 ```
 extension/
 ├── manifest.json       # Manifest V3 extension configuration
-├── background.js       # Download capture service worker
-├── icons/              # Modern vector/PNG icons
-└── README.md           # Extension guide
+├── background.js       # Background download capture service worker
+├── content.js          # Injected content script for DOM video detection
+├── content.css         # Styling for floating video grabber overlay
+├── icons/              # Extension icons (16, 32, 48, 128 px)
+└── README.md           # Extension documentation
 ```
 
 ### Installation Steps (Chrome / Edge / Brave):
@@ -173,58 +177,78 @@ extension/
    * **Brave:** `brave://extensions`
 2. Toggle on **Developer mode** (*Geliştirici modu*) in the top-right corner.
 3. Click the **Load unpacked** (*Paketlenmemiş öğe yükle*) button.
-4. Select the `extension/` folder inside your cloned `VortexDownloader` directory.
-5. Launch `VortexDownloader.UI.exe`.
-6. Whenever you click a download link in your browser, VortexDownloader will automatically intercept it and prompt you to begin downloading!
+4. Select the `extension/` directory inside your `VortexDownloader` folder.
+5. Ensure `VortexDownloader.exe` is running on your desktop.
+6. When starting a download in your browser, the extension intercepts the request and opens the Vortex prompt.
 
 > [!TIP]
-> **Zero-Drop Fallback:** If the VortexDownloader desktop application is closed or you dismiss the prompt, the extension automatically hands the download back to your browser with zero dropped requests.
+> **Graceful Fallback:** If the VortexDownloader desktop application is closed, the extension falls back to standard browser downloads.
 
 ---
 
-## ⚡ Performance Benchmark
+## 🔒 Security & Integrity
 
-| Metric | Standard Browser | Traditional IDM | VortexDownloader ⚡ |
+The desktop application and browser extension interact through a local loopback bridge with defense-in-depth security measures:
+
+1. **Host Header Validation:** Rejects requests where the `Host` header does not match `127.0.0.1` or `localhost`, preventing DNS rebinding vulnerabilities.
+2. **Sec-Fetch-Site Filtering:** Blocks any request where `Sec-Fetch-Site` is set to `cross-site`, preventing third-party websites from making unauthorized loopback calls.
+3. **Origin Whitelist:** Restricts allowed origins strictly to browser extension schemes (`chrome-extension://`, `edge-extension://`, `moz-extension://`).
+4. **Shared Authentication Token:** Requires a shared authentication token header (`X-Vortex-Auth`) for all IPC operations.
+5. **Path Traversal & Filename Sanitization:** Enforces `Path.GetFileName` and strips invalid characters via `Path.GetInvalidFileNameChars()`. Rejects non-HTTP/HTTPS URI schemes.
+6. **Resume Integrity Verification:** When resuming a paused or interrupted transfer, VortexDownloader verifies `ETag`, `Last-Modified` (RFC 7232), and `Content-Length`. If the remote resource has been modified on the server, chunks are safely reset to prevent file corruption.
+
+---
+
+## ⚖️ Feature Comparison
+
+| Capability | Standard Browser | Traditional Commercial IDM | VortexDownloader ⚡ |
 | :--- | :---: | :---: | :---: |
-| **Max Concurrent Slices** | 1 (Single-Stream) | 8 – 32 | **Up to 32 (Configurable)** |
-| **Tail Latency Handling** | ❌ None | Dynamic Slicing | **Dynamic Bisection Math** |
-| **Memory Allocation** | Medium | High (Legacy C++ buffer copies) | **Zero-Alloc (`ArrayPool<byte>`)** |
-| **System Sleep Prevention** | ❌ Browser Dependent | ✅ Win32 API | **✅ Windows Power Assertions** |
-| **Interface Design** | Basic | 2000s Classic UI | **Modern Windows 11 Dark** |
-| **Licensing** | Proprietary | Commercial (\$24.95 / year) | **100% Free & Open Source (Apache 2.0)** |
+| **Multi-Stream Segmentation** | Single-stream (1) | Up to 32 | Up to 32 (Configurable) |
+| **Tail Chunk Bisection** | ❌ None | Dynamic Slicing | Dynamic Bisection (`FindMaxFreeChunk`) |
+| **Buffer Management** | Standard heap allocations | Proprietary buffers | Pooled buffers via `ArrayPool<byte>` |
+| **Remote ZIP Inspection** | ❌ Full download required | Partial preview | Range-based Central Directory Peek |
+| **Loopback Security** | N/A | Native Messaging Host | Hardened Loopback + Token + Host/Origin check |
+| **Resume Integrity** | Basic | Range / ETag | Multi-factor (ETag, Last-Modified, Length) |
+| **Interface Design** | Basic browser UI | Classic Win32 GDI | Modern Windows 11 Dark UI |
+| **Source Code & License** | Proprietary | Proprietary (Paid commercial) | 100% Open Source (Apache 2.0) |
 
 ---
 
 ## 🧪 Testing with Real Links
 
-Want to test high-speed multi-threaded acceleration right away? Use these public test links:
+Test multi-threaded segmented acceleration using these public test files:
 
 ```text
-# 100 MB Test Archive (Supports Range requests)
+# 100 MB HTTPS Test File (Cloudflare CDN)
+https://speed.cloudflare.com/__down?bytes=104857600
+
+# 100 MB HTTPS Test File (OVH Network)
+https://proof.ovh.net/files/100Mb.dat
+
+# 100 MB HTTP Test Archive (Supports Range requests)
 http://ipv4.download.thinkbroadband.com/100MB.zip
 
-# 512 MB Test File
+# 512 MB HTTP Test Archive
 http://ipv4.download.thinkbroadband.com/512MB.zip
 ```
 
-1. Click **`[ ＋ Yeni İndirme Ekle ]`** in the sidebar.
+1. Click **`[ ＋ Yeni İndirme Ekle ]`** in the application sidebar.
 2. Paste the URL into the dialog.
-3. Choose your desired chunk count (e.g., 8 or 16 threads).
-4. Watch real-time multi-chunk progress bars fill up in parallel!
+3. Select the desired chunk count (e.g., 8 or 16 threads).
+4. Observe concurrent chunk progress updating in real time.
 
 ---
 
-## 📜 Legal & Clean-Room Compliance
+## 📜 Legal Notice
 
-This repository is an independent **Clean-Room implementation** developed strictly in accordance with:
+VortexDownloader is an independent, clean-room open-source project developed in accordance with:
 * **RFC 9110:** HTTP Semantics (Range Requests)
 * **RFC 7233:** Range Requests specification
-* **US Copyright Act (17 U.S.C. § 102(b)):** Separation of mathematical ideas vs expression
 
 > [!IMPORTANT]
-> - This project contains **NO** proprietary binaries, decompiled source code, or copyrighted assets belonging to Tonec Inc. or any third party.
-> - "Internet Download Manager" and "IDM" are trademarks of Tonec Inc. This project is not affiliated with, endorsed by, or sponsored by Tonec Inc.
-> - For full legal and technical audits, please review [DISCLAIMER.md](DISCLAIMER.md) and [docs/LEGAL_COMPLIANCE_AUDIT.md](docs/LEGAL_COMPLIANCE_AUDIT.md).
+> - This project contains **no proprietary binaries, decompiled source code, or assets** from commercial download utilities.
+> - "Internet Download Manager" and "IDM" are trademarks of Tonec Inc. VortexDownloader is not affiliated with, endorsed by, or sponsored by Tonec Inc.
+> - For full legal notices and non-affiliation disclaimers, please consult [DISCLAIMER.md](DISCLAIMER.md).
 
 ---
 
@@ -234,7 +258,7 @@ Contributions, bug reports, and suggestions are welcome!
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'feat: add amazing feature'`)
-4. Ensure all tests pass (`dotnet test`)
+4. Ensure all 37 tests pass (`dotnet test`)
 5. Push to the Branch (`git push origin feature/AmazingFeature`)
 6. Open a Pull Request
 
@@ -245,5 +269,5 @@ Contributions, bug reports, and suggestions are welcome!
 Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for more information.
 
 <div align="center">
-<sub>Crafted with modern .NET 9 and Clean-Room Engineering standards.</sub>
+<sub>Crafted with C# 13 and .NET 9.</sub>
 </div>

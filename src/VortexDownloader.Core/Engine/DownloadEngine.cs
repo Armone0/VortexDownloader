@@ -104,6 +104,7 @@ public class DownloadEngine : IAsyncDisposable
             TotalBytes = metadata.ContentLength,
             SupportsRange = metadata.SupportsRange,
             ETag = metadata.ETag,
+            LastModified = metadata.LastModified,
             MaxChunks = Math.Clamp(chunkCount, 1, 32),
             TempDirectory = tempDir,
             Status = DownloadStatus.Queued,
@@ -359,6 +360,68 @@ public class DownloadEngine : IAsyncDisposable
                 return;
             }
 
+            // Resume Integrity Validation: verify remote resource has not been modified (ETag / Last-Modified / Length)
+            if (task.DownloadedBytes > 0)
+            {
+                try
+                {
+                    var freshMeta = await UrlMetadataInspector.InspectAsync(_httpClient, task.Url, cancellationToken).ConfigureAwait(false);
+                    bool resourceChanged = false;
+
+                    if (!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(freshMeta.ETag) &&
+                        !string.Equals(task.ETag, freshMeta.ETag, StringComparison.Ordinal))
+                    {
+                        resourceChanged = true;
+                    }
+                    else if (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(freshMeta.LastModified) &&
+                             !string.Equals(task.LastModified, freshMeta.LastModified, StringComparison.Ordinal))
+                    {
+                        resourceChanged = true;
+                    }
+                    else if (task.TotalBytes > 0 && freshMeta.ContentLength > 0 && task.TotalBytes != freshMeta.ContentLength)
+                    {
+                        resourceChanged = true;
+                    }
+
+                    if (resourceChanged)
+                    {
+                        // Remote resource altered while paused/interrupted. Reset chunks to avoid corrupt data assembly.
+                        task.ETag = freshMeta.ETag;
+                        task.LastModified = freshMeta.LastModified;
+                        task.TotalBytes = freshMeta.ContentLength;
+                        task.SupportsRange = freshMeta.SupportsRange;
+                        int initialChunks = freshMeta.SupportsRange ? task.MaxChunks : 1;
+
+                        if (Directory.Exists(task.TempDirectory))
+                        {
+                            try
+                            {
+                                Directory.Delete(task.TempDirectory, true);
+                                Directory.CreateDirectory(task.TempDirectory);
+                            }
+                            catch { }
+                        }
+
+                        lock (task.ChunksLock)
+                        {
+                            task.Chunks = ChunksManager.InitializeChunks(task.Id, task.TotalBytes, initialChunks, task.TempDirectory);
+                            task.RecalculateDownloadedBytes();
+                        }
+
+                        await SaveStateAsync().ConfigureAwait(false);
+                        TaskUpdated?.Invoke(task);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Fail-safe: transient network issues during pre-flight resume inspection do not abort ongoing retry
+                }
+            }
+
             // If Range is not supported or single chunk
             if (!task.SupportsRange || task.Chunks.Count <= 1)
             {
@@ -596,6 +659,7 @@ public class DownloadEngine : IAsyncDisposable
                         SpeedBytesPerSec = t.SpeedBytesPerSec,
                         Status = t.Status,
                         ETag = t.ETag,
+                        LastModified = t.LastModified,
                         SupportsRange = t.SupportsRange,
                         MaxChunks = t.MaxChunks,
                         Chunks = new List<DownloadChunk>(t.Chunks),

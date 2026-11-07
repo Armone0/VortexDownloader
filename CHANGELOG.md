@@ -56,9 +56,25 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
-## [1.2.x] - (Kullanıcı Geri Bildirimi & Yama Sürümleri)
-- [ ] Kullanıcının bulacağı veya bildireceği hata ve iyileştirmeler `1.2.1`, `1.2.2` şeklinde yama sürümleri olarak yayınlanacaktır.
+## [1.2.1] - 2026-11-07 — Güvenlik Sıkılaştırma & Bütünlük Doğrulama (Security Hardening & Integrity)
+
+### 🔒 Loopback Köprüsü Çok Katmanlı Güvenlik (Defense-in-Depth Bridge Security)
+- **Host Başlığı Doğrulaması:** DNS Rebinding saldırılarını engellemek amacıyla gelen isteklerin `Host` başlığı `127.0.0.1` ve `localhost` ile sınırlandırıldı.
+- **Sec-Fetch-Site Filtreleme:** Web sitelerinden gelen izinsiz cross-site çağrıları engellemek için `Sec-Fetch-Site: cross-site` istekleri doğrudan `403 Forbidden` ile reddediliyor.
+- **Paylaşımlı Kimlik Doğrulama Belirteci (`X-Vortex-Auth`):** Tarayıcı eklentisi ile masaüstü köprüsü arasında paylaşılan belirteç (`vortex-bridge-extension-auth-token`) doğrulanmadan hiçbir işlem kabul edilmiyor.
+- **Dizin Aşımı (Path Traversal) ve Şema Güvenliği:** `SanitizeFileName` ve `Uri.Scheme` (`http`/`https`) kontrolleri güçlendirildi.
+
+### 🛡️ İndirme Devam Bütünlüğü (Resume Integrity via ETag & Last-Modified)
+- **Kaynak Değişikliği Algılama:** Duraklatılan veya kesintiye uğrayan indirmeler devam ettirilirken sunucudaki `ETag`, `Last-Modified` (RFC 7232 / RFC 9110) ve `ContentLength` değerleri kontrol edilir.
+- **Bozuk Birleştirme Önlemi:** Sunucudaki dosya indirme arasında değiştiyse, eski parçalar sıfırlanarak birleştirme sırasında dosya bozulması engellenir.
+
+### 📖 Dokümantasyon ve Teknik Dürüstlük Düzeltmeleri
+- README içerisindeki test sayıları (29/29) senkronize edildi.
+- Repo dışı kalan eski `.bat` ve `.ps1` script referansları temizlendi; standart `dotnet` CLI komutları yerleştirildi.
+- Eklenti dosya ağacına `content.js` ve `content.css` eklendi; HLS akışlarının Range indirmesi değil transcode/transmux gerektirdiği belirtilerek yol haritasına alındı.
+- Pazarlama dili ve abartılı "Zero-Allocation" / "Clean-Room Certified" ifadeleri mühendislik odaklı, ölçülebilir ve dürüst terimlerle yenilendi.
+- SmartScreen uyarı bildirimi ve HTTPS test linkleri eklendi.
 
 ---
 
-## [1.1.0] - 2026-11-07 — Önceki Kararlı Sürüm
+## [1.2.0] - 2026-11-07 — Kararlı Büyük Özellik Sürümü (Major Feature Release)

@@ -46,7 +46,10 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
 
     const response = await fetch(VORTEX_BRIDGE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
+      },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -106,7 +109,10 @@ async function handleMediaDownload(message, sender) {
 
     const response = await fetch(VORTEX_BRIDGE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
+      },
       body: JSON.stringify(payload),
       signal: controller.signal
     });

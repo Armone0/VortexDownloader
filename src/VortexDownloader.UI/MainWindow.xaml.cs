@@ -138,8 +138,23 @@ public partial class MainWindow : Window
     {
         try
         {
-            // Security: Prevent malicious webpage CSRF drive-by downloads.
-            // Check the Origin header: only allow browser extensions or local requests without web Origin.
+            // Security 1: Host header validation (Defend against DNS rebinding attacks)
+            string? host = context.Request.Headers["Host"];
+            if (string.IsNullOrEmpty(host) || (!host.StartsWith("127.0.0.1") && !host.StartsWith("localhost")))
+            {
+                context.Response.StatusCode = 403;
+                return;
+            }
+
+            // Security 2: Sec-Fetch-Site validation (Block cross-site web page requests)
+            string? secFetchSite = context.Request.Headers["Sec-Fetch-Site"];
+            if (secFetchSite == "cross-site")
+            {
+                context.Response.StatusCode = 403;
+                return;
+            }
+
+            // Security 3: Origin validation (Only allow recognized extension schemes)
             string? origin = context.Request.Headers["Origin"];
             if (!string.IsNullOrEmpty(origin))
             {
@@ -148,7 +163,6 @@ public partial class MainWindow : Window
                                    origin.StartsWith("moz-extension://", StringComparison.OrdinalIgnoreCase);
                 if (!isExtension)
                 {
-                    // Block web origins attempting drive-by downloads
                     context.Response.StatusCode = 403;
                     return;
                 }
@@ -160,11 +174,19 @@ public partial class MainWindow : Window
             }
 
             context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Vortex-Auth");
 
             if (context.Request.HttpMethod == "OPTIONS")
             {
                 context.Response.StatusCode = 200;
+                return;
+            }
+
+            // Security 4: Shared auth token header verification between extension and desktop bridge
+            string? authToken = context.Request.Headers["X-Vortex-Auth"];
+            if (authToken != "vortex-bridge-extension-auth-token")
+            {
+                context.Response.StatusCode = 403;
                 return;
             }
 
@@ -210,14 +232,7 @@ public partial class MainWindow : Window
 
     public static string SanitizeFileName(string? rawFileName)
     {
-        if (string.IsNullOrWhiteSpace(rawFileName)) return "download.bin";
-        string fileName = Path.GetFileName(rawFileName.Trim());
-        char[] invalid = Path.GetInvalidFileNameChars();
-        foreach (char c in invalid)
-        {
-            fileName = fileName.Replace(c, '_');
-        }
-        return string.IsNullOrWhiteSpace(fileName) ? "download.bin" : fileName;
+        return UrlMetadataInspector.CleanFileName(rawFileName);
     }
 
     private async void PromptNewDownloadFromBrowser(string url, string? fileName, long? size)

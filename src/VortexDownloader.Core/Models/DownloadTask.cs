@@ -14,6 +14,7 @@ public class DownloadTask
     public double SpeedBytesPerSec { get; set; }
     public DownloadStatus Status { get; set; } = DownloadStatus.Queued;
     public string? ETag { get; set; }
+    public string? LastModified { get; set; }
     public bool SupportsRange { get; set; } = true;
     public int MaxChunks { get; set; } = 8;
     public List<DownloadChunk> Chunks { get; set; } = [];
