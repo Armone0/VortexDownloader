@@ -580,29 +580,27 @@
             </Grid.RowDefinitions>
 
             <!-- 1. TOP TOOLBAR -->
-            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="18,10">
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="16,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- Left: Section Title & Count Badge -->
                         <ColumnDefinition Width="Auto"/>
-                        <!-- Middle Spacer -->
+                        <!-- Right: Structured Action Groups (Flexible & Wrappable) -->
                         <ColumnDefinition Width="*"/>
-                        <!-- Right: Structured Action Groups -->
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Breadcrumb / Section Title -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Left: Breadcrumb / Section Title with guaranteed right margin -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
                         <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding FilteredDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </Border>
                     </StackPanel>
 
-                    <!-- Right: Grouped Commands and Preferences -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Right: Dynamic WrapPanel - automatically wraps on narrow windows so NOTHING is ever clipped or pushed off screen! -->
+                    <WrapPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <!-- Group A: Batch Operations Segmented Pill -->
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="3,2">
+                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="3,2" Margin="0,3,10,3" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <!-- Start All -->
                                 <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="10,5" Command="{Binding StartAllCommand}">
@@ -634,23 +632,21 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Group Separator -->
-                        <Rectangle Width="1" Height="20" Fill="{DynamicResource CardBorderBrush}" Margin="12,0"/>
-
                         <!-- Group B: Speed Limit Dropdown -->
-                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="6,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="6,2" Margin="0,3,10,3" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="⚡" FontSize="11" Foreground="#10B981" VerticalAlignment="Center" Margin="2,0,4,0"/>
                                 <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="82" Height="26" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- Group C: Auto-Shutdown Checkbox (Properly aligned horizontally!) -->
+                        <!-- Group C: Auto-Shutdown Checkbox (Properly aligned with 8px spacing, NEVER disappears) -->
                         <CheckBox Content="{DynamicResource Str_ShutdownWhenDone}"
                                   IsChecked="{Binding ShutdownWhenCompleted, Mode=TwoWay}"
                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"
+                                  Padding="8,0,0,0" Margin="2,3,4,3"
                                   ToolTip="Tüm indirmeler tamamlandığında bilgisayarı otomatik kapatır"/>
-                    </StackPanel>
+                    </WrapPanel>
                 </Grid>
             </Border>
 
