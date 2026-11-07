@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VortexDownloader Integration",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Otomatik indirme yakalama ve VortexDownloader hızlı aktarım eklentisi.",
   "permissions": [
     "downloads",

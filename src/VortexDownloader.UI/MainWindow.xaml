@@ -290,7 +290,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="VORTEX" FontSize="15" FontWeight="Black" Foreground="#00F2FE"/>
                             <Border Background="#1E293B" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.0" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                <TextBlock Text="v1.1" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="DOWNLOAD MANAGER" FontSize="8" FontWeight="Bold" Foreground="#64748B" Margin="0,1,0,0"/>
