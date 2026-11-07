@@ -199,6 +199,32 @@ public class ExtensionVerificationTests
         Assert.Contains("chrome.cookies.getAll", popupCode);
     }
 
+    [Fact]
+    public void BrowserDownloadPayload_DeserializesCamelCaseJsonPayloadCorrectly()
+    {
+        string json = """
+        {
+            "url": "https://example.com/testfile.zip",
+            "fileName": "testfile.zip",
+            "fileSize": 1048576,
+            "cookies": "sessionId=abc123xyz",
+            "referer": "https://example.com/download-page",
+            "userAgent": "Mozilla/5.0 Chrome/130"
+        }
+        """;
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var payload = JsonSerializer.Deserialize<VortexDownloader.Core.Models.BrowserDownloadPayload>(json, options);
+
+        Assert.NotNull(payload);
+        Assert.Equal("https://example.com/testfile.zip", payload.Url);
+        Assert.Equal("testfile.zip", payload.FileName);
+        Assert.Equal(1048576, payload.FileSize);
+        Assert.Equal("sessionId=abc123xyz", payload.Cookies);
+        Assert.Equal("https://example.com/download-page", payload.EffectiveReferrer);
+        Assert.Equal("Mozilla/5.0 Chrome/130", payload.UserAgent);
+    }
+
     private static string CalculateSha256(string filePath)
     {
         using var sha256 = SHA256.Create();

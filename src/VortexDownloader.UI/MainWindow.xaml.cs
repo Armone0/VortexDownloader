@@ -2,9 +2,11 @@ using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
+using VortexDownloader.Core.Models;
 using VortexDownloader.UI.Services;
 using VortexDownloader.UI.ViewModels;
 using VortexDownloader.UI.Views;
@@ -22,6 +24,11 @@ public partial class MainWindow : Window
     private VortexTrayIcon? _trayIcon;
     private HttpListener? _extensionBridgeListener;
     private CancellationTokenSource? _bridgeCts;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private bool _isRealExit;
 
     private record BrowserPromptItem(
@@ -290,21 +297,24 @@ public partial class MainWindow : Window
             {
                 using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
                 string body = await reader.ReadToEndAsync();
-                var data = JsonSerializer.Deserialize<BrowserDownloadPayload>(body);
+                BridgeLog($"--> [POST] Body ({body.Length} chars): {body}");
+                var data = JsonSerializer.Deserialize<BrowserDownloadPayload>(body, JsonOptions);
 
-                if (data != null && !string.IsNullOrWhiteSpace(data.Url))
+                string? effectiveUrl = data?.Url;
+                if (!string.IsNullOrWhiteSpace(effectiveUrl))
                 {
                     // Security: Enforce HTTP/HTTPS scheme validation to prevent file:// or command injection URIs
-                    if (!Uri.TryCreate(data.Url, UriKind.Absolute, out var uri) ||
+                    if (!Uri.TryCreate(effectiveUrl, UriKind.Absolute, out var uri) ||
                         (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                     {
-                        BridgeLog($"<-- 400 Bad Request: Invalid URL scheme '{data.Url}'");
+                        BridgeLog($"<-- 400 Bad Request: Invalid URL scheme '{effectiveUrl}'");
                         context.Response.StatusCode = 400;
                         return;
                     }
 
-                    string safeFileName = SanitizeFileName(data.FileName);
-                    BridgeLog($"<-- 200 OK: Enqueued download for '{safeFileName}' ({uri.AbsoluteUri}) | Size: {data.FileSize} bytes");
+                    string safeFileName = SanitizeFileName(data?.FileName);
+                    string? referrer = data?.EffectiveReferrer;
+                    BridgeLog($"<-- 200 OK: Enqueued download for '{safeFileName}' ({uri.AbsoluteUri}) | Size: {data?.FileSize} bytes");
 
                     // Send HTTP 200 response IMMEDIATELY so the browser extension can cancel browser download without timeout!
                     context.Response.StatusCode = 200;
@@ -319,16 +329,16 @@ public partial class MainWindow : Window
                     EnqueueBrowserPrompt(new BrowserPromptItem(
                         uri.AbsoluteUri,
                         safeFileName,
-                        data.FileSize,
-                        data.Cookies,
-                        data.Referrer,
-                        data.UserAgent));
+                        data?.FileSize,
+                        data?.Cookies,
+                        referrer,
+                        data?.UserAgent));
 
                     return;
                 }
                 else
                 {
-                    BridgeLog("<-- 400 Bad Request: Empty URL in POST payload");
+                    BridgeLog($"<-- 400 Bad Request: Empty URL in POST payload (raw body: '{body}')");
                     context.Response.StatusCode = 400;
                     return;
                 }
@@ -563,12 +573,4 @@ public partial class MainWindow : Window
     {
         MessageBox.Show(this, "Site ve Medya Yakalayıcı (Grabber) hazır.", "Medya Yakalayıcı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
-
-    private record BrowserDownloadPayload(
-        string Url,
-        string? FileName,
-        long? FileSize,
-        string? Cookies = null,
-        string? Referrer = null,
-        string? UserAgent = null);
 }
