@@ -1,0 +1,8 @@
+# GitHub Linguist Overrides
+# Ensure pure C# project presentation
+
+*.cs linguist-detectable=true
+*.xaml linguist-detectable=true
+*.md linguist-documentation=true
+docs/* linguist-documentation=true
+extension/* linguist-vendored=true

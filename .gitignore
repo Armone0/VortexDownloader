@@ -21,6 +21,10 @@
 # --- Single-File & Self-Contained Publish Artifacts ---
 publish/
 publish_light/
+build.bat
+scripts/
+*.bat
+*.ps1
 *.pdb
 *.FileListAbsolute.txt
 *.GeneratedMSBuildEditorConfig.editorconfig
