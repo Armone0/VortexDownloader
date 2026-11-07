@@ -214,10 +214,45 @@ public class DownloadEngine : IAsyncDisposable
         _globalSpeedLimiter.SetLimit(bytesPerSec);
     }
 
-    private async Task ExecuteDownloadAsync(DownloadTask task, CancellationToken cancellationToken)
+    public static bool HasEnoughDiskSpace(string path, long requiredBytes, out long availableBytes)
     {
         try
         {
+            string fullPath = Path.GetFullPath(path);
+            string? root = Path.GetPathRoot(fullPath);
+            if (!string.IsNullOrEmpty(root))
+            {
+                var drive = new DriveInfo(root);
+                availableBytes = drive.AvailableFreeSpace;
+                // Require file size + 50 MB safety margin
+                return requiredBytes <= 0 || availableBytes >= (requiredBytes + 50L * 1024 * 1024);
+            }
+        }
+        catch
+        {
+            // If unable to query drive info, do not block download
+        }
+
+        availableBytes = -1;
+        return true;
+    }
+
+    private async Task ExecuteDownloadAsync(DownloadTask task, CancellationToken cancellationToken)
+    {
+        SleepPreventer.StartPreventingSleep();
+        try
+        {
+            // Motrix Fix: Pre-flight disk space validation to prevent silent crash and freeze
+            if (!HasEnoughDiskSpace(task.DestinationPath, task.TotalBytes, out long availableBytes))
+            {
+                long reqMb = task.TotalBytes / 1024 / 1024;
+                long availMb = availableBytes / 1024 / 1024;
+                task.Status = DownloadStatus.Failed;
+                task.ErrorMessage = $"Yetersiz disk alanı! Gerekli: {reqMb} MB, Boş alan: {availMb} MB.";
+                TaskFailed?.Invoke(task, task.ErrorMessage);
+                return;
+            }
+
             // If Range is not supported or single chunk
             if (!task.SupportsRange || task.Chunks.Count <= 1)
             {
@@ -281,6 +316,7 @@ public class DownloadEngine : IAsyncDisposable
         }
         finally
         {
+            SleepPreventer.StopPreventingSleep();
             _runningTokens.TryRemove(task.Id, out var cts);
             cts?.Dispose();
             _runningExecutionTasks.TryRemove(task.Id, out _);
