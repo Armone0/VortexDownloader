@@ -487,7 +487,7 @@
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                             <TextBlock Text="VORTEX DOWNLOADER" FontSize="17" FontWeight="Black" 
                                        Foreground="{DynamicResource AccentHighlightBrush}" HorizontalAlignment="Center"/>
-                            <TextBlock Text="v1.2.0 • Motrix Edition" FontSize="12" FontWeight="SemiBold" 
+                            <TextBlock Text="v1.2.1 • Soft Loft Edition" FontSize="12" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,3,0,14"/>
                             <TextBlock Text="&quot;Veriyi bekleme; onu girdaba çek.&quot;" FontStyle="Italic" FontSize="13" FontWeight="Bold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>

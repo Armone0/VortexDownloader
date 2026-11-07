@@ -56,46 +56,36 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
-## [1.3.0] - 2026-11-07 — Dinamik Tema, Çoklu Dil ve Ayarlar Penceresi (Themes, i18n & Settings)
+## [1.2.1] - 2026-11-07 — Kararlı Yama Sürümü (Soft Loft Temaları, Dil Desteği, Ayarlar & Güvenlik)
 
-### 🎨 Dinamik Tema Sistemi (Dynamic Soft Loft Theme Engine)
-- **Koyu Mod (Dark Theme):** Soft Loft paleti ile `#071B2B` zemin, `#167D8D` panel ve çerçeveler, `#B9E4E8` canlı progress ve ikon vurgusu, `#EEEEEE` yüksek kontrastlı mat metinler.
-- **Açık Mod (Light Theme):** `#FFCED8` zemin, `#FFDDDD` kartlar, `#FFF4DE` giriş alanları ve `#FFE8C4` aksiyon butonları.
+### 🎨 Lo-Fi Soft Loft Çift Tema Motoru (Dynamic Themes)
+- **Koyu Mod (Dark Theme):** Sıcak Derin Kömür (`#1E2022`), Yükseltilmiş Grafit (`#282B2F`), Mat Adaçayı Yeşili (`#8EA191`), Sıcak Yulaf Krem (`#F0ECE1`).
+- **Açık Mod (Light Theme):** Sıcak Yulaf Kağıt (`#F6F4EF`), Temiz Süt Beyazı (`#FFFFFF`), Doğal Adaçayı (`#7C8C7E`), Yumuşak Kömür Metin (`#2D3133`).
 - **Canlı Çalışma Zamanı Geçişi:** `ThemeManager` ve `DynamicResource` sözlüğü sayesinde uygulama yeniden başlatılmadan anında tema değişimi.
 
 ### 🌐 Dinamik Çoklu Dil Desteği (LocalizationManager)
-- **Türkçe & İngilizce Desteği:** Arayüzün tüm metinleri, butonları, bildirimleri ve durum etiketleri anında Türkçe 🇹🇷 ve İngilizce 🇬🇧 arasında değiştirilebilir.
+- **Türkçe 🇹🇷 & İngilizce 🇬🇧:** Arayüzün tüm metinleri, butonları, bildirimleri ve durum etiketleri anında değiştirilebilir.
 
 ### ⚙️ Motrix Esintili Ayarlar Penceresi (SettingsWindow)
 - **Sekmeli Yönetim:** Genel İndirme Ayarları, Görünüm & Dil, ve Hakkında sekmeleri.
 - **Kalıcı Yapılandırma (`AppSettings`):** Tercihler `%APPDATA%\VortexDownloader\settings.json` dosyasına JSON olarak kaydedilir.
 - **Kuyruk ve Hız Parametreleri:** Varsayılan indirme klasörü, varsayılan eşzamanlı görev limiti ve parça sayısı ayarlanabilir.
 
-### 🧹 Arayüz Sadeleştirmesi ve Temizlik
-- Geliştirici hata ayıklama kutusu ("Tarayıcı Köprüsü: Port 19741") ve altbilgi kaldırıldı.
-- Sol menü altına modern Ayarlar (`⚙️`) butonu yerleştirildi.
-- Tüm buton ve paneller yumuşak köşeli (`CornerRadius="8"`) mat kart standartlarına uyarlandı.
+### 🌪️ Canlı Dönen Girdap Efekti & Yeni Resmi Logo
+- Aktif indirme çalışırken başlık alanında dönen dinamik girdap animasyonu (`SpinVortexStory`).
+- Yeni resmi Squircle Ribbon Swirl logosu ve çok katmanlı Windows uygulama ikonu (`vortex_app.ico`, `vortex_tray.ico`, `vortex_logo.png`, `extension/icons/`).
+- Slogan ve marka manifestosu: *"Veriyi bekleme; onu girdaba çek."*
 
----
+### 📁 IDM Kategori Ağacı & Disk Alanı Göstergesi
+- Sol kenar çubuğunda canlı sayaç rozetleriyle IDM dosya türü filtreleri: Sıkıştırılmış, Belgeler, Müzik & Ses, Programlar, Videolar.
+- İndirme dizinindeki boş disk alanını anlık gösteren mini kart (`💾 C: 142 GB Boş`).
 
-## [1.2.1] - 2026-11-07 — Güvenlik Sıkılaştırma & Bütünlük Doğrulama (Security Hardening & Integrity)
-
-### 🔒 Loopback Köprüsü Çok Katmanlı Güvenlik (Defense-in-Depth Bridge Security)
-- **Host Başlığı Doğrulaması:** DNS Rebinding saldırılarını engellemek amacıyla gelen isteklerin `Host` başlığı `127.0.0.1` ve `localhost` ile sınırlandırıldı.
+### 🔒 Loopback Köprüsü Çok Katmanlı Güvenlik & Resume Bütünlüğü
+- **Host Başlığı & DNS Rebinding Koruması:** İsteklerin `Host` başlığı `127.0.0.1` ve `localhost` ile sınırlandırıldı.
 - **Sec-Fetch-Site Filtreleme:** Web sitelerinden gelen izinsiz cross-site çağrıları engellemek için `Sec-Fetch-Site: cross-site` istekleri doğrudan `403 Forbidden` ile reddediliyor.
 - **Paylaşımlı Kimlik Doğrulama Belirteci (`X-Vortex-Auth`):** Tarayıcı eklentisi ile masaüstü köprüsü arasında paylaşılan belirteç (`vortex-bridge-extension-auth-token`) doğrulanmadan hiçbir işlem kabul edilmiyor.
-- **Dizin Aşımı (Path Traversal) ve Şema Güvenliği:** `SanitizeFileName` ve `Uri.Scheme` (`http`/`https`) kontrolleri güçlendirildi.
-
-### 🛡️ İndirme Devam Bütünlüğü (Resume Integrity via ETag & Last-Modified)
-- **Kaynak Değişikliği Algılama:** Duraklatılan veya kesintiye uğrayan indirmeler devam ettirilirken sunucudaki `ETag`, `Last-Modified` (RFC 7232 / RFC 9110) ve `ContentLength` değerleri kontrol edilir.
-- **Bozuk Birleştirme Önlemi:** Sunucudaki dosya indirme arasında değiştiyse, eski parçalar sıfırlanarak birleştirme sırasında dosya bozulması engellenir.
-
-### 📖 Dokümantasyon ve Teknik Dürüstlük Düzeltmeleri
-- README içerisindeki test sayıları (29/29) senkronize edildi.
-- Repo dışı kalan eski `.bat` ve `.ps1` script referansları temizlendi; standart `dotnet` CLI komutları yerleştirildi.
-- Eklenti dosya ağacına `content.js` ve `content.css` eklendi; HLS akışlarının Range indirmesi değil transcode/transmux gerektirdiği belirtilerek yol haritasına alındı.
-- Pazarlama dili ve abartılı "Zero-Allocation" / "Clean-Room Certified" ifadeleri mühendislik odaklı, ölçülebilir ve dürüst terimlerle yenilendi.
-- SmartScreen uyarı bildirimi ve HTTPS test linkleri eklendi.
+- **Dizin Aşımı (Path Traversal) ve Şema Güvenliği:** `UrlMetadataInspector.CleanFileName` ve `Uri.Scheme` (`http`/`https`) kontrolleri güçlendirildi.
+- **Kaynak Değişikliği Algılama:** Duraklatılan indirmeler devam ettirilirken sunucudaki `ETag`, `Last-Modified` (RFC 7232 / RFC 9110) ve `ContentLength` kontrol edilerek bozuk birleştirme önlenir.
 
 ---
 
