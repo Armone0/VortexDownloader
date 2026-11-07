@@ -49,6 +49,37 @@
             </Setter>
         </Style>
 
+        <!-- Sidebar Category Button Style -->
+        <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="Transparent" BorderThickness="2,0,0,0" CornerRadius="0,6,6,0" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#131B2A"/>
+                                <Setter Property="Foreground" Value="#F8FAFC"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1C273D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Secondary Dark Button -->
         <Style x:Key="SecondaryDarkButton" TargetType="Button">
             <Setter Property="Padding" Value="12,6"/>
@@ -138,7 +169,7 @@
             </ControlTemplate.Triggers>
         </ControlTemplate>
 
-        <!-- Fully Themed Dark ComboBox (Eliminates White System Default) -->
+        <!-- Fully Themed Dark ComboBox (Working Popup Binding) -->
         <Style TargetType="ComboBox">
             <Setter Property="Background" Value="#131B2A"/>
             <Setter Property="Foreground" Value="#F8FAFC"/>
@@ -165,7 +196,7 @@
                                               Margin="10,0,24,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
                                               VerticalAlignment="Center"/>
                             <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" 
-                                   IsOpen="{Binding IsDropDownOpen, ElementName=toggleButton}" 
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
                                    Placement="Bottom" PopupAnimation="Slide">
                                 <Border x:Name="dropDownBorder" Background="#111827" BorderBrush="#253550" 
                                         BorderThickness="1" CornerRadius="6" 
@@ -173,15 +204,8 @@
                                         MinWidth="{Binding ActualWidth, ElementName=templateRoot}" 
                                         SnapsToDevicePixels="true" Margin="0,3,0,0">
                                     <ScrollViewer x:Name="DropDownScrollViewer">
-                                        <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
-                                            <Canvas x:Name="canvas" HorizontalAlignment="Left" Height="0" VerticalAlignment="Top" Width="0">
-                                                <Rectangle x:Name="opaqueRect" Fill="{Binding Background, ElementName=dropDownBorder}" 
-                                                           Height="{Binding ActualHeight, ElementName=dropDownBorder}" 
-                                                           Width="{Binding ActualWidth, ElementName=dropDownBorder}"/>
-                                            </Canvas>
-                                            <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" 
-                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" Margin="2"/>
-                                        </Grid>
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" 
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" Margin="2"/>
                                     </ScrollViewer>
                                 </Border>
                             </Popup>
@@ -282,12 +306,13 @@
                     </StackPanel>
                 </Button>
 
-                <!-- 3. Navigation Categories -->
+                <!-- 3. Navigation Categories (Clickable Filter Buttons) -->
                 <StackPanel Grid.Row="2">
                     <TextBlock Text="KATEGORİLER" FontSize="10" FontWeight="Bold" Foreground="#475569" Margin="8,0,0,8"/>
 
-                    <!-- Category: All Tasks (Active) -->
-                    <Border Background="#131B2A" BorderBrush="#00F2FE" BorderThickness="2,0,0,0" CornerRadius="0,6,6,0" Padding="10,8" Margin="0,0,0,4">
+                    <!-- Category: All Tasks Button -->
+                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                            Command="{Binding SetFilterCommand}" CommandParameter="All">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -300,10 +325,11 @@
                                 <TextBlock Text="{Binding TotalDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
                             </Border>
                         </Grid>
-                    </Border>
+                    </Button>
 
-                    <!-- Category: Downloading -->
-                    <Border Background="Transparent" Padding="10,8" Margin="0,0,0,4">
+                    <!-- Category: Downloading Button -->
+                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                            Command="{Binding SetFilterCommand}" CommandParameter="Downloading">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -316,23 +342,41 @@
                                 <TextBlock Text="{Binding ActiveDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#34D399"/>
                             </Border>
                         </Grid>
-                    </Border>
+                    </Button>
 
-                    <!-- Category: Paused -->
-                    <Border Background="Transparent" Padding="10,8" Margin="0,0,0,4">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="⏸" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Duraklatılanlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Category: Paused Button -->
+                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                            Command="{Binding SetFilterCommand}" CommandParameter="Paused">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="⏸" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Duraklatılanlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PausedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
+                            </Border>
+                        </Grid>
+                    </Button>
 
-                    <!-- Category: Finished -->
-                    <Border Background="Transparent" Padding="10,8">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="✅" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Tamamlananlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Category: Completed Button -->
+                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                            Command="{Binding SetFilterCommand}" CommandParameter="Completed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="✅" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Tamamlananlar" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CompletedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8"/>
+                            </Border>
+                        </Grid>
+                    </Button>
                 </StackPanel>
 
                 <!-- 4. Engine & Speed Status Widget -->
@@ -383,9 +427,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Breadcrumb / Section -->
+                    <!-- Left: Breadcrumb / Section Title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Tüm İndirmeler" FontSize="15" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding FilterTitle}" FontSize="15" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
                         <Border Background="#131B2A" BorderBrush="#1F2A3F" BorderThickness="1" CornerRadius="12" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding TotalDownloadsCount, StringFormat='{}{0} Görev'}" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
                         </Border>
@@ -448,7 +492,7 @@
 
                 <!-- Active Downloads List (Shown when downloads exist) -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18">
-                    <ItemsControl ItemsSource="{Binding Downloads}">
+                    <ItemsControl ItemsSource="{Binding FilteredDownloads}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:DownloadItemViewModel}">
                                 <!-- Modern Sleek Download Card -->

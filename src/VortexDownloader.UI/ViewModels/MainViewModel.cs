@@ -41,6 +41,49 @@ public class MainViewModel : ViewModelBase
 
     public int TotalDownloadsCount => Downloads.Count;
     public bool HasNoDownloads => Downloads.Count == 0;
+    public int PausedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Paused);
+    public int CompletedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Completed);
+
+    private string _currentFilter = "All";
+    public string CurrentFilter
+    {
+        get => _currentFilter;
+        set
+        {
+            if (SetProperty(ref _currentFilter, value))
+            {
+                OnPropertyChanged(nameof(FilterTitle));
+                OnPropertyChanged(nameof(FilteredDownloads));
+                OnPropertyChanged(nameof(IsAllFilter));
+                OnPropertyChanged(nameof(IsDownloadingFilter));
+                OnPropertyChanged(nameof(IsPausedFilter));
+                OnPropertyChanged(nameof(IsCompletedFilter));
+            }
+        }
+    }
+
+    public bool IsAllFilter => _currentFilter == "All";
+    public bool IsDownloadingFilter => _currentFilter == "Downloading";
+    public bool IsPausedFilter => _currentFilter == "Paused";
+    public bool IsCompletedFilter => _currentFilter == "Completed";
+
+    public string FilterTitle => _currentFilter switch
+    {
+        "Downloading" => "Aktif İndirmeler",
+        "Paused" => "Duraklatılan İndirmeler",
+        "Completed" => "Tamamlanan İndirmeler",
+        _ => "Tüm İndirmeler"
+    };
+
+    public IEnumerable<DownloadItemViewModel> FilteredDownloads => _currentFilter switch
+    {
+        "Downloading" => Downloads.Where(d => d.Status == DownloadStatus.Downloading),
+        "Paused" => Downloads.Where(d => d.Status == DownloadStatus.Paused),
+        "Completed" => Downloads.Where(d => d.Status == DownloadStatus.Completed),
+        _ => Downloads
+    };
+
+    public ICommand SetFilterCommand { get; }
 
     public string SelectedSpeedLimit
     {
@@ -91,6 +134,14 @@ public class MainViewModel : ViewModelBase
             if (item != null && !string.IsNullOrEmpty(item.DestinationPath))
             {
                 OpenInExplorer(item.DestinationPath);
+            }
+        });
+
+        SetFilterCommand = new RelayCommand<string>(filter =>
+        {
+            if (!string.IsNullOrEmpty(filter))
+            {
+                CurrentFilter = filter;
             }
         });
     }
@@ -157,6 +208,9 @@ public class MainViewModel : ViewModelBase
         ActiveDownloadsCount = Downloads.Count(d => d.Status == DownloadStatus.Downloading);
         OnPropertyChanged(nameof(TotalDownloadsCount));
         OnPropertyChanged(nameof(HasNoDownloads));
+        OnPropertyChanged(nameof(PausedDownloadsCount));
+        OnPropertyChanged(nameof(CompletedDownloadsCount));
+        OnPropertyChanged(nameof(FilteredDownloads));
     }
 
     private void PostToUi(Action action)
