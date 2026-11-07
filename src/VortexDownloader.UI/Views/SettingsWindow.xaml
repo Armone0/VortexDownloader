@@ -241,30 +241,41 @@
             </Setter>
         </Style>
 
-        <!-- CheckBox Style -->
+        <!-- CheckBox Style (Guaranteed 10px spacing between check border and text) -->
         <Style x:Key="ModernCheckBox" TargetType="CheckBox">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <BulletDecorator Background="Transparent">
-                            <BulletDecorator.Bullet>
-                                <Border x:Name="border" Width="18" Height="18" CornerRadius="4" 
-                                        Background="{DynamicResource InputBackgroundBrush}" 
-                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,0,8,0">
-                                    <Path x:Name="checkMark" Data="M 3 8 L 7 12 L 14 4" 
-                                          Stroke="{DynamicResource AccentHighlightBrush}" StrokeThickness="2" 
-                                          Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                            </BulletDecorator.Bullet>
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </BulletDecorator>
+                        <Grid Background="Transparent" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="border" Grid.Column="0" Width="18" Height="18" CornerRadius="4" 
+                                    Background="{DynamicResource InputBackgroundBrush}" 
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Data="M 3 8 L 7 12 L 14 4" 
+                                      Stroke="{DynamicResource AccentHighlightBrush}" StrokeThickness="2" 
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

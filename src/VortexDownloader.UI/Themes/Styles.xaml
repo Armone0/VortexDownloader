@@ -19,7 +19,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Grid Background="Transparent">
+                    <Grid Background="Transparent" VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -27,13 +27,13 @@
                         <Border x:Name="checkBorder" Grid.Column="0" Width="16" Height="16" CornerRadius="4"
                                 Background="{DynamicResource InputBackgroundBrush}"
                                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                VerticalAlignment="Center">
+                                Margin="0,0,10,0" VerticalAlignment="Center">
                             <Path x:Name="checkMark" Data="M 3 8 L 6.5 11.5 L 13 4"
                                   Stroke="{DynamicResource AccentHighlightBrush}" StrokeThickness="2"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"
+                        <ContentPresenter Grid.Column="1" VerticalAlignment="Center"
                                           RecognizesAccessKey="True"/>
                     </Grid>
                     <ControlTemplate.Triggers>
