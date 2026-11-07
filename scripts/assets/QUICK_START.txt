@@ -1,0 +1,38 @@
+==============================================================================
+                 ⚡ VORTEXDOWNLOADER v1.1.0 - QUICK START GUIDE ⚡
+==============================================================================
+
+Thank you for choosing VortexDownloader!
+This is a zero-dependency, high-speed, dynamic segmented download accelerator.
+It is 100% portable—no installer or .NET runtime installation required.
+
+------------------------------------------------------------------------------
+1. RUNNING THE APPLICATION:
+------------------------------------------------------------------------------
+- Double-click "VortexDownloader.exe" to launch.
+- The app docks seamlessly into the Windows system tray (near the clock).
+
+------------------------------------------------------------------------------
+2. BROWSER EXTENSION SETUP (Chrome / Edge / Brave / Opera):
+------------------------------------------------------------------------------
+Method A (Automated Helper):
+  - Run "Tarayici-Eklentisi-Kur.bat" and select your browser.
+  - Turn on "Developer Mode" in the opened browser tab, and select the "extension" folder.
+
+Method B (Manual):
+  1. Navigate to your browser's extension manager:
+     - Chrome: chrome://extensions
+     - Edge:   edge://extensions
+     - Brave:  brave://extensions
+  2. Enable "Developer Mode" (top-right toggle).
+  3. Click "Load unpacked".
+  4. Select the "extension" folder located inside this directory.
+  5. Any downloads you initiate in the browser will now stream directly to Vortex!
+
+------------------------------------------------------------------------------
+3. MANUAL DOWNLOAD:
+------------------------------------------------------------------------------
+- Click "+ Yeni Indirme" (+ New Download) in the Vortex window.
+- Paste your file URL and start downloading with up to 32 parallel dynamic streams.
+
+GitHub Repository: https://github.com/Armone0/VortexDownloader

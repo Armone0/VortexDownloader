@@ -9,6 +9,7 @@
 [Oo]ut/
 [Bb]uild/
 [Dd]ist/
+[Rr]eleases/
 [Tt]arget/
 *.user
 *.suo

@@ -88,11 +88,15 @@ flowchart TD
 
 ## 📦 Installation & Setup Guide
 
-### Option 1: Run Pre-Compiled Standalone App (Fastest)
+### Option 1: Download Ready-to-Run Portable Package (Recommended)
 
 1. Go to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases) page.
-2. Download the latest `VortexDownloader.UI.exe` from the assets.
-3. Run the executable. It is completely **self-contained**—no separate .NET runtime installation is required!
+2. Download `VortexDownloader-v1.1.0-win-x64.zip` (or the latest release).
+3. Extract the ZIP archive anywhere on your PC.
+4. Run **`VortexDownloader.exe`**.
+   * Completely **portable & self-contained** (0 dependencies, no .NET install required).
+   * Runs in the system tray when minimized.
+5. (Optional) Run **`Tarayici-Eklentisi-Kur.bat`** to connect Chrome, Edge, or Brave in seconds!
 
 ---
 
@@ -103,7 +107,13 @@ flowchart TD
 * [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) or higher
 * Git
 
-#### Step-by-Step Instructions
+#### Quick 1-Click Build
+```cmd
+build.bat
+```
+*(Or run `powershell -File scripts/build.ps1`)*
+
+#### Manual Step-by-Step Instructions
 
 1. **Clone the repository:**
    ```bash
@@ -128,9 +138,9 @@ flowchart TD
    ```
    *(All 18 unit tests verify dynamic range math, speed limiting, file assembly byte fidelity, and state serialization.)*
 
-5. **Publish a single-file executable:**
-   ```bash
-   dotnet publish src/VortexDownloader.UI/VortexDownloader.UI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/
+5. **Package a release ZIP (portable exe + extension):**
+   ```powershell
+   powershell -File scripts/package-release.ps1 -Version 1.1.0
    ```
 
 ---
