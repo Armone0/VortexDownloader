@@ -34,6 +34,7 @@ public class AppSettings
     public int MaxConcurrentDownloads { get; set; } = 3;
     public int DefaultChunkCount { get; set; } = 8;
     public bool ShutdownWhenCompleted { get; set; } = false;
+    public bool CloseToTray { get; set; } = true;
 
     public static string GetDefaultDownloadPath()
     {

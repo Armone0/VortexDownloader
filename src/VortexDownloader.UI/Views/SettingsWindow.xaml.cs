@@ -40,6 +40,9 @@ public partial class SettingsWindow : Window
         // Populate Default Chunks
         SelectComboBoxItemByTag(CmbDefaultChunks, settings.DefaultChunkCount.ToString());
 
+        // Populate Close to Tray
+        ChkCloseToTray.IsChecked = settings.CloseToTray;
+
         // Populate Shutdown
         ChkShutdownWhenDone.IsChecked = settings.ShutdownWhenCompleted;
 
@@ -133,6 +136,7 @@ public partial class SettingsWindow : Window
             settings.DefaultChunkCount = chunkVal;
         }
 
+        settings.CloseToTray = ChkCloseToTray.IsChecked == true;
         settings.ShutdownWhenCompleted = ChkShutdownWhenDone.IsChecked == true;
         settings.Save();
 

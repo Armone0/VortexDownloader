@@ -136,15 +136,30 @@ public partial class MainWindow : Window
         Log("MainWindow_Loaded exit");
     }
 
+    private static bool _trayNotificationShown = false;
+
     private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        Log($"MainWindow_Closing enter (_isRealExit={_isRealExit})");
+        Log($"MainWindow_Closing enter (_isRealExit={_isRealExit}, CloseToTray={AppSettings.Current.CloseToTray})");
+        if (!_isRealExit && !AppSettings.Current.CloseToTray)
+        {
+            _isRealExit = true;
+        }
+
         if (!_isRealExit)
         {
             // Minimize to tray instead of quitting
             e.Cancel = true;
             Hide();
             Log("MainWindow_Closing minimized to tray (cancelled exit)");
+
+            if (!_trayNotificationShown)
+            {
+                _trayNotificationShown = true;
+                _trayIcon?.ShowNotification(
+                    "VortexDownloader",
+                    "VortexDownloader arka planda çalışmaya ve tarayıcı indirmelerini yakalamaya devam ediyor.");
+            }
             return;
         }
 

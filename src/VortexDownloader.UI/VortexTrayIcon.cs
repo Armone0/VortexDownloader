@@ -23,6 +23,8 @@ public class VortexTrayIcon : IDisposable
     private const uint NIF_MESSAGE = 0x00000001;
     private const uint NIF_ICON = 0x00000002;
     private const uint NIF_TIP = 0x00000004;
+    private const uint NIF_INFO = 0x00000010;
+    private const uint NIIF_INFO = 0x00000001;
 
     private readonly Window _window;
     private readonly Action _onRestore;
@@ -202,6 +204,26 @@ public class VortexTrayIcon : IDisposable
             {
                 DestroyMenu(hMenu);
             }
+        }
+    }
+
+    public void ShowNotification(string title, string message)
+    {
+        if (!_isCreated) return;
+
+        try
+        {
+            var data = _nid;
+            data.uFlags |= NIF_INFO;
+            data.szInfoTitle = title != null && title.Length > 63 ? title.Substring(0, 63) : (title ?? "VortexDownloader");
+            data.szInfo = message != null && message.Length > 255 ? message.Substring(0, 255) : (message ?? "");
+            data.dwInfoFlags = NIIF_INFO;
+
+            Shell_NotifyIcon(NIM_MODIFY, ref data);
+        }
+        catch
+        {
+            // Suppress tray notification failures on restricted environments
         }
     }
 

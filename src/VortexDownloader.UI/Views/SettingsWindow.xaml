@@ -424,10 +424,15 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Automation Card -->
+                    <!-- Automation & Tray Behavior Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
                             BorderThickness="1" CornerRadius="8" Padding="14">
                         <StackPanel>
+                            <CheckBox x:Name="ChkCloseToTray" Style="{StaticResource ModernCheckBox}" 
+                                      Content="Pencere kapatıldığında sistem tepsisine küçült (Arka planda çalış)" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Pencere kapatıldığında indirmelerin arka planda devam etmesini ve tarayıcı indirmelerinin yakalanmasını sağlar." 
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12" TextWrapping="Wrap"/>
+
                             <CheckBox x:Name="ChkShutdownWhenDone" Style="{StaticResource ModernCheckBox}" 
                                       Content="{DynamicResource Str_ShutdownWhenDone}" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="Tüm görevler bittiğinde bilgisayarı otomatik olarak güvenle kapatır." 
@@ -497,7 +502,7 @@
                             <CheckBox Content="İndirme tamamlandığında Windows masaüstü bildirimi göster" 
                                       Style="{StaticResource ModernCheckBox}" IsChecked="True" Margin="0,0,0,6"/>
                             <CheckBox Content="Pencere kapatıldığında arka planda sistem tepsisine (Tray) küçült" 
-                                      Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
+                                      Style="{StaticResource ModernCheckBox}" IsChecked="{Binding IsChecked, ElementName=ChkCloseToTray, Mode=TwoWay}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

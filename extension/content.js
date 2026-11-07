@@ -315,6 +315,130 @@
     }
   });
 
+  // --- Proactive IDM-Style Link Click Interceptor ---
+  const DOWNLOADABLE_EXTENSIONS = [
+    '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso',
+    '.exe', '.msi', '.apk', '.dmg', '.pkg', '.deb', '.rpm', '.bin', '.img',
+    '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
+    '.mp3', '.flac', '.wav', '.aac', '.ogg',
+    '.pdf', '.docx', '.xlsx', '.pptx', '.epub', '.torrent'
+  ];
+
+  function isDownloadableLink(urlStr, linkElement) {
+    if (!urlStr || typeof urlStr !== 'string') return null;
+    const trimmed = urlStr.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) return null;
+
+    // Check link download attribute first
+    if (linkElement && linkElement.hasAttribute('download')) {
+      const dlAttr = (linkElement.getAttribute('download') || '').trim();
+      if (dlAttr) {
+        const lowerAttr = dlAttr.toLowerCase();
+        for (const ext of DOWNLOADABLE_EXTENSIONS) {
+          if (lowerAttr.endsWith(ext)) {
+            return sanitizeFileName(dlAttr);
+          }
+        }
+      }
+    }
+
+    try {
+      const parsed = new URL(trimmed, window.location.href);
+      const pathname = parsed.pathname.toLowerCase();
+      const lastSegment = pathname.split('/').filter(Boolean).pop();
+
+      if (lastSegment) {
+        const decoded = decodeURIComponent(lastSegment);
+        for (const ext of DOWNLOADABLE_EXTENSIONS) {
+          if (decoded.endsWith(ext)) {
+            return sanitizeFileName(decoded);
+          }
+        }
+      }
+
+      // Check query parameter values (e.g. ?file=setup.exe or ?download=archive.zip)
+      for (const [_, val] of parsed.searchParams.entries()) {
+        const lowerVal = val.toLowerCase();
+        for (const ext of DOWNLOADABLE_EXTENSIONS) {
+          if (lowerVal.endsWith(ext)) {
+            const decodedVal = decodeURIComponent(val.split(/[\\/]/).pop() || val);
+            return sanitizeFileName(decodedVal);
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  let activeToast = null;
+  let toastTimer = null;
+
+  function showToast(message, type = 'info', duration = 3000) {
+    const parent = document.body || document.documentElement;
+    if (!parent) return;
+
+    if (!activeToast || !activeToast.isConnected) {
+      activeToast = document.createElement('div');
+      activeToast.className = 'vortex-toast';
+      parent.appendChild(activeToast);
+    }
+
+    activeToast.textContent = message;
+    activeToast.className = `vortex-toast vortex-toast-${type} vortex-toast-visible`;
+
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      if (activeToast && activeToast.isConnected) {
+        activeToast.classList.remove('vortex-toast-visible');
+      }
+    }, duration);
+  }
+
+  function onLinkClick(e) {
+    // IDM Standard Bypass: If Alt key is held down, allow native browser download
+    if (e.altKey) return;
+
+    const link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!link || !link.href) return;
+
+    const href = link.href.trim();
+    if (!href.startsWith('http://') && !href.startsWith('https://')) return;
+
+    const fileName = isDownloadableLink(href, link);
+    if (!fileName) return;
+
+    // Prevent native browser download & stop propagation
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Show instant HUD toast
+    showToast(`⚡ Vortex'e Aktarıldı (${fileName})`, 'info', 3000);
+
+    chrome.runtime.sendMessage({
+      action: 'intercept_link',
+      url: href,
+      fileName: fileName,
+      referrer: window.location.href
+    }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        showToast(`Vortex kapalı, tarayıcıda indiriliyor (${fileName})`, 'warning', 3500);
+        setTimeout(() => {
+          if (link && link.getAttribute && link.getAttribute('target') === '_blank') {
+            window.open(href, '_blank');
+          } else {
+            window.location.href = href;
+          }
+        }, 600);
+      } else {
+        showToast(`⚡ Vortex'e Aktarıldı (${fileName})`, 'success', 3500);
+      }
+    });
+  }
+
+  // Register capture-phase listener to intercept before page handlers or browser default
+  document.addEventListener('click', onLinkClick, true);
+
   function init() {
     scanAllVideos();
     const root = document.body || document.documentElement;

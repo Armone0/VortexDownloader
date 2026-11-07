@@ -346,10 +346,14 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
   return true; // Keep async channel open for suggest()!
 });
 
-// 2. Handle media download requests and diagnostic log requests
+// 2. Handle media download requests, link interceptions, and diagnostic log requests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.action === "download_media") {
     handleMediaDownload(message, sender).then(sendResponse);
+    return true; // Keep message channel open for async response
+  }
+  if (message && message.action === "intercept_link") {
+    handleInterceptLink(message, sender).then(sendResponse);
     return true; // Keep message channel open for async response
   }
   if (message && message.action === "get_logs") {
@@ -448,6 +452,79 @@ async function handleMediaDownload(message, sender) {
   } catch (downloadErr) {
     return { success: false, error: downloadErr.message || "İndirme başlatılamadı" };
   }
+}
+
+async function handleInterceptLink(message, sender) {
+  const url = message && message.url;
+  if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+    return { success: false, error: "Geçersiz indirme bağlantısı" };
+  }
+
+  // 1. Check if download interception is enabled in user settings
+  const isEnabled = await new Promise((resolve) => {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ interceptEnabled: true }, (items) => {
+        resolve(items ? items.interceptEnabled !== false : true);
+      });
+    } else {
+      resolve(true);
+    }
+  });
+
+  if (!isEnabled) {
+    fallbackUrls.add(url);
+    setTimeout(() => fallbackUrls.delete(url), 10000);
+    addLog("warn", "Link tıklaması yakalandı fakat ayarlarda indirme yakalama KAPALI.", url);
+    return { success: false, disabled: true };
+  }
+
+  // 2. Extract cookies for url
+  const cookieString = await getCookiesForUrl(url);
+
+  const referrer = message.referrer || (sender && sender.tab ? sender.tab.url : "");
+  const fileName = sanitizeFileName(message.fileName || "dosya");
+  const userAgent = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : "";
+
+  const payload = {
+    url: url,
+    fileName: fileName,
+    fileSize: null,
+    mime: null,
+    pageUrl: referrer,
+    cookies: cookieString,
+    referer: referrer,
+    referrer: referrer,
+    userAgent: userAgent
+  };
+
+  // 3. Dispatch to Vortex desktop engine
+  const captured = await sendToVortex(payload);
+
+  if (captured) {
+    if (typeof chrome !== 'undefined' && chrome.action) {
+      chrome.action.setBadgeText({ text: "⚡" });
+      if (chrome.action.setBadgeBackgroundColor) {
+        chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+      }
+      setTimeout(() => {
+        if (chrome.storage && chrome.storage.local) {
+          chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+            syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+          });
+        } else {
+          chrome.action.setBadgeText({ text: "" });
+        }
+      }, 3000);
+    }
+
+    addLog("success", `Link indirmesi Vortex'e başarıyla iletildi: "${fileName}"`, url);
+    return { success: true, fileName: fileName };
+  }
+
+  fallbackUrls.add(url);
+  setTimeout(() => fallbackUrls.delete(url), 10000);
+  addLog("warn", `Link indirmesi Vortex'e aktarılamadı (masaüstü kapalı olabilir): "${fileName}"`, url);
+  return { success: false, error: "VortexDownloader masaüstü köprüsüne bağlanılamadı" };
 }
 
 // 3. Right-Click Context Menu ("⚡ Vortex ile İndir")
