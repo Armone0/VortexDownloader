@@ -11,7 +11,7 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://microsoft.com/windows)
 [![Release](https://img.shields.io/github/v/release/Armone0/VortexDownloader?color=brightgreen)](https://github.com/Armone0/VortexDownloader/releases)
-[![Tests](https://img.shields.io/badge/Tests-18%2F18%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-29%2F29%20Passing-success.svg)](tests/)
 [![Clean-Room Certified](https://img.shields.io/badge/Clean--Room-Certified-teal.svg)](docs/LEGAL_COMPLIANCE_AUDIT.md)
 
 [Features](#-key-features) • [Installation & Setup](#-installation--setup-guide) • [Browser Extension](#-browser-extension-setup) • [Architecture](#-architecture) • [Benchmarks](#-performance-benchmark) • [Legal](#-legal--clean-room-compliance)
@@ -34,12 +34,20 @@ Unlike basic download managers that slice files into static, rigid partitions at
   Eliminates the dreaded *last 99% bottleneck*. If 15 workers have finished and 1 worker is still downloading a slow block, an idle worker dynamically bisects the remaining span and downloads the second half concurrently.
 * **🧠 Zero-Allocation Socket Streaming:**  
   Employs `SocketsHttpHandler` with `ArrayPool<byte>.Shared` memory pooling (80 KB buffer slices). Network stream data is flushed directly to pre-allocated disk regions without generating garbage collector pressure.
+* **📦 Remote ZIP Central Directory Peek (`ZipInspector`):**  
+  Inspects the contents, uncompressed sizes, and file tree of massive remote `.zip` archives via HTTP Range requests without downloading the archive.
+* **🚦 Intelligent Concurrency Queue Manager:**  
+  Configurable active download slots (1, 2, 3, 5, or Unlimited). Automatically promotes and starts queued downloads in FIFO order as slots become free.
+* **💤 Auto-Shutdown & Sleep on Completion (`ShutdownManager`):**  
+  Safely powers off or sleeps Windows when all active transfers finish, without hanging or unsafe command prompts.
+* **🎥 Floating Video Grabber Companion Extension:**  
+  Detects HTML5 `<video>`, MP4, WebM, and HLS streams on any web page and offers a 1-click floating download button sending the stream directly to Vortex.
+* **📋 Batch Multi-URL Downloads:**  
+  Paste dozens of URLs separated by newlines or commas to enqueue entire collections at once.
 * **🎯 High-Precision Token-Bucket Speed Limiter:**  
-  Microsecond-accurate token-bucket rate limiter enabling customizable bandwidth caps (e.g., 512 KB/s, 1 MB/s, 5 MB/s, 10 MB/s, or Unlimited) without dropped frames or CPU spikes.
+  Microsecond-accurate token-bucket rate limiter enabling customizable bandwidth caps (e.g., 1 MB/s, 5 MB/s, 10 MB/s, or Unlimited) without dropped frames or CPU spikes.
 * **🛡️ Crash-Resilient Atomic Persistence:**  
   Task metadata and byte boundaries are atomically synced to `%APPDATA%\VortexDownloader\tasks.json`. If power cuts out or your connection drops, Vortex verifies disk offsets and resumes instantly without redownloading a single byte.
-* **🔌 Native Browser Companion Extension:**  
-  Included Manifest V3 extension for Google Chrome, Microsoft Edge, and Brave. Intercepts file downloads and seamlessly forwards them to Vortex via a local loopback bridge (`127.0.0.1:19741`).
 * **🎨 Modern Windows 11 Dark UI:**  
   Raycast/Linear-inspired dark workspace featuring category filters (*All, Downloading, Paused, Completed*), live bandwidth readouts, smooth progress animations, and system tray minimization.
 * **🔒 Pre-Flight Disk & Sleep Safety:**  

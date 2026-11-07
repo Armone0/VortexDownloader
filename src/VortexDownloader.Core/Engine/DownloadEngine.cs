@@ -33,6 +33,19 @@ public class DownloadEngine : IAsyncDisposable
     public SpeedLimiter GlobalSpeedLimiter => _globalSpeedLimiter;
     public IReadOnlyCollection<DownloadTask> Tasks => _tasks.Values.ToList();
 
+    private readonly object _queueLock = new();
+    private int _maxConcurrentDownloads = 3;
+
+    public int MaxConcurrentDownloads
+    {
+        get => _maxConcurrentDownloads;
+        set
+        {
+            _maxConcurrentDownloads = value;
+            ProcessDownloadQueue();
+        }
+    }
+
     public DownloadEngine(StateStore? stateStore = null, HttpClient? httpClient = null, long globalSpeedLimit = 0)
     {
         _stateStore = stateStore ?? new StateStore();
@@ -107,52 +120,118 @@ public class DownloadEngine : IAsyncDisposable
 
         if (autoStart)
         {
-            StartTask(task.Id);
+            ProcessDownloadQueue();
         }
 
         return task;
     }
 
+    private void ProcessDownloadQueue()
+    {
+        lock (_queueLock)
+        {
+            while (true)
+            {
+                int activeCount = _tasks.Values.Count(t =>
+                    t.Status == DownloadStatus.Downloading ||
+                    t.Status == DownloadStatus.Assembling);
+
+                if (MaxConcurrentDownloads > 0 && activeCount >= MaxConcurrentDownloads)
+                {
+                    break;
+                }
+
+                var nextTask = _tasks.Values
+                    .Where(t => t.Status == DownloadStatus.Queued)
+                    .OrderBy(t => t.CreatedAt)
+                    .FirstOrDefault();
+
+                if (nextTask == null)
+                {
+                    break;
+                }
+
+                StartTaskInternal(nextTask.Id);
+            }
+        }
+    }
+
+    private void StartTaskInternal(Guid taskId)
+    {
+        lock (_queueLock)
+        {
+            if (!_tasks.TryGetValue(taskId, out var task))
+            {
+                return;
+            }
+
+            if (task.Status == DownloadStatus.Completed)
+            {
+                return;
+            }
+
+            if (task.Status == DownloadStatus.Downloading || task.Status == DownloadStatus.Assembling)
+            {
+                return;
+            }
+
+            var cts = new CancellationTokenSource();
+            _runningTokens[taskId] = cts;
+            task.Status = DownloadStatus.Downloading;
+            task.ErrorMessage = null;
+            TaskUpdated?.Invoke(task);
+
+            var runTask = Task.Run(() => ExecuteDownloadAsync(task, cts.Token));
+            _runningExecutionTasks[taskId] = runTask;
+        }
+    }
+
     public void StartTask(Guid taskId)
     {
-        if (!_tasks.TryGetValue(taskId, out var task))
+        lock (_queueLock)
         {
-            return;
+            StartTaskInternal(taskId);
+            ProcessDownloadQueue();
         }
-
-        if (task.Status == DownloadStatus.Downloading || task.Status == DownloadStatus.Assembling)
-        {
-            return;
-        }
-
-        var cts = new CancellationTokenSource();
-        _runningTokens[taskId] = cts;
-        task.Status = DownloadStatus.Downloading;
-        task.ErrorMessage = null;
-        TaskUpdated?.Invoke(task);
-
-        var runTask = Task.Run(() => ExecuteDownloadAsync(task, cts.Token));
-        _runningExecutionTasks[taskId] = runTask;
     }
 
     public async Task PauseTaskAsync(Guid taskId)
     {
         if (_tasks.TryGetValue(taskId, out var task))
         {
-            if (_runningTokens.TryRemove(taskId, out var cts))
+            if (task.Status != DownloadStatus.Downloading &&
+                task.Status != DownloadStatus.Assembling &&
+                task.Status != DownloadStatus.Queued)
             {
-                cts.Cancel();
-                if (_runningExecutionTasks.TryRemove(taskId, out var execTask))
-                {
-                    try { await execTask.ConfigureAwait(false); } catch { }
-                }
-                cts.Dispose();
+                return;
             }
+
+            Task? execTask = null;
+            CancellationTokenSource? ctsToDispose = null;
+
+            lock (_queueLock)
+            {
+                if (_runningTokens.TryRemove(taskId, out var cts))
+                {
+                    cts.Cancel();
+                    _runningExecutionTasks.TryRemove(taskId, out execTask);
+                    ctsToDispose = cts;
+                }
+            }
+
+            if (execTask != null)
+            {
+                try { await execTask.ConfigureAwait(false); } catch { }
+            }
+
+            ctsToDispose?.Dispose();
 
             task.Status = DownloadStatus.Paused;
             task.SpeedBytesPerSec = 0;
+
             TaskUpdated?.Invoke(task);
             await SaveStateAsync().ConfigureAwait(false);
+            ProcessDownloadQueue();
         }
     }
 
@@ -162,7 +241,10 @@ public class DownloadEngine : IAsyncDisposable
         {
             if (task.Status == DownloadStatus.Paused || task.Status == DownloadStatus.Failed)
             {
-                StartTask(taskId);
+                task.Status = DownloadStatus.Queued;
+                TaskUpdated?.Invoke(task);
+                await SaveStateAsync().ConfigureAwait(false);
+                ProcessDownloadQueue();
             }
         }
         await Task.CompletedTask;
@@ -177,6 +259,7 @@ public class DownloadEngine : IAsyncDisposable
             task.SpeedBytesPerSec = 0;
             TaskUpdated?.Invoke(task);
             await SaveStateAsync().ConfigureAwait(false);
+            ProcessDownloadQueue();
         }
     }
 
@@ -209,12 +292,17 @@ public class DownloadEngine : IAsyncDisposable
 
     public void StartAll()
     {
-        foreach (var task in _tasks.Values)
+        lock (_queueLock)
         {
-            if (task.Status == DownloadStatus.Queued || task.Status == DownloadStatus.Paused)
+            foreach (var task in _tasks.Values)
             {
-                StartTask(task.Id);
+                if (task.Status == DownloadStatus.Paused)
+                {
+                    task.Status = DownloadStatus.Queued;
+                    TaskUpdated?.Invoke(task);
+                }
             }
+            ProcessDownloadQueue();
         }
     }
 
@@ -331,9 +419,22 @@ public class DownloadEngine : IAsyncDisposable
         catch (OperationCanceledException)
         {
             // Handled as paused/canceled
+            if (task.Status == DownloadStatus.Downloading || task.Status == DownloadStatus.Assembling)
+            {
+                task.Status = DownloadStatus.Paused;
+            }
         }
         catch (Exception ex)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                if (task.Status == DownloadStatus.Downloading || task.Status == DownloadStatus.Assembling)
+                {
+                    task.Status = DownloadStatus.Paused;
+                }
+                return;
+            }
+
             task.Status = DownloadStatus.Failed;
             task.ErrorMessage = ex.Message;
             task.SpeedBytesPerSec = 0;
@@ -347,6 +448,7 @@ public class DownloadEngine : IAsyncDisposable
             _runningTokens.TryRemove(task.Id, out var cts);
             cts?.Dispose();
             _runningExecutionTasks.TryRemove(task.Id, out _);
+            ProcessDownloadQueue();
         }
     }
 

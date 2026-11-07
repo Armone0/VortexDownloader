@@ -20,6 +20,8 @@ public partial class NewDownloadDialog : Window
     public string ResultUrl { get; private set; } = string.Empty;
     public string ResultDestinationPath { get; private set; } = string.Empty;
     public int ResultChunkCount { get; private set; } = 8;
+    public List<(string Url, string DestinationPath)> BatchItems { get; } = new();
+    public bool IsBatchMode { get; private set; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -56,10 +58,16 @@ public partial class NewDownloadDialog : Window
             if (Clipboard.ContainsText())
             {
                 string text = Clipboard.GetText().Trim();
-                if (Uri.TryCreate(text, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                var urls = ParseUrls(text);
+                if (urls.Count > 1)
                 {
+                    BatchModeCheckBox.IsChecked = true;
                     UrlTextBox.Text = text;
-                    _ = ProbeUrlAsync(text);
+                }
+                else if (urls.Count == 1)
+                {
+                    UrlTextBox.Text = urls[0];
+                    _ = ProbeUrlAsync(urls[0]);
                 }
             }
         }
@@ -71,10 +79,68 @@ public partial class NewDownloadDialog : Window
         UrlTextBox.Focus();
     }
 
+    private void BatchModeCheckBox_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        bool isBatch = BatchModeCheckBox.IsChecked == true;
+        IsBatchMode = isBatch;
+
+        if (isBatch)
+        {
+            UrlTextBox.Height = 80;
+            UrlTextBox.TextWrapping = TextWrapping.Wrap;
+            FileNameTextBox.IsEnabled = false;
+            FileNameTextBox.Text = "(Toplu modda dosya adları bağlantılardan otomatik alınır)";
+            AnalyzeButton.IsEnabled = false;
+            ZipPreviewButton.IsEnabled = false;
+            UpdateBatchBadge();
+        }
+        else
+        {
+            UrlTextBox.Height = 36;
+            UrlTextBox.TextWrapping = TextWrapping.NoWrap;
+            FileNameTextBox.IsEnabled = true;
+            AnalyzeButton.IsEnabled = true;
+            ZipPreviewButton.IsEnabled = true;
+            UpdateSingleUrlFileName();
+            SizeInfoTextBlock.Text = "Boyut: Bilinmiyor";
+            RangeInfoTextBlock.Text = "Range: Kontrol edilmedi";
+        }
+    }
+
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        string rawText = UrlTextBox.Text;
+        var urls = ParseUrls(rawText);
+
+        if (urls.Count > 1 && BatchModeCheckBox.IsChecked != true)
+        {
+            BatchModeCheckBox.IsChecked = true;
+            return;
+        }
+
+        if (BatchModeCheckBox.IsChecked == true)
+        {
+            UpdateBatchBadge();
+        }
+        else
+        {
+            UpdateSingleUrlFileName();
+        }
+    }
+
+    private void UpdateBatchBadge()
+    {
+        var urls = ParseUrls(UrlTextBox.Text);
+        SizeInfoTextBlock.Text = urls.Count > 0
+            ? $"{urls.Count} adet indirme bağlantısı algılandı"
+            : "Toplu URL girilmedi";
+        RangeInfoTextBlock.Text = "Toplu Kuyruk Modu";
+    }
+
+    private void UpdateSingleUrlFileName()
+    {
         string url = UrlTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(FileNameTextBox.Text) && !string.IsNullOrWhiteSpace(url))
+        if ((string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == "(Toplu modda dosya adları bağlantılardan otomatik alınır)") && !string.IsNullOrWhiteSpace(url))
         {
             try
             {
@@ -82,7 +148,7 @@ public partial class NewDownloadDialog : Window
                 string segment = Path.GetFileName(uri.LocalPath);
                 if (!string.IsNullOrWhiteSpace(segment))
                 {
-                    FileNameTextBox.Text = Uri.UnescapeDataString(segment);
+                    FileNameTextBox.Text = MainWindow.SanitizeFileName(Uri.UnescapeDataString(segment));
                 }
             }
             catch
@@ -90,6 +156,25 @@ public partial class NewDownloadDialog : Window
                 // Ignore
             }
         }
+    }
+
+    public static List<string> ParseUrls(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return [];
+
+        var separators = new[] { '\r', '\n', ',', ';' };
+        var rawItems = input.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var validUrls = new List<string>();
+        foreach (var item in rawItems)
+        {
+            if (Uri.TryCreate(item, UriKind.Absolute, out var uri) &&
+                (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                validUrls.Add(uri.AbsoluteUri);
+            }
+        }
+        return validUrls;
     }
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
@@ -104,6 +189,33 @@ public partial class NewDownloadDialog : Window
         await ProbeUrlAsync(url);
     }
 
+    private void ZipPreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        string url = UrlTextBox.Text.Trim();
+        var urls = ParseUrls(url);
+        string targetUrl = urls.Count > 0 ? urls[0] : url;
+
+        if (string.IsNullOrWhiteSpace(targetUrl) || !Uri.TryCreate(targetUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            MessageBox.Show(this, "Lütfen geçerli bir HTTP veya HTTPS ZIP bağlantısı girin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var preview = new ZipPreviewWindow(targetUrl) { Owner = this };
+            if (preview.ShowDialog() == true && preview.StartDownloadRequested)
+            {
+                StartButton_Click(sender, e);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"ZIP önizleme penceresi açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private async Task ProbeUrlAsync(string url)
     {
         AnalyzeButton.IsEnabled = false;
@@ -114,7 +226,7 @@ public partial class NewDownloadDialog : Window
             var meta = await _engine.InspectUrlAsync(url);
             if (!string.IsNullOrWhiteSpace(meta.SuggestedFileName) && (string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == "download.bin"))
             {
-                FileNameTextBox.Text = meta.SuggestedFileName;
+                FileNameTextBox.Text = MainWindow.SanitizeFileName(meta.SuggestedFileName);
             }
 
             if (meta.ContentLength > 0)
@@ -156,17 +268,13 @@ public partial class NewDownloadDialog : Window
 
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
-        string url = UrlTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out _))
-        {
-            MessageBox.Show(this, "Lütfen geçerli bir HTTP veya HTTPS bağlantısı girin.", "Geçersiz URL", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+        string rawText = UrlTextBox.Text;
+        var urls = ParseUrls(rawText);
 
-        string fileName = FileNameTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (urls.Count == 0)
         {
-            fileName = "download.bin";
+            MessageBox.Show(this, "Lütfen en az bir geçerli HTTP veya HTTPS indirme bağlantısı girin.", "Geçersiz URL", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
 
         string folder = FolderTextBox.Text.Trim();
@@ -188,10 +296,58 @@ public partial class NewDownloadDialog : Window
         {
             chunkCount = parsed;
         }
-
-        ResultUrl = url;
-        ResultDestinationPath = Path.Combine(folder, fileName);
         ResultChunkCount = chunkCount;
+        BatchItems.Clear();
+
+        if (urls.Count > 1 || BatchModeCheckBox.IsChecked == true)
+        {
+            IsBatchMode = true;
+            var usedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < urls.Count; i++)
+            {
+                string u = urls[i];
+                string candidateName = "download.bin";
+                try
+                {
+                    var uri = new Uri(u);
+                    string seg = Path.GetFileName(uri.LocalPath);
+                    if (!string.IsNullOrWhiteSpace(seg))
+                    {
+                        candidateName = MainWindow.SanitizeFileName(Uri.UnescapeDataString(seg));
+                    }
+                }
+                catch { }
+
+                string nameWithoutExt = Path.GetFileNameWithoutExtension(candidateName);
+                string ext = Path.GetExtension(candidateName);
+                string targetPath = Path.Combine(folder, candidateName);
+                int dupCounter = 1;
+                while (usedPaths.Contains(targetPath) || File.Exists(targetPath))
+                {
+                    targetPath = Path.Combine(folder, $"{nameWithoutExt} ({dupCounter++}){ext}");
+                }
+                usedPaths.Add(targetPath);
+                BatchItems.Add((u, targetPath));
+            }
+
+            ResultUrl = BatchItems[0].Url;
+            ResultDestinationPath = BatchItems[0].DestinationPath;
+        }
+        else
+        {
+            IsBatchMode = false;
+            string fileName = FileNameTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(fileName) || fileName == "(Toplu modda dosya adları bağlantılardan otomatik alınır)")
+            {
+                fileName = "download.bin";
+            }
+            fileName = MainWindow.SanitizeFileName(fileName);
+
+            ResultUrl = urls[0];
+            ResultDestinationPath = Path.Combine(folder, fileName);
+            BatchItems.Add((ResultUrl, ResultDestinationPath));
+        }
 
         DialogResult = true;
         Close();

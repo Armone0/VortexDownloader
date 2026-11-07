@@ -1,0 +1,156 @@
+/* VortexDownloader Floating Video Grabber Styles */
+.vortex-video-container-anchor {
+  position: relative !important;
+}
+
+.vortex-video-grabber-pill {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 2147483647 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 10px 6px 12px !important;
+  background: rgba(13, 19, 31, 0.92) !important;
+  background: linear-gradient(135deg, rgba(13, 19, 31, 0.95) 0%, rgba(20, 27, 45, 0.90) 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.55) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(99, 102, 241, 0.28) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.2px !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  pointer-events: auto !important;
+  opacity: 0.92 !important;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  max-width: 90% !important;
+  overflow: hidden !important;
+}
+
+.vortex-video-grabber-pill * {
+  box-sizing: border-box !important;
+}
+
+.vortex-video-grabber-pill:hover {
+  opacity: 1 !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  border-color: rgba(99, 102, 241, 0.95) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(99, 102, 241, 0.5) !important;
+}
+
+.vortex-grabber-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.vortex-grabber-btn:hover {
+  color: #c7d2fe !important;
+}
+
+.vortex-grabber-icon {
+  display: inline-block !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 0 4px #818cf8) !important;
+  transform-origin: center center !important;
+}
+
+.vortex-grabber-text {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  overflow: hidden !important;
+  max-width: 220px !important;
+}
+
+.vortex-grabber-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  margin: 0 0 0 2px !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 50% !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.vortex-grabber-close:hover {
+  background: rgba(239, 68, 68, 0.35) !important;
+  color: #fca5a5 !important;
+  transform: scale(1.1) !important;
+}
+
+/* Status States */
+.vortex-grabber-success {
+  border-color: rgba(16, 185, 129, 0.85) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(16, 185, 129, 0.45) !important;
+}
+
+.vortex-grabber-success .vortex-grabber-btn {
+  color: #a7f3d0 !important;
+}
+
+.vortex-grabber-warning {
+  border-color: rgba(245, 158, 11, 0.85) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(245, 158, 11, 0.45) !important;
+}
+
+.vortex-grabber-warning .vortex-grabber-btn {
+  color: #fde68a !important;
+}
+
+.vortex-grabber-error {
+  border-color: rgba(239, 68, 68, 0.85) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(239, 68, 68, 0.45) !important;
+}
+
+.vortex-grabber-error .vortex-grabber-btn {
+  color: #fca5a5 !important;
+}
+
+.vortex-grabber-busy {
+  pointer-events: none !important;
+  opacity: 0.8 !important;
+}
+
+.vortex-grabber-busy .vortex-grabber-icon {
+  animation: vortex-spin 1s infinite linear !important;
+}
+
+@keyframes vortex-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

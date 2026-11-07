@@ -99,6 +99,97 @@ public class MainViewModel : ViewModelBase
 
     public IReadOnlyList<string> SpeedLimitOptions { get; } = ["Sınırsız", "1 MB/s", "5 MB/s", "10 MB/s"];
 
+    public IReadOnlyList<string> MaxConcurrentOptions { get; } = ["1 Görev", "2 Görev", "3 Görev", "5 Görev", "Sınırsız"];
+
+    private string _selectedMaxConcurrent = "3 Görev";
+    public string SelectedMaxConcurrent
+    {
+        get => _selectedMaxConcurrent;
+        set
+        {
+            if (SetProperty(ref _selectedMaxConcurrent, value))
+            {
+                ApplyMaxConcurrent(value);
+            }
+        }
+    }
+
+    private void ApplyMaxConcurrent(string option)
+    {
+        int max = option switch
+        {
+            "1 Görev" => 1,
+            "2 Görev" => 2,
+            "3 Görev" => 3,
+            "5 Görev" => 5,
+            "Sınırsız" => 0,
+            _ => 3
+        };
+        _engine.MaxConcurrentDownloads = max;
+    }
+
+    private bool _shutdownWhenCompleted;
+    private bool _hasActiveDownloadsSession;
+    private bool _shutdownTriggered;
+
+    public bool ShutdownWhenCompleted
+    {
+        get => _shutdownWhenCompleted;
+        set
+        {
+            if (SetProperty(ref _shutdownWhenCompleted, value))
+            {
+                if (value && ActiveDownloadsCount > 0)
+                {
+                    _hasActiveDownloadsSession = true;
+                }
+                CheckAutoShutdown();
+            }
+        }
+    }
+
+    internal Action? ShutdownAction { get; set; }
+
+    private void CheckAutoShutdown()
+    {
+        if (!ShutdownWhenCompleted || _shutdownTriggered)
+        {
+            return;
+        }
+
+        if (ActiveDownloadsCount > 0)
+        {
+            _hasActiveDownloadsSession = true;
+            return;
+        }
+
+        if (_hasActiveDownloadsSession && Downloads.Count > 0)
+        {
+            bool anyActiveOrQueued = Downloads.Any(d =>
+                d.Status == DownloadStatus.Downloading ||
+                d.Status == DownloadStatus.Assembling ||
+                d.Status == DownloadStatus.Queued);
+
+            if (!anyActiveOrQueued)
+            {
+                _shutdownTriggered = true;
+                TriggerShutdown();
+            }
+        }
+    }
+
+    protected virtual void TriggerShutdown()
+    {
+        if (ShutdownAction != null)
+        {
+            ShutdownAction.Invoke();
+        }
+        else
+        {
+            VortexDownloader.Core.Common.ShutdownManager.ShutdownComputer();
+        }
+    }
+
     public ICommand StartAllCommand { get; }
     public ICommand PauseAllCommand { get; }
     public ICommand PauseTaskCommand { get; }
@@ -171,6 +262,8 @@ public class MainViewModel : ViewModelBase
             var vm = new DownloadItemViewModel();
             vm.UpdateFromTask(task);
             Downloads.Insert(0, vm);
+            _hasActiveDownloadsSession = true;
+            _shutdownTriggered = false;
             UpdateAggregates();
         });
     }
@@ -206,11 +299,16 @@ public class MainViewModel : ViewModelBase
         double sumSpeed = Downloads.Where(d => d.Status == DownloadStatus.Downloading).Sum(d => d.SpeedBytesPerSec);
         TotalSpeedFormatted = DownloadTask.FormatBytesPerSec(sumSpeed);
         ActiveDownloadsCount = Downloads.Count(d => d.Status == DownloadStatus.Downloading);
+        if (ActiveDownloadsCount > 0)
+        {
+            _hasActiveDownloadsSession = true;
+        }
         OnPropertyChanged(nameof(TotalDownloadsCount));
         OnPropertyChanged(nameof(HasNoDownloads));
         OnPropertyChanged(nameof(PausedDownloadsCount));
         OnPropertyChanged(nameof(CompletedDownloadsCount));
         OnPropertyChanged(nameof(FilteredDownloads));
+        CheckAutoShutdown();
     }
 
     private void PostToUi(Action action)

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Yeni İndirme Ekle - VortexDownloader" 
-        Height="460" Width="620"
+        Height="500" Width="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#0F172A"
@@ -35,7 +35,7 @@
 
         <!-- Modern button style -->
         <Style TargetType="Button">
-            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Padding" Value="14,8"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -56,6 +56,9 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Opacity" Value="0.75"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -71,7 +74,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,20">
+        <Grid Grid.Row="0" Margin="0,0,0,18">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -87,21 +90,34 @@
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock Text="Yeni İndirme Başlat" FontSize="18" FontWeight="Bold" Foreground="#F8FAFC"/>
-                <TextBlock Text="İndirme bağlantısını yapıştırın ve çok kanallı indirmeyi başlatın." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                <TextBlock Text="İndirme bağlantısını yapıştırın veya toplu bağlantılarla kuyruk oluşturun." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
             </StackPanel>
         </Grid>
 
         <!-- Input Form -->
         <StackPanel Grid.Row="1" VerticalAlignment="Top">
-            <!-- URL Field -->
-            <TextBlock Text="İndirme Bağlantısı (URL)" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
-            <Grid Margin="0,0,0,14">
+            <!-- URL Header & Batch Checkbox -->
+            <Grid Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="UrlTextBox" Grid.Column="0" TextChanged="UrlTextBox_TextChanged" Margin="0,0,8,0"/>
-                <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Bilgi Al" Background="#334155" Foreground="#F8FAFC" BorderThickness="0" Click="AnalyzeButton_Click"/>
+                <TextBlock Grid.Column="0" Text="İndirme Bağlantısı (URL)" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                <CheckBox x:Name="BatchModeCheckBox" Grid.Column="1" Content="Toplu İndirme (Batch)" Foreground="#94A3B8" FontSize="11"
+                          Checked="BatchModeCheckBox_CheckedChanged" Unchecked="BatchModeCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- URL Input and Action Buttons -->
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="UrlTextBox" Grid.Column="0" TextChanged="UrlTextBox_TextChanged" Margin="0,0,8,0"
+                         AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Height="36"/>
+                <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Bilgi Al" Background="#334155" Foreground="#F8FAFC" BorderThickness="0" Margin="0,0,8,0" Click="AnalyzeButton_Click"/>
+                <Button x:Name="ZipPreviewButton" Grid.Column="2" Content="📦 ZIP Önizle" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#334155" BorderThickness="1" Click="ZipPreviewButton_Click"/>
             </Grid>
 
             <!-- Detected Info Badge -->
@@ -117,7 +133,7 @@
             </Border>
 
             <!-- File Name Field -->
-            <TextBlock Text="Dosya Adı" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+            <TextBlock x:Name="FileNameLabel" Text="Dosya Adı" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
             <TextBox x:Name="FileNameTextBox" Margin="0,0,0,14"/>
 
             <!-- Destination Folder Field -->

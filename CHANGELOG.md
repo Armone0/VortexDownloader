@@ -30,13 +30,35 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
-## [1.2.0] - (Planlanan Büyük Özellik Sürümü - Roadmap)
-- [ ] **Video & Medya Akışı Yakalayıcı (Floating Video Grabber):** Web sayfalarında oynatılan HTML5, HLS (`.m3u8`) ve DASH video akışlarını otomatik algılayıp doğrudan indirme çubuğu sunma.
-- [ ] **Akıllı ZIP Önizleme (Central Directory Peek):** Büyük ZIP arşivlerini tamamen indirmeden son birkaç kilobaytından içindekiler tablosunu okuyup tek dosya seçip indirebilme.
-- [ ] **Gelişmiş Görev Zamanlayıcısı (Scheduler):** Gece belirli saatte indirmeyi otomatik başlatma ve indirme bitince bilgisayarı kapatma/uyutma modu.
-- [ ] **Site Grabber / Toplu İndirme:** Sayfadaki tüm medya ve belgeleri tek tıkla kuyruğa ekleme.
+## [1.2.0] - 2026-11-07 — Kararlı Büyük Özellik Sürümü (Major Feature Release)
+
+### 📦 Akıllı ZIP Önizleme (Remote Central Directory Peek)
+- **Sıfır İndirmeli Arşiv İnceleme (`ZipInspector`):** Büyük ZIP arşivlerini tamamen indirmeden, HTTP Range istekleriyle dosyanın son 65 KB'ından EOCD (`0x06054b50`) ve Central Directory (`0x02014b50`) başlıklarını okuma yeteneği eklendi.
+- **İçerik Tablosu Arayüzü (`ZipPreviewWindow`):** Arşiv içindeki dosyaların adları, sıkıştırılmış/sıkıştırılmamış boyutları, sıkıştırma oranları ve değiştirilme tarihleri modern bir pencerede anında listeleniyor.
+- **Güvenlik & Sınır Koruması:** uint32 taşması (overflow), bozuk EOCD işaretçileri, 100 MB üstü anormal dizin başlıkları ve Range desteklemeyen sunucularda 200 OK gövde şişmesi engellendi.
+
+### 🚦 Akıllı Kuyruk Yöneticisi & Eşzamanlılık (Queue Manager)
+- **Eşzamanlı İndirme Sınırı (`MaxConcurrentDownloads`):** Kullanıcı aynı anda kaç dosyanın indirileceğini belirleyebiliyor (1, 2, 3, 5 Görev veya Sınırsız). Varsayılan: 3.
+- **Otomatik FIFO Promosyonu (`ProcessDownloadQueue`):** Bir görev tamamlandığında, duraklatıldığında veya iptal edildiğinde kuyruktaki (`Queued`) en eski indirme otomatik olarak başlatılıyor.
+- **İş Parçacığı & Yarış Durumu Koruması:** `_queueLock` ile tamamlanmış görevlerin duraklatma veya yeniden başlatma sırasında durumlarının ezilmesi ve bellek sızıntıları önlendi.
+
+### ⚡ Otomatik Kapatma & Uyku Modu (Auto-Shutdown Manager)
+- **İndirme Bitince Kapatma (`ShutdownManager`):** Kullanıcı üst araç çubuğundaki *"⚡ Bitince Kapat"* seçeneğini işaretlediğinde, aktif tüm indirmeler tamamlandığında güvenli Win32 çağrılarıyla bilgisayarı kapatma/uykuya alma desteği eklendi.
+- **Sıfır Komut Enjeksiyonu:** Tamamen güvenli sabit argümanlarla çalışır; kullanıcı girdisi çalıştırılmaz.
+
+### 🎥 Tarayıcı Yüzen Video Yakalayıcı (Floating Video Sniffer)
+- **Dinamik Medya Algılama (`content.js`):** Web sayfalarındaki `<video>`, `<source>`, `.mp4`, `.webm`, `.m3u8` video akışlarını otomatik tespit eden DOM gözlemcisi entegre edildi.
+- **Yüzen İndirme Butonu:** Video oynatıcısının üzerinde zarif, modern karanlık temalı *"⚡ Vortex: Videoyu İndir"* butonu gösteriliyor.
+- **Manifest V3 Uyumluluğu:** Gereksiz izinler temizlendi (`storage` kaldırıldı), performans ve bellek optimizasyonu yapıldı.
+
+### 📋 Toplu İndirme Desteği (Batch Download)
+- **Çoklu URL Girişi:** Yeni indirme penceresinde çok satırlı veya virgülle ayrılmış URL listeleri yapıştırıldığında tüm bağlantılar otomatik olarak kuyruğa ekleniyor.
 
 ---
 
-## [1.2.1] - (Planlanan Yama ve Bugfix Sürümü)
-- [ ] 1.2 sürümünde eklenecek video yakalama ve ZIP önizleme modüllerinin kararlılık testleri ve hata düzeltmeleri.
+## [1.2.x] - (Kullanıcı Geri Bildirimi & Yama Sürümleri)
+- [ ] Kullanıcının bulacağı veya bildireceği hata ve iyileştirmeler `1.2.1`, `1.2.2` şeklinde yama sürümleri olarak yayınlanacaktır.
+
+---
+
+## [1.1.0] - 2026-11-07 — Önceki Kararlı Sürüm

@@ -255,11 +255,25 @@ public partial class MainWindow : Window
         {
             try
             {
-                await _viewModel.Engine.AddDownloadAsync(
-                    dialog.ResultUrl,
-                    dialog.ResultDestinationPath,
-                    dialog.ResultChunkCount,
-                    autoStart: true);
+                if (dialog.BatchItems.Count > 1)
+                {
+                    foreach (var item in dialog.BatchItems)
+                    {
+                        await _viewModel.Engine.AddDownloadAsync(
+                            item.Url,
+                            item.DestinationPath,
+                            dialog.ResultChunkCount,
+                            autoStart: true);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(dialog.ResultUrl))
+                {
+                    await _viewModel.Engine.AddDownloadAsync(
+                        dialog.ResultUrl,
+                        dialog.ResultDestinationPath,
+                        dialog.ResultChunkCount,
+                        autoStart: true);
+                }
             }
             catch (Exception ex)
             {

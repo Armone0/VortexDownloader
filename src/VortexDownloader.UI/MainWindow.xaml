@@ -258,6 +258,42 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Modern Dark CheckBox Style -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <BulletDecorator Background="Transparent">
+                            <BulletDecorator.Bullet>
+                                <Border x:Name="border" Width="16" Height="16" CornerRadius="4" 
+                                        Background="#131B2A" BorderBrush="#253550" BorderThickness="1" 
+                                        Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <Path x:Name="checkMark" Data="M 3 8 L 6 11 L 13 4" Stroke="#00F2FE" StrokeThickness="2" 
+                                          Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </BulletDecorator.Bullet>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </BulletDecorator>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1E293B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#00F2FE"/>
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="#38BDF8"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4F46E5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- MAIN TWO-COLUMN APPLICATION LAYOUT -->
@@ -290,7 +326,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="VORTEX" FontSize="15" FontWeight="Black" Foreground="#00F2FE"/>
                             <Border Background="#1E293B" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.1" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                <TextBlock Text="v1.2" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="DOWNLOAD MANAGER" FontSize="8" FontWeight="Bold" Foreground="#64748B" Margin="0,1,0,0"/>
@@ -447,7 +483,7 @@
                         </Button>
 
                         <!-- Pause All Button -->
-                        <Button Style="{StaticResource SecondaryDarkButton}" Margin="0,0,14,0"
+                        <Button Style="{StaticResource SecondaryDarkButton}" Margin="0,0,12,0"
                                 Command="{Binding PauseAllCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⏸" Margin="0,0,5,0" Foreground="#FBBF24"/>
@@ -456,11 +492,24 @@
                         </Button>
 
                         <!-- Separator -->
-                        <Rectangle Width="1" Height="18" Fill="#1E283D" Margin="0,0,14,0"/>
+                        <Rectangle Width="1" Height="18" Fill="#1E283D" Margin="0,0,12,0"/>
+
+                        <!-- Max Concurrent Selector -->
+                        <TextBlock Text="Maks Eşzamanlı:" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding MaxConcurrentOptions}" SelectedItem="{Binding SelectedMaxConcurrent}" Width="92" Margin="0,0,12,0"/>
 
                         <!-- Speed Limit Selector -->
-                        <TextBlock Text="Hız Sınırı:" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Margin="0,0,8,0"/>
-                        <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="105"/>
+                        <TextBlock Text="Hız Sınırı:" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding SpeedLimitOptions}" SelectedItem="{Binding SelectedSpeedLimit}" Width="92" Margin="0,0,12,0"/>
+
+                        <!-- Separator -->
+                        <Rectangle Width="1" Height="18" Fill="#1E283D" Margin="0,0,12,0"/>
+
+                        <!-- Auto Shutdown Checkbox -->
+                        <CheckBox Content="⚡ Bitince Kapat"
+                                  IsChecked="{Binding ShutdownWhenCompleted, Mode=TwoWay}"
+                                  VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                                  ToolTip="Tüm indirmeler tamamlandığında bilgisayarı otomatik kapatır"/>
                     </StackPanel>
                 </Grid>
             </Border>
