@@ -29,7 +29,7 @@ public class ChunkDownloader
         {
             Timeout = TimeSpan.FromSeconds(60)
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("VortexDownloader/1.0 (Clean-Room Modern Engine)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
         return client;
     }
 
@@ -58,7 +58,9 @@ public class ChunkDownloader
             catch (Exception ex) when (ex is HttpRequestException or IOException && attempt < maxRetries - 1 && !cancellationToken.IsCancellationRequested)
             {
                 attempt++;
-                int delayMs = attempt * 1000;
+                int delayMs = (ex is HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests }) 
+                    ? attempt * 2000 
+                    : attempt * 1000;
                 await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
             }
         }

@@ -517,7 +517,7 @@
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding FileName}" FontSize="14" FontWeight="SemiBold" Foreground="#F8FAFC" Margin="0,0,10,0"/>
                                                     <!-- Status Badge -->
-                                                    <Border Background="{Binding StatusBgColor}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center">
+                                                    <Border Background="{Binding StatusBgColor}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" ToolTip="{Binding ErrorMessage}">
                                                         <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="10" FontWeight="Bold"/>
                                                     </Border>
                                                 </StackPanel>
