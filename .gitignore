@@ -1,0 +1,94 @@
+# ==============================================================================
+# VORTEXDOWNLOADER / SECURE REPO .GITIGNORE
+# Rock-solid sanitization preventing proprietary binaries, dumps, and build artifacts
+# ==============================================================================
+
+# --- .NET Build Outputs ---
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- Proprietary & Compiled Binaries ---
+*.exe
+*.dll
+*.so
+*.dylib
+*.sys
+*.drv
+*.bin
+*.hex
+*.msi
+*.cab
+
+# --- Browser Extension Packages & Archives ---
+*.crx
+*.xpi
+*.zip
+*.tar.gz
+*.tgz
+
+# --- Reverse Engineering Databases & Project Files ---
+*.idb
+*.i64
+*.til
+*.id0
+*.id1
+*.id2
+*.nam
+*.gpr
+*.rep/
+*.dd32
+*.dd64
+*.rzdb
+*.radare2
+*.bndb
+
+# --- Memory Dumps & Diagnostics ---
+*.dmp
+*.mdmp
+core.[0-9]*
+*.stackdump
+*.crash
+
+# --- Network & Packet Captures ---
+*.pcap
+*.pcapng
+*.cap
+*.har
+
+# --- Temporary Chunks, Merges & Cache ---
+*.tmp
+*.temp
+*.part
+*.crdownload
+*.chunk
+*.log
+chunks_storage/
+temp_downloads/
+merged_output/
+
+# --- IDE & Environment Settings ---
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Build Outputs ---
+/build/
+/dist/
+/out/
+/target/
+node_modules/
+
+# --- Sensitive Credentials ---
+.env
+.env.*
+secrets.json
+cookies.txt

@@ -1,0 +1,146 @@
+<Window x:Class="VortexDownloader.UI.Views.NewDownloadDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Yeni İndirme Ekle - VortexDownloader" 
+        Height="460" Width="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#0F172A"
+        Foreground="#F8FAFC"
+        FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
+    
+    <Window.Resources>
+        <!-- Modern dark textbox style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern button style -->
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Yeni İndirme Başlat" FontSize="20" FontWeight="Bold" Foreground="#F8FAFC"/>
+            <TextBlock Text="İndirme URL'sini yapıştırın ve parça sayısını belirleyin." FontSize="13" Foreground="#94A3B8" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Input Form -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Top">
+            <!-- URL Field -->
+            <TextBlock Text="İndirme Bağlantısı (URL)" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="UrlTextBox" Grid.Column="0" TextChanged="UrlTextBox_TextChanged" Margin="0,0,8,0"/>
+                <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Bilgi Al" Background="#334155" Foreground="#F8FAFC" BorderThickness="0" Click="AnalyzeButton_Click"/>
+            </Grid>
+
+            <!-- Detected Info Badge -->
+            <Border x:Name="InfoBadge" Background="#1E293B" CornerRadius="6" Padding="12,8" Margin="0,0,0,14" BorderBrush="#334155" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="SizeInfoTextBlock" Grid.Column="0" Text="Boyut: Bilinmiyor" Foreground="#94A3B8" FontSize="12"/>
+                    <TextBlock x:Name="RangeInfoTextBlock" Grid.Column="1" HorizontalAlignment="Right" Text="Range: Kontrol edilmedi" Foreground="#94A3B8" FontSize="12"/>
+                </Grid>
+            </Border>
+
+            <!-- File Name Field -->
+            <TextBlock Text="Dosya Adı" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+            <TextBox x:Name="FileNameTextBox" Margin="0,0,0,14"/>
+
+            <!-- Destination Folder Field -->
+            <TextBlock Text="Hedef Klasör" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FolderTextBox" Grid.Column="0" Margin="0,0,8,0"/>
+                <Button x:Name="BrowseButton" Grid.Column="1" Content="Gözat..." Background="#334155" Foreground="#F8FAFC" BorderThickness="0" Click="BrowseButton_Click"/>
+            </Grid>
+
+            <!-- Chunk Count Selector -->
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Dinamik Bağlantı / Parça Sayısı" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                    <TextBlock Text="IDM çoklu soket mimarisiyle indirmeyi hızlandırır" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                </StackPanel>
+                <ComboBox x:Name="ChunkCountComboBox" Grid.Column="1" Width="100" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Padding="8,4" VerticalContentAlignment="Center">
+                    <ComboBoxItem Content="1 Parça" Tag="1"/>
+                    <ComboBoxItem Content="2 Parça" Tag="2"/>
+                    <ComboBoxItem Content="4 Parça" Tag="4"/>
+                    <ComboBoxItem Content="8 Parça" Tag="8" IsSelected="True"/>
+                    <ComboBoxItem Content="16 Parça" Tag="16"/>
+                    <ComboBoxItem Content="32 Parça" Tag="32"/>
+                </ComboBox>
+            </Grid>
+        </StackPanel>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="CancelButton" Content="İptal" Background="#334155" Foreground="#94A3B8" BorderThickness="0" Margin="0,0,10,0" Click="CancelButton_Click"/>
+            <Button x:Name="StartButton" Content="İndirmeyi Başlat" Background="#4F46E5" Foreground="#FFFFFF" BorderThickness="0" Click="StartButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
