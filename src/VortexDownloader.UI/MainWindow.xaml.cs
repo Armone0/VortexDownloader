@@ -24,6 +24,18 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _bridgeCts;
     private bool _isRealExit;
 
+    private record BrowserPromptItem(
+        string Url,
+        string? FileName,
+        long? Size,
+        string? Cookies,
+        string? Referrer,
+        string? UserAgent);
+
+    private readonly Queue<BrowserPromptItem> _browserPromptQueue = new();
+    private bool _isPromptShowing = false;
+    private string? _activePromptUrl = null;
+
     public MainWindow()
     {
         Log("MainWindow constructor start");
@@ -143,9 +155,9 @@ public partial class MainWindow : Window
             _bridgeCts = new CancellationTokenSource();
             _ = Task.Run(() => BridgeListenLoopAsync(_bridgeCts.Token));
         }
-        catch
+        catch (Exception ex)
         {
-            // Port might be in use or permission restricted; non-fatal
+            Log($"Extension bridge listener failed to start: {ex.Message}");
         }
     }
 
@@ -262,18 +274,14 @@ public partial class MainWindow : Window
                     }
                     try { context.Response.Close(); } catch { }
 
-                    // Launch the download prompt on the UI thread asynchronously without holding the HTTP socket
-                    _ = Dispatcher.InvokeAsync(() =>
-                    {
-                        RestoreFromTray();
-                        PromptNewDownloadFromBrowser(
-                            uri.AbsoluteUri,
-                            safeFileName,
-                            data.FileSize,
-                            data.Cookies,
-                            data.Referrer,
-                            data.UserAgent);
-                    });
+                    // Launch the download prompt on the UI thread asynchronously via the sequential queue
+                    EnqueueBrowserPrompt(new BrowserPromptItem(
+                        uri.AbsoluteUri,
+                        safeFileName,
+                        data.FileSize,
+                        data.Cookies,
+                        data.Referrer,
+                        data.UserAgent));
 
                     return;
                 }
@@ -301,7 +309,57 @@ public partial class MainWindow : Window
         return UrlMetadataInspector.CleanFileName(rawFileName);
     }
 
-    private async void PromptNewDownloadFromBrowser(
+    private void EnqueueBrowserPrompt(BrowserPromptItem item)
+    {
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            // Deduplicate: If prompt is currently displaying or queued for the exact same URL, ignore duplicate trigger
+            if (_activePromptUrl == item.Url || _browserPromptQueue.Any(p => p.Url == item.Url))
+            {
+                return;
+            }
+
+            _browserPromptQueue.Enqueue(item);
+            if (!_isPromptShowing)
+            {
+                await ProcessNextBrowserPromptAsync();
+            }
+        });
+    }
+
+    private async Task ProcessNextBrowserPromptAsync()
+    {
+        if (_browserPromptQueue.Count == 0)
+        {
+            _isPromptShowing = false;
+            _activePromptUrl = null;
+            return;
+        }
+
+        _isPromptShowing = true;
+        var nextItem = _browserPromptQueue.Dequeue();
+        _activePromptUrl = nextItem.Url;
+
+        try
+        {
+            RestoreFromTray();
+            await PromptNewDownloadFromBrowserAsync(
+                nextItem.Url,
+                nextItem.FileName,
+                nextItem.Size,
+                nextItem.Cookies,
+                nextItem.Referrer,
+                nextItem.UserAgent);
+        }
+        finally
+        {
+            _activePromptUrl = null;
+            // Process any remaining items in queue sequentially
+            await ProcessNextBrowserPromptAsync();
+        }
+    }
+
+    private async Task PromptNewDownloadFromBrowserAsync(
         string url,
         string? fileName,
         long? size,
