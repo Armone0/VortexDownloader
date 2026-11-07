@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background subtle glow -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141E30" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#090D16" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Main Vortex Gradients -->
+    <linearGradient id="vortexGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="50%" stop-color="#4FACFE"/>
+      <stop offset="100%" stop-color="#6B11FF"/>
+    </linearGradient>
+
+    <linearGradient id="vortexGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF007F"/>
+      <stop offset="60%" stop-color="#7928CA"/>
+      <stop offset="100%" stop-color="#2D388A"/>
+    </linearGradient>
+
+    <linearGradient id="coreGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FFFF"/>
+      <stop offset="100%" stop-color="#0080FF"/>
+    </linearGradient>
+
+    <filter id="neonBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Glow -->
+  <circle cx="256" cy="256" r="220" fill="url(#bgGlow)"/>
+
+  <!-- Outer Vortex Ring Blades -->
+  <g filter="url(#neonBlur)">
+    <!-- Blade 1: Top Left down to Center (Left wing of V) -->
+    <path d="M 110,90 C 170,80 230,140 256,220 C 230,220 180,180 110,90 Z" fill="url(#vortexGrad1)" opacity="0.9"/>
+    
+    <!-- Blade 2: Top Right down to Center (Right wing of V) -->
+    <path d="M 402,90 C 342,80 282,140 256,220 C 282,220 332,180 402,90 Z" fill="url(#vortexGrad2)" opacity="0.9"/>
+
+    <!-- Dynamic Flow Arms Forming stylized Vortex V -->
+    <!-- Outer Left Spiral Arc -->
+    <path d="M 70,180 C 130,240 210,340 256,430 C 240,350 200,280 140,210 C 90,160 80,170 70,180 Z" 
+          fill="url(#vortexGrad1)"/>
+
+    <!-- Outer Right Spiral Arc -->
+    <path d="M 442,180 C 382,240 302,340 256,430 C 272,350 312,280 372,210 C 422,160 432,170 442,180 Z" 
+          fill="url(#vortexGrad2)"/>
+
+    <!-- Central Converging Hyper-Speed Core -->
+    <path d="M 256,150 L 290,260 L 256,380 L 222,260 Z" fill="url(#coreGlow)" opacity="0.95"/>
+    
+    <!-- Central Pulsing Vortex Eye -->
+    <circle cx="256" cy="260" r="14" fill="#FFFFFF"/>
+    <circle cx="256" cy="260" r="28" fill="url(#coreGlow)" opacity="0.4"/>
+  </g>
+</svg>

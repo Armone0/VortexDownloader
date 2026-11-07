@@ -9,6 +9,7 @@
         Height="620" Width="980"
         MinHeight="480" MinWidth="750"
         WindowStartupLocation="CenterScreen"
+        Icon="Assets/vortex_app.ico"
         Background="#0B0F19"
         Foreground="#F8FAFC"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
@@ -113,12 +114,10 @@
 
                 <!-- Left: Brand & Primary Actions -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="#4F46E5" CornerRadius="8" Width="36" Height="36" Margin="0,0,14,0">
-                        <TextBlock Text="⚡" FontSize="18" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Image Source="Assets/vortex_logo.png" Width="38" Height="38" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
-                        <TextBlock Text="VORTEX" FontSize="15" FontWeight="ExtraBold" Foreground="#FFFFFF"/>
-                        <TextBlock Text="Downloader" FontSize="10" FontWeight="SemiBold" Foreground="#818CF8" Margin="0,-2,0,0"/>
+                        <TextBlock Text="VORTEX" FontSize="16" FontWeight="Black" Foreground="#00F2FE"/>
+                        <TextBlock Text="DOWNLOADER" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" Margin="0,-2,0,0"/>
                     </StackPanel>
 
                     <!-- New Download Button -->
