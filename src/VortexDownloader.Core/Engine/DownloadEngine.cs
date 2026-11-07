@@ -293,7 +293,7 @@ public class DownloadEngine : IAsyncDisposable
             }
             else
             {
-                // Multi-chunk dynamic IDM worker orchestration
+                // Multi-chunk dynamic worker orchestration
                 await RunDynamicChunkWorkersAsync(task, cancellationToken).ConfigureAwait(false);
             }
 
@@ -380,7 +380,7 @@ public class DownloadEngine : IAsyncDisposable
 
                 currentChunk = null;
 
-                // IDM Dynamic Worker Attachment:
+                // Dynamic Worker Attachment:
                 // If this worker finished its chunk, check if another active chunk has enough un-downloaded bytes to split!
                 lock (chunkListLock)
                 {

@@ -601,7 +601,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0" Text="IDM Algoritması • SocketsHttpHandler • Zero-Alloc Buffer • Win11 Native Shell" 
+                    <TextBlock Grid.Column="0" Text="Dinamik Çok Kanallı Motor • SocketsHttpHandler • Zero-Alloc Buffer • Win11 Native Shell" 
                                FontSize="10" Foreground="#475569" VerticalAlignment="Center"/>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

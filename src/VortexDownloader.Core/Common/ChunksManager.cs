@@ -60,7 +60,7 @@ public class ChunksManager
     }
 
     /// <summary>
-    /// IDM algorithm: Finds the incomplete chunk with the maximum remaining un-downloaded bytes.
+    /// Dynamic segmentation: Finds the incomplete chunk with the maximum remaining un-downloaded bytes.
     /// </summary>
     public static DownloadChunk? FindMaxFreeChunk(
         IEnumerable<DownloadChunk> chunks,
@@ -88,7 +88,7 @@ public class ChunksManager
     }
 
     /// <summary>
-    /// IDM dynamic chunk split: Splits an active chunk into two halves.
+    /// Dynamic chunk split: Splits an active chunk into two halves.
     /// The original chunk retains the first half, and the new chunk takes the second half.
     /// </summary>
     public static (DownloadChunk ModifiedOriginal, DownloadChunk NewChunk)? SplitChunk(

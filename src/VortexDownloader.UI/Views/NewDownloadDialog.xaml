@@ -139,7 +139,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="Dinamik Bağlantı / Parça Sayısı" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8"/>
-                    <TextBlock Text="IDM çoklu soket mimarisiyle indirmeyi hızlandırır" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                    <TextBlock Text="Dinamik çoklu soket mimarisiyle indirmeyi hızlandırır" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
                 </StackPanel>
                 <ComboBox x:Name="ChunkCountComboBox" Grid.Column="1" Width="100" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" Padding="8,4" VerticalContentAlignment="Center">
                     <ComboBoxItem Content="1 Parça" Tag="1"/>

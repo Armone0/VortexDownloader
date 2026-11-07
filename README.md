@@ -23,16 +23,27 @@ VortexDownloader/
 │   ├── VortexDownloader.Core/          # Core download engine
 │   │   ├── Models/                     # DownloadTask, DownloadChunk, DownloadStatus
 │   │   ├── Network/                    # ChunkDownloader with SocketsHttpHandler
-│   │   ├── Common/                     # ChunksManager, SpeedLimiter, FileAssembler
-│   │   ├── Storage/                    # StateStore (JSON persistence)
+│   │   ├── Common/                     # ChunksManager, SpeedLimiter, FileAssembler, SleepPreventer
+│   │   ├── Storage/                    # StateStore (Atomic JSON persistence)
 │   │   └── Engine/                     # DownloadEngine coordinator & URL probe
 │   └── VortexDownloader.UI/            # Modern WPF Desktop Interface
-│       ├── ViewModels/                 # MVVM ViewModels & RelayCommands
-│       └── Views/                      # MainWindow & NewDownloadDialog
+│       ├── ViewModels/                 # MVVM ViewModels, RelayCommands & Filter logic
+│       ├── Views/                      # MainWindow, NewDownloadDialog & DownloadPromptWindow
+│       └── Assets/                     # Vector icons, modern tray icon & logos
+├── extension/                          # Manifest V3 browser companion (Chrome/Edge)
+├── docs/                               # Architectural, security, and legal audit specifications
 └── tests/
-    └── VortexDownloader.Tests/         # 14 unit tests covering dynamic splitting,
-                                        # speed limiting, file assembly, and state store
+    └── VortexDownloader.Tests/         # 18 unit tests covering dynamic splitting,
+                                        # speed limiting, file assembly, state store & integration
 ```
+
+---
+
+## 🌐 Browser Integration
+The solution includes a lightweight Manifest V3 companion extension in the [`extension/`](extension/) directory.
+- It seamlessly captures browser downloads and forwards them to Vortex via a local loopback bridge (`127.0.0.1:19741`).
+- If Vortex is not active, it gracefully falls back to native browser downloads with zero dropped requests.
+- See [`extension/README.md`](extension/README.md) for quick installation instructions.
 
 ---
 
@@ -50,11 +61,12 @@ dotnet build -c Release
 ```bash
 dotnet test
 ```
-All 14 tests pass 100% verifying:
-* Dynamic range splitting math
+All 18 unit tests pass 100% verifying:
+* Dynamic range splitting math & boundary conditions
 * Token bucket rate limiting accuracy
 * Multi-chunk mock assembly byte fidelity
 * JSON state serialization and crash recovery
+* Pre-flight disk space verification
 * End-to-end multi-range HTTP download
 
 ---
