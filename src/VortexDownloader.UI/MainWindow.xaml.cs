@@ -26,6 +26,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        Log("MainWindow constructor start");
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
@@ -44,6 +45,18 @@ public partial class MainWindow : Window
             RealExit);
 
         StartBrowserExtensionBridge();
+        Log("MainWindow constructor end");
+    }
+
+    private static void Log(string msg)
+    {
+        try
+        {
+            var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VortexDownloader");
+            Directory.CreateDirectory(appData);
+            File.AppendAllText(Path.Combine(appData, "startup.log"), $"[{DateTime.Now:HH:mm:ss.fff}] [MainWindow] {msg}\n");
+        }
+        catch { }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -83,6 +96,7 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        Log("MainWindow_Loaded enter");
         var settings = AppSettings.Current;
         _viewModel.Engine.MaxConcurrentDownloads = settings.MaxConcurrentDownloads;
         _viewModel.ShutdownWhenCompleted = settings.ShutdownWhenCompleted;
@@ -96,15 +110,18 @@ public partial class MainWindow : Window
             _ => $"{settings.MaxConcurrentDownloads} Görev"
         };
         await _viewModel.InitializeAsync();
+        Log("MainWindow_Loaded exit");
     }
 
     private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        Log($"MainWindow_Closing enter (_isRealExit={_isRealExit})");
         if (!_isRealExit)
         {
             // Minimize to tray instead of quitting
             e.Cancel = true;
             Hide();
+            Log("MainWindow_Closing minimized to tray (cancelled exit)");
             return;
         }
 
