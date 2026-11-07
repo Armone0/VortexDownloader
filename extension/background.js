@@ -36,26 +36,21 @@ async function sendToVortex(payload) {
   }
 }
 
-// 1. Intercept browser downloads and route to VortexDownloader
-chrome.downloads.onCreated.addListener(async (downloadItem) => {
+// 1. Intercept browser downloads and route to VortexDownloader via onDeterminingFilename
+chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
   const url = downloadItem.finalUrl || downloadItem.url;
   
   // Ignore data/blob/extension urls
   if (!url || url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("chrome-extension:")) {
+    suggest();
     return;
   }
 
   // If this download was triggered as a fallback by the extension, do not re-intercept
   if (fallbackUrls.has(url)) {
     fallbackUrls.delete(url);
+    suggest();
     return;
-  }
-
-  // Immediately pause browser download while negotiating with Vortex
-  try {
-    await chrome.downloads.pause(downloadItem.id);
-  } catch (e) {
-    // Ignore if already completed/paused
   }
 
   const payload = {
@@ -65,30 +60,25 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
     mime: downloadItem.mime || null
   };
 
-  const captured = await sendToVortex(payload);
+  sendToVortex(payload).then((captured) => {
+    if (captured) {
+      // Vortex captured the download! Cancel browser download cleanly
+      chrome.downloads.cancel(downloadItem.id, () => {
+        try { chrome.downloads.erase({ id: downloadItem.id }); } catch (_) {}
+      });
 
-  if (captured) {
-    // Vortex captured the download! Cancel browser download cleanly
-    try {
-      await chrome.downloads.cancel(downloadItem.id);
-    } catch (_) {}
+      chrome.action.setBadgeText({ text: "⚡" });
+      chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+    } else {
+      // Safe fallback: If Vortex is offline, let Chrome download natively
+      suggest();
+    }
+  }).catch(() => {
+    suggest();
+  });
 
-    try {
-      await chrome.downloads.erase({ id: downloadItem.id });
-    } catch (_) {}
-    
-    chrome.action.setBadgeText({ text: "⚡" });
-    chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
-    return;
-  }
-
-  // Safe fallback: If Vortex is closed or unreachable, resume in Chrome/Edge without breaking user download
-  try {
-    await chrome.downloads.resume(downloadItem.id);
-  } catch (e) {
-    // Already in a valid state
-  }
+  return true; // Keep async channel open for suggest()!
 });
 
 // 2. Handle media download requests from content scripts (Video Sniffer / Grabber)

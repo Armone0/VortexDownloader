@@ -300,8 +300,21 @@ public partial class MainWindow : Window
     {
         var prompt = new DownloadPromptWindow(_viewModel.Engine, url, fileName, size)
         {
-            Owner = this
+            Topmost = true,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
         };
+
+        if (IsVisible)
+        {
+            try { prompt.Owner = this; } catch { }
+        }
+
+        try
+        {
+            prompt.Activate();
+            prompt.Focus();
+        }
+        catch { }
 
         if (prompt.ShowDialog() == true)
         {
@@ -315,7 +328,7 @@ public partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"İndirme başlatılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"İndirme başlatılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
