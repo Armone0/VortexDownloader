@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using VortexDownloader.Core.Engine;
+using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
 
@@ -15,14 +16,21 @@ public partial class DownloadPromptWindow : Window
     public int ResultChunkCount { get; private set; } = 8;
     public bool StartImmediately { get; private set; } = true;
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
+    }
+
     public DownloadPromptWindow(DownloadEngine engine, string url, string? suggestedFileName = null, long? size = null)
     {
         InitializeComponent();
         _engine = engine;
         ResultUrl = url;
+        ResultChunkCount = AppSettings.Current.DefaultChunkCount;
 
         TxtUrl.Text = url;
-        _currentDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        _currentDirectory = AppSettings.Current.DefaultDownloadDirectory;
         TxtDestPath.Text = _currentDirectory;
 
         if (!string.IsNullOrWhiteSpace(suggestedFileName))

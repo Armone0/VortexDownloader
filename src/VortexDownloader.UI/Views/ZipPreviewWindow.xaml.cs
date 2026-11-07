@@ -5,16 +5,12 @@ using System.Windows;
 using System.Windows.Interop;
 using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Models;
+using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
 
 public partial class ZipPreviewWindow : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
     private readonly string _url;
     private CancellationTokenSource? _cts;
 
@@ -32,13 +28,7 @@ public partial class ZipPreviewWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        try
-        {
-            IntPtr hwnd = new WindowInteropHelper(this).Handle;
-            int darkMode = 1;
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
-        }
-        catch { }
+        ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
     }
 
     private void ZipPreviewWindow_Loaded(object sender, RoutedEventArgs e)

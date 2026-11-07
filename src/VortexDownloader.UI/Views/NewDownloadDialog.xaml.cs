@@ -5,16 +5,12 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
+using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
 
 public partial class NewDownloadDialog : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
     private readonly DownloadEngine _engine;
 
     public string ResultUrl { get; private set; } = string.Empty;
@@ -26,13 +22,7 @@ public partial class NewDownloadDialog : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        try
-        {
-            IntPtr hwnd = new WindowInteropHelper(this).Handle;
-            int darkMode = 1;
-            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
-        }
-        catch { }
+        ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
     }
 
     public NewDownloadDialog(DownloadEngine engine)
@@ -40,13 +30,8 @@ public partial class NewDownloadDialog : Window
         InitializeComponent();
         _engine = engine;
 
-        // Set default download directory
-        string userDownloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-        if (!Directory.Exists(userDownloads))
-        {
-            userDownloads = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        }
-        FolderTextBox.Text = userDownloads;
+        ResultChunkCount = AppSettings.Current.DefaultChunkCount;
+        FolderTextBox.Text = AppSettings.Current.DefaultDownloadDirectory;
 
         Loaded += NewDownloadDialog_Loaded;
     }
