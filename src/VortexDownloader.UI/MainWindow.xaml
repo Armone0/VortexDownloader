@@ -311,9 +311,33 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- 1. Brand Header -->
+                <!-- 1. Brand Header with Rotating Vortex Animation -->
                 <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
-                    <Image Source="pack://application:,,,/Assets/vortex_logo.png" Width="30" Height="30" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Border Width="30" Height="30" Margin="0,0,10,0" RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <RotateTransform Angle="0"/>
+                        </Border.RenderTransform>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasActiveDownloads}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard x:Name="SpinVortexStory">
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                     From="0" To="360" Duration="0:0:2.5"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="SpinVortexStory"/>
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Image Source="pack://application:,,,/Assets/vortex_logo.png" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
                     <StackPanel VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource Str_BrandTitle}" FontSize="15" FontWeight="Black" Foreground="{DynamicResource AccentHighlightBrush}"/>
@@ -334,95 +358,194 @@
                     </StackPanel>
                 </Button>
 
-                <!-- 3. Navigation Categories (Clickable Filter Buttons) -->
-                <StackPanel Grid.Row="2">
-                    <TextBlock Text="{DynamicResource Str_Categories}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="8,0,0,8"/>
+                <!-- 3. Navigation Categories (Clickable Filter Buttons) with ScrollViewer -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,-8,10" Padding="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str_Categories}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="8,0,0,8"/>
 
-                    <!-- Category: All Tasks Button -->
-                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
-                            Command="{Binding SetFilterCommand}" CommandParameter="All">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="📥" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_AllTasks}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding TotalDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <!-- Category: All Tasks Button -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                                Command="{Binding SetFilterCommand}" CommandParameter="All">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="📥" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_AllTasks}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TotalDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Category: Downloading Button -->
-                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
-                            Command="{Binding SetFilterCommand}" CommandParameter="Downloading">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="⚡" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Downloading}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding ActiveDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#10B981"/>
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <!-- Category: Downloading Button -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                                Command="{Binding SetFilterCommand}" CommandParameter="Downloading">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⚡" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Downloading}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ActiveDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="#10B981"/>
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Category: Paused Button -->
-                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
-                            Command="{Binding SetFilterCommand}" CommandParameter="Paused">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="⏸" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Paused}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding PausedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            </Border>
-                        </Grid>
-                    </Button>
+                        <!-- Category: Paused Button -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                                Command="{Binding SetFilterCommand}" CommandParameter="Paused">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⏸" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Paused}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding PausedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Category: Completed Button -->
-                    <Button Style="{StaticResource SidebarNavButtonStyle}" 
-                            Command="{Binding SetFilterCommand}" CommandParameter="Completed">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="✅" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_Completed}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CompletedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            </Border>
-                        </Grid>
-                    </Button>
-                </StackPanel>
+                        <!-- Category: Completed Button -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" 
+                                Command="{Binding SetFilterCommand}" CommandParameter="Completed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="✅" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Completed}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding CompletedDownloadsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                <!-- 4. Sidebar Bottom: Speed Readout & Settings Button (Motrix style) -->
+                        <!-- FILE TYPES SECTION -->
+                        <TextBlock Text="{DynamicResource Str_FileTypes}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="8,14,0,8"/>
+
+                        <!-- Compressed (Zip/Rar/7z) -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Compressed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="📦" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Compressed}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding CompressedCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
+
+                        <!-- Documents -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Documents">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="📄" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Documents}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DocumentsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
+
+                        <!-- Music -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Music">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="🎵" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Music}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding MusicCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
+
+                        <!-- Programs -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Programs">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="💻" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Programs}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ProgramsCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
+
+                        <!-- Video -->
+                        <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding SetFilterCommand}" CommandParameter="Video">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="🎬" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Str_Video}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding VideoCount}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </Border>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 4. Sidebar Bottom: Disk Space, Speed & Settings -->
                 <StackPanel Grid.Row="3">
+                    <!-- Disk Space Card -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
+                            BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="💾" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding FreeDiskSpaceText}" FontSize="11" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
                     <!-- Live Speed Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                            BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,6,0"/>
+                                <Ellipse Width="6" Height="6" Fill="#10B981" Margin="0,0,5,0"/>
                                 <TextBlock Text="{DynamicResource Str_DownloadSpeed}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="{Binding TotalSpeedFormatted}" HorizontalAlignment="Right" 
-                                       FontWeight="Bold" FontSize="12" Foreground="#10B981"/>
+                                       FontWeight="Bold" FontSize="11" Foreground="#10B981"/>
                         </Grid>
                     </Border>
 

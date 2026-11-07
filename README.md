@@ -7,6 +7,8 @@
 **High-performance, multi-threaded segmented download manager built with .NET 9 and modern WPF.**  
 *Independent Clean-Room Implementation • Low-Allocation Pooled Streaming • Dynamic Chunk Bisection • Browser Companion*
 
+> *"Veriyi bekleme; onu girdaba çek." — "Don't wait for data. Pull it into the vortex."*
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://microsoft.com/windows)

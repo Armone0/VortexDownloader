@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
+using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.ViewModels;
 
@@ -36,13 +37,48 @@ public class MainViewModel : ViewModelBase
     public int ActiveDownloadsCount
     {
         get => _activeDownloadsCount;
-        set => SetProperty(ref _activeDownloadsCount, value);
+        set
+        {
+            if (SetProperty(ref _activeDownloadsCount, value))
+            {
+                OnPropertyChanged(nameof(HasActiveDownloads));
+            }
+        }
     }
+
+    public bool HasActiveDownloads => _activeDownloadsCount > 0;
 
     public int TotalDownloadsCount => Downloads.Count;
     public bool HasNoDownloads => Downloads.Count == 0;
     public int PausedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Paused);
     public int CompletedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Completed);
+    public int CompressedCount => Downloads.Count(d => HasExtension(d.FileName, ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2"));
+    public int DocumentsCount => Downloads.Count(d => HasExtension(d.FileName, ".pdf", ".docx", ".doc", ".xlsx", ".txt", ".pptx", ".epub"));
+    public int MusicCount => Downloads.Count(d => HasExtension(d.FileName, ".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a"));
+    public int ProgramsCount => Downloads.Count(d => HasExtension(d.FileName, ".exe", ".msi", ".iso", ".bat", ".cmd", ".apk"));
+    public int VideoCount => Downloads.Count(d => HasExtension(d.FileName, ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm"));
+    public int FilteredDownloadsCount => FilteredDownloads.Count();
+
+    public string FreeDiskSpaceText
+    {
+        get
+        {
+            try
+            {
+                string path = AppSettings.Current.DefaultDownloadDirectory;
+                if (string.IsNullOrEmpty(path)) path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string? root = Path.GetPathRoot(path);
+                if (!string.IsNullOrEmpty(root))
+                {
+                    var drive = new DriveInfo(root);
+                    long freeGb = drive.AvailableFreeSpace / (1024L * 1024 * 1024);
+                    return $"{root[0]}: {freeGb} GB Boş";
+                }
+            }
+            catch { }
+            return "Disk: Hazır";
+        }
+    }
 
     private string _currentFilter = "All";
     public string CurrentFilter
@@ -54,6 +90,7 @@ public class MainViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(FilterTitle));
                 OnPropertyChanged(nameof(FilteredDownloads));
+                OnPropertyChanged(nameof(FilteredDownloadsCount));
                 OnPropertyChanged(nameof(IsAllFilter));
                 OnPropertyChanged(nameof(IsDownloadingFilter));
                 OnPropertyChanged(nameof(IsPausedFilter));
@@ -335,7 +372,14 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasNoDownloads));
         OnPropertyChanged(nameof(PausedDownloadsCount));
         OnPropertyChanged(nameof(CompletedDownloadsCount));
+        OnPropertyChanged(nameof(CompressedCount));
+        OnPropertyChanged(nameof(DocumentsCount));
+        OnPropertyChanged(nameof(MusicCount));
+        OnPropertyChanged(nameof(ProgramsCount));
+        OnPropertyChanged(nameof(VideoCount));
         OnPropertyChanged(nameof(FilteredDownloads));
+        OnPropertyChanged(nameof(FilteredDownloadsCount));
+        OnPropertyChanged(nameof(FreeDiskSpaceText));
         CheckAutoShutdown();
     }
 

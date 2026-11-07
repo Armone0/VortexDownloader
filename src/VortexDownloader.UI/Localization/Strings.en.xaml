@@ -34,4 +34,12 @@
     <sys:String x:Key="Str_Chunks">Chunks</sys:String>
     <sys:String x:Key="Str_Unlimited">Unlimited</sys:String>
     <sys:String x:Key="Str_DownloadSpeed">Download Speed:</sys:String>
+    <sys:String x:Key="Str_ClearCompleted">Clear Finished</sys:String>
+    <sys:String x:Key="Str_FileTypes">FILE TYPES</sys:String>
+    <sys:String x:Key="Str_Compressed">Compressed</sys:String>
+    <sys:String x:Key="Str_Documents">Documents</sys:String>
+    <sys:String x:Key="Str_Music">Music &amp; Audio</sys:String>
+    <sys:String x:Key="Str_Programs">Programs</sys:String>
+    <sys:String x:Key="Str_Video">Videos</sys:String>
+    <sys:String x:Key="Str_DiskSpace">Free Space:</sys:String>
 </ResourceDictionary>

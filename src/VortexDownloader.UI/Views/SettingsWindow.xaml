@@ -489,8 +489,10 @@
                                        Foreground="{DynamicResource AccentHighlightBrush}" HorizontalAlignment="Center"/>
                             <TextBlock Text="v1.2.0 • Motrix Edition" FontSize="12" FontWeight="SemiBold" 
                                        Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,3,0,14"/>
-                            <TextBlock Text="Yüksek Performanslı, Çok Kanallı ve Güvenli İndirme Yöneticisi" 
-                                       FontSize="12" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" TextAlignment="Center"/>
+                            <TextBlock Text="&quot;Veriyi bekleme; onu girdaba çek.&quot;" FontStyle="Italic" FontSize="13" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Dijital ağda yapay bir yerçekimi alanı oluşturan Vortex, çok kanallı dinamik bisection ile son %1 darboğazını yok eden ve veriyi merkeze çeken yeni nesil indirme motorudur." 
+                                       FontSize="11" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 

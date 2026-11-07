@@ -34,4 +34,12 @@
     <sys:String x:Key="Str_Chunks">Parça</sys:String>
     <sys:String x:Key="Str_Unlimited">Sınırsız</sys:String>
     <sys:String x:Key="Str_DownloadSpeed">İndirme Hızı:</sys:String>
+    <sys:String x:Key="Str_ClearCompleted">Bitenleri Temizle</sys:String>
+    <sys:String x:Key="Str_FileTypes">DOSYA TÜRLERİ</sys:String>
+    <sys:String x:Key="Str_Compressed">Sıkıştırılmış</sys:String>
+    <sys:String x:Key="Str_Documents">Belgeler</sys:String>
+    <sys:String x:Key="Str_Music">Müzik &amp; Ses</sys:String>
+    <sys:String x:Key="Str_Programs">Programlar</sys:String>
+    <sys:String x:Key="Str_Video">Videolar</sys:String>
+    <sys:String x:Key="Str_DiskSpace">Boş Alan:</sys:String>
 </ResourceDictionary>

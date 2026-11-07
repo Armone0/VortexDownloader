@@ -2,33 +2,53 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ========================================================================= -->
-    <!-- VORTEXDOWNLOADER - SOFT LOFT DARK THEME PALETTE                           -->
+    <!-- VORTEXDOWNLOADER - TRUE LO-FI SOFT LOFT DARK THEME PALETTE                -->
+    <!-- 1. Ana Zemin:       #1E2022 (Sıcak Derin Kömür / Warm Deep Charcoal)     -->
+    <!-- 2. İkincil Detay:   #282B2F (Yükseltilmiş Grafit / Kart & Panel Yüzeyi)  -->
+    <!-- 3. Üçüncül Detay:   #8EA191 (Mat Adaçayı Yeşili / Sage Green Vurgu)      -->
+    <!-- 4. Dördüncü Detay:  #F0ECE1 (Sıcak Yulaf Krem / Warm Oatmeal Metin)      -->
     <!-- ========================================================================= -->
 
-    <!-- Core Palette Brushes -->
-    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#071B2B"/>
-    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#0B1320"/>
-    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#0E1626"/>
-    <SolidColorBrush x:Key="CardBorderBrush" Color="#167D8D"/>
-    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#131E30"/>
-    <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#167D8D"/>
-    <SolidColorBrush x:Key="AccentHighlightBrush" Color="#B9E4E8"/>
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#EEEEEE"/>
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#94A3B8"/>
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#64748B"/>
+    <!-- 1. Kök Zemin ve Kanvas Renkleri -->
+    <Color x:Key="Color.Canvas.Background">#1E2022</Color>
+    <Color x:Key="Color.Sidebar.Background">#191B1C</Color>
+    <Color x:Key="Color.Card.Background">#282B2F</Color>
+    <Color x:Key="Color.Input.Background">#222528</Color>
 
-    <!-- Additional UI & Status Brushes -->
-    <SolidColorBrush x:Key="DividerBrush" Color="#167D8D" Opacity="0.3"/>
-    <SolidColorBrush x:Key="HoverTintBrush" Color="#167D8D" Opacity="0.2"/>
-    <SolidColorBrush x:Key="SelectedRowBrush" Color="#167D8D" Opacity="0.35"/>
-    <SolidColorBrush x:Key="IconBrush" Color="#B9E4E8"/>
-    <SolidColorBrush x:Key="ProgressBarForegroundBrush" Color="#B9E4E8"/>
-    <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#167D8D" Opacity="0.35"/>
-    <SolidColorBrush x:Key="BadgeTextBrush" Color="#B9E4E8"/>
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource Color.Canvas.Background}" />
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{StaticResource Color.Sidebar.Background}" />
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource Color.Card.Background}" />
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="{StaticResource Color.Input.Background}" />
 
-    <SolidColorBrush x:Key="StatusDownloadingBrush" Color="#38BDF8"/>
-    <SolidColorBrush x:Key="StatusCompletedBrush" Color="#34D399"/>
-    <SolidColorBrush x:Key="StatusPausedBrush" Color="#FBBF24"/>
-    <SolidColorBrush x:Key="StatusErrorBrush" Color="#F87171"/>
+    <!-- 2. İkincil Detay: Mat Çerçeveler, Ayraçlar ve Seçim Tonları -->
+    <Color x:Key="Color.Border.Base">#383D42</Color>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource Color.Border.Base}" />
+    <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource Color.Border.Base}" Opacity="0.5" />
+    <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#3E454B" />
+    <SolidColorBrush x:Key="HoverTintBrush" Color="#33373B" />
+    <SolidColorBrush x:Key="SelectedRowBrush" Color="#363B40" />
+
+    <!-- 3. Üçüncül Detay: Mat Adaçayı Yeşili (Muted Sage) - İkonlar, Progress & Rozetler -->
+    <Color x:Key="Color.Accent.Highlight">#8EA191</Color>
+    <SolidColorBrush x:Key="AccentHighlightBrush" Color="{StaticResource Color.Accent.Highlight}" />
+    <SolidColorBrush x:Key="IconBrush" Color="{StaticResource Color.Accent.Highlight}" />
+    <SolidColorBrush x:Key="ProgressBarForegroundBrush" Color="{StaticResource Color.Accent.Highlight}" />
+    <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#2F3632" />
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="{StaticResource Color.Accent.Highlight}" />
+
+    <!-- 4. Dördüncü Detay: Tipografi & Gözü Asla Yormayan Yulaf Krem Metinler -->
+    <Color x:Key="Color.Text.Primary">#F0ECE1</Color>
+    <Color x:Key="Color.Text.Secondary">#9BA1A6</Color>
+    <Color x:Key="Color.Text.Muted">#6B7278</Color>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource Color.Text.Primary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource Color.Text.Secondary}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource Color.Text.Muted}" />
+
+    <!-- Durum Renkleri (Doğal Lo-Fi Toprak Tonları) -->
+    <SolidColorBrush x:Key="StatusDownloadingBrush" Color="#8EA191" />
+    <SolidColorBrush x:Key="StatusCompletedBrush" Color="#93AB8F" />
+    <SolidColorBrush x:Key="StatusPausedBrush" Color="#E0B185" />
+    <SolidColorBrush x:Key="StatusErrorBrush" Color="#D68C85" />
 
 </ResourceDictionary>
