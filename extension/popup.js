@@ -11,6 +11,53 @@ document.addEventListener("DOMContentLoaded", () => {
   const txtUrl = document.getElementById("txtDownloadUrl");
   const sendFeedback = document.getElementById("sendFeedback");
 
+  // Interception Toggle Elements
+  const toggleIntercept = document.getElementById("toggleIntercept");
+  const interceptStatusDesc = document.getElementById("interceptStatusDesc");
+  const featureIconIntercept = document.getElementById("featureIconIntercept");
+  const featureTextIntercept = document.getElementById("featureTextIntercept");
+
+  function updateInterceptUI(enabled) {
+    if (toggleIntercept) toggleIntercept.checked = enabled;
+    if (interceptStatusDesc) {
+      interceptStatusDesc.textContent = enabled
+        ? "Tarayıcı indirmelerini Vortex'e aktar"
+        : "Devre dışı — İndirmeler tarayıcıda kalır";
+      interceptStatusDesc.style.color = enabled ? "#9CA3AF" : "#EF4444";
+    }
+    if (featureIconIntercept) {
+      featureIconIntercept.textContent = enabled ? "✓" : "✕";
+      featureIconIntercept.style.color = enabled ? "#10B981" : "#EF4444";
+    }
+    if (featureTextIntercept) {
+      featureTextIntercept.textContent = enabled
+        ? "Tarayıcı indirmelerini otomatik yakalama aktif"
+        : "Tarayıcı indirmelerini otomatik yakalama duraklatıldı";
+      featureTextIntercept.style.color = enabled ? "#9CA3AF" : "#EF4444";
+    }
+  }
+
+  // Load saved interception state (default: true)
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get({ interceptEnabled: true }, (items) => {
+      updateInterceptUI(items ? items.interceptEnabled !== false : true);
+    });
+  }
+
+  // Handle toggle change event
+  if (toggleIntercept) {
+    toggleIntercept.addEventListener("change", () => {
+      const isEnabled = toggleIntercept.checked;
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ interceptEnabled: isEnabled }, () => {
+          updateInterceptUI(isEnabled);
+        });
+      } else {
+        updateInterceptUI(isEnabled);
+      }
+    });
+  }
+
   async function checkBridge() {
     statusBadge.className = "status-badge checking";
     statusText.textContent = "Bağlanıyor...";
@@ -30,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json().catch(() => ({}));
         statusBadge.className = "status-badge online";
         statusText.textContent = "BAĞLI";
-        statusTip.textContent = `Vortex motoru aktif (${data.version || "v1.3.1"}). İndirmeler ve sağ tık menüsü hazır.`;
+        statusTip.textContent = `Vortex motoru aktif (${data.version || "v1.4.0"}). İndirmeler ve sağ tık menüsü hazır.`;
         return true;
       }
     } catch (_) {}
@@ -54,6 +101,17 @@ document.addEventListener("DOMContentLoaded", () => {
     sendFeedback.className = "feedback";
     sendFeedback.textContent = "Vortex'e iletiliyor...";
 
+    // Extract cookies for the URL if available
+    let cookieString = null;
+    try {
+      if (chrome.cookies && chrome.cookies.getAll) {
+        const cList = await chrome.cookies.getAll({ url: rawUrl });
+        if (cList && cList.length > 0) {
+          cookieString = cList.map(c => `${c.name}=${c.value}`).join('; ');
+        }
+      }
+    } catch (_) {}
+
     try {
       const res = await fetch(VORTEX_DOWNLOAD_URL, {
         method: "POST",
@@ -64,6 +122,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({
           url: rawUrl,
           fileName: null,
+          fileSize: null,
+          mime: null,
+          cookies: cookieString,
+          referer: "",
+          referrer: "",
           userAgent: navigator.userAgent
         })
       });

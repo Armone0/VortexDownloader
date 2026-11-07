@@ -221,12 +221,21 @@ public class MainViewModel : ViewModelBase
 
         if (_hasActiveDownloadsSession && Downloads.Count > 0)
         {
+            // Do not shutdown if any download failed
+            bool anyFailed = Downloads.Any(d => d.Status == DownloadStatus.Failed);
+            if (anyFailed)
+            {
+                return;
+            }
+
             bool anyActiveOrQueued = Downloads.Any(d =>
                 d.Status == DownloadStatus.Downloading ||
                 d.Status == DownloadStatus.Assembling ||
                 d.Status == DownloadStatus.Queued);
 
-            if (!anyActiveOrQueued)
+            bool allCompleted = Downloads.All(d => d.Status == DownloadStatus.Completed);
+
+            if (!anyActiveOrQueued && allCompleted)
             {
                 _shutdownTriggered = true;
                 TriggerShutdown();

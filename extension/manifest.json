@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "VortexDownloader Integration",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Otomatik indirme yakalama, video yakalayıcı (Video Sniffer) ve VortexDownloader hızlı aktarım eklentisi.",
   "permissions": [
     "downloads",
     "notifications",
     "contextMenus",
-    "cookies"
+    "cookies",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"

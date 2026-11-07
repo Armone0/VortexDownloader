@@ -276,6 +276,18 @@ public partial class NewDownloadDialog : Window
             }
         }
 
+        try
+        {
+            string testFile = Path.Combine(folder, $".vortex_perm_{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(testFile, "ok");
+            File.Delete(testFile);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Seçilen hedef klasöre yazma izni bulunmuyor:\n{ex.Message}\nLütfen farklı bir klasör seçin.", "Erişim Reddedildi", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         int chunkCount = 8;
         if (ChunkCountComboBox.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out int parsed))
         {

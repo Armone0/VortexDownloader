@@ -70,23 +70,19 @@ public class FileAssembler
             }
         }
 
-        // Fast path for single chunk: atomic Move
+        // Fast path for single chunk: Copy first to preserve chunk if verification fails
         if (sortedChunks.Count == 1)
         {
             var singleChunk = sortedChunks[0];
-            if (File.Exists(destPath))
-            {
-                File.Delete(destPath);
-            }
             try
             {
-                File.Move(singleChunk.TempFilePath, destPath);
+                File.Copy(singleChunk.TempFilePath, destPath, overwrite: true);
                 accumulatedBytes = new FileInfo(destPath).Length;
                 ReportProgress(force: true);
             }
             catch
             {
-                // Fall back to stream copy if cross-volume move fails
+                // Fall back to stream copy if direct copy fails
                 await using var destStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
                 await using var srcStream = new FileStream(singleChunk.TempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, options: FileOptions.Asynchronous | FileOptions.SequentialScan);
                 await srcStream.CopyToAsync(destStream, cancellationToken).ConfigureAwait(false);
@@ -100,7 +96,15 @@ public class FileAssembler
                 throw new InvalidDataException($"Birleştirilen dosya boyutu ({singleFinalInfo.Length} B), beklenen boyut ile ({task.TotalBytes} B) uyuşmuyor.");
             }
 
-            // Clean up temp dir
+            // If task.TotalBytes was unknown (-1, chunked stream), update to actual size
+            if (task.TotalBytes <= 0)
+            {
+                task.TotalBytes = singleFinalInfo.Length;
+                task.DownloadedBytes = singleFinalInfo.Length;
+            }
+
+            // Verification succeeded! Safely clean up temporary chunk file and temp dir
+            try { File.Delete(singleChunk.TempFilePath); } catch { }
             CleanupTempDir(task.TempDirectory);
             progress?.Report(100.0);
             return;
@@ -166,6 +170,13 @@ public class FileAssembler
             if (task.TotalBytes > 0 && finalInfo.Length != task.TotalBytes)
             {
                 throw new InvalidDataException($"Birleştirilen dosya boyutu ({finalInfo.Length} B), beklenen boyut ile ({task.TotalBytes} B) uyuşmuyor.");
+            }
+
+            // If task.TotalBytes was unknown (-1, chunked stream), update to actual size
+            if (task.TotalBytes <= 0)
+            {
+                task.TotalBytes = finalInfo.Length;
+                task.DownloadedBytes = finalInfo.Length;
             }
 
             // Assembly verified! Now safely delete temporary chunk files and directory

@@ -14,7 +14,7 @@
         <span class="vortex-icon">🌪️</span>
         <div class="brand-text">
           <span class="title">VORTEX</span>
-          <span class="version">v1.3.1</span>
+          <span class="version">v1.4.0</span>
         </div>
       </div>
       <div id="statusBadge" class="status-badge checking">
@@ -35,6 +35,20 @@
       <button id="btnCheckConnection" class="btn secondary-btn">🔄 Bağlantıyı Sına</button>
     </div>
 
+    <!-- Interception Control Card -->
+    <div class="card settings-card">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-title">Otomatik İndirme Yakalama</span>
+          <span id="interceptStatusDesc" class="toggle-desc">Tarayıcı indirmelerini Vortex'e aktar</span>
+        </div>
+        <label class="switch" for="toggleIntercept">
+          <input type="checkbox" id="toggleIntercept" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- Quick Download Box -->
     <div class="card download-card">
       <label class="input-label" for="txtDownloadUrl">Hızlı İndirme (URL Yapıştır):</label>
@@ -47,9 +61,9 @@
 
     <!-- Features Info List -->
     <div class="features-info">
-      <div class="feature-item">
-        <span class="feature-icon">✓</span>
-        <span>Tarayıcı indirmelerini otomatik yakalama aktif</span>
+      <div class="feature-item" id="featureItemIntercept">
+        <span class="feature-icon" id="featureIconIntercept">✓</span>
+        <span id="featureTextIntercept">Tarayıcı indirmelerini otomatik yakalama aktif</span>
       </div>
       <div class="feature-item">
         <span class="feature-icon">✓</span>

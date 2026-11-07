@@ -222,7 +222,7 @@ public partial class MainWindow : Window
                 context.Response.ContentType = "application/json";
                 using (var pingWriter = new StreamWriter(context.Response.OutputStream))
                 {
-                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.3.1\"}");
+                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.4.0\"}");
                 }
                 return;
             }
@@ -361,13 +361,26 @@ public partial class MainWindow : Window
             {
                 if (dialog.BatchItems.Count > 1)
                 {
+                    var failedItems = new List<string>();
                     foreach (var item in dialog.BatchItems)
                     {
-                        await _viewModel.Engine.AddDownloadAsync(
-                            item.Url,
-                            item.DestinationPath,
-                            dialog.ResultChunkCount,
-                            autoStart: true);
+                        try
+                        {
+                            await _viewModel.Engine.AddDownloadAsync(
+                                item.Url,
+                                item.DestinationPath,
+                                dialog.ResultChunkCount,
+                                autoStart: true);
+                        }
+                        catch (Exception ex)
+                        {
+                            failedItems.Add($"{item.Url}: {ex.Message}");
+                        }
+                    }
+
+                    if (failedItems.Count > 0)
+                    {
+                        MessageBox.Show(this, $"{dialog.BatchItems.Count - failedItems.Count} indirme eklendi.\n{failedItems.Count} bağlantı eklenemedi:\n" + string.Join("\n", failedItems.Take(5)), "Toplu İndirme Bilgisi", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(dialog.ResultUrl))

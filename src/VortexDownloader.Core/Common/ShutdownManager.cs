@@ -14,16 +14,20 @@ public static class ShutdownManager
     private static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
 
     /// <summary>
-    /// Shuts down the computer immediately.
+    /// Shuts down the computer with an optional safety countdown.
     /// </summary>
-    /// <param name="force">If true, forces running applications to close without warning.</param>
-    public static void ShutdownComputer(bool force = false)
+    /// <param name="force">If true, forces running applications to close.</param>
+    /// <param name="timeoutSeconds">Grace period in seconds before shutdown (default 60s).</param>
+    public static void ShutdownComputer(bool force = false, int timeoutSeconds = 60)
     {
         try
         {
             if (OperatingSystem.IsWindows())
             {
-                string arguments = force ? "/s /f /t 0" : "/s /t 0";
+                string msg = $"VortexDownloader indirmeleri tamamladi. Bilgisayar {timeoutSeconds} saniye icinde kapatilacak.";
+                string arguments = force 
+                    ? $"/s /f /t {timeoutSeconds} /c \"{msg}\"" 
+                    : $"/s /t {timeoutSeconds} /c \"{msg}\"";
                 var startInfo = new ProcessStartInfo("shutdown.exe", arguments)
                 {
                     CreateNoWindow = true,

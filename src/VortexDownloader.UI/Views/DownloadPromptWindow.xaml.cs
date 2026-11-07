@@ -176,6 +176,19 @@ public partial class DownloadPromptWindow : Window
             return;
         }
 
+        try
+        {
+            Directory.CreateDirectory(_currentDirectory);
+            string testFile = Path.Combine(_currentDirectory, $".vortex_perm_{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(testFile, "ok");
+            File.Delete(testFile);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Seçilen hedef klasöre yazma izni bulunmuyor:\n{ex.Message}\nLütfen farklı bir klasör seçin.", "Erişim Reddedildi", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         DialogResult = true;
         Close();
     }

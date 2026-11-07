@@ -12,15 +12,67 @@ function sanitizeFileName(name) {
   return clean || "video.mp4";
 }
 
+// State cache & sync for download interception toggle
+function syncInterceptionBadge(enabled) {
+  if (!chrome.action || !chrome.action.setBadgeText) return;
+  if (enabled) {
+    chrome.action.setBadgeText({ text: "" });
+  } else {
+    chrome.action.setBadgeText({ text: "OFF" });
+    if (chrome.action.setBadgeBackgroundColor) {
+      chrome.action.setBadgeBackgroundColor({ color: "#6B7280" });
+    }
+  }
+}
+
+// Initialize badge on startup
+if (chrome.storage && chrome.storage.local) {
+  chrome.storage.local.get({ interceptEnabled: true }, (items) => {
+    const isEnabled = items ? items.interceptEnabled !== false : true;
+    syncInterceptionBadge(isEnabled);
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.interceptEnabled) {
+      syncInterceptionBadge(changes.interceptEnabled.newValue !== false);
+    }
+  });
+}
+
+// Check if two URLs share the same apex domain to prevent cross-origin credential leaks
+function isSameOriginDomain(url1, url2) {
+  try {
+    if (!url1 || !url2) return false;
+    const u1 = new URL(url1);
+    const u2 = new URL(url2);
+    if (u1.hostname === u2.hostname) return true;
+    const parts1 = u1.hostname.split('.');
+    const parts2 = u2.hostname.split('.');
+    if (parts1.length >= 2 && parts2.length >= 2) {
+      const apex1 = parts1.slice(-2).join('.');
+      const apex2 = parts2.slice(-2).join('.');
+      return apex1.toLowerCase() === apex2.toLowerCase();
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Extract cookies for authenticated downloads (Google Drive, GitHub, Mediafire, etc.)
 async function getCookiesForUrl(url) {
+  if (!url || typeof url !== 'string' || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    return null;
+  }
   try {
-    if (!chrome.cookies || !url) return null;
+    if (!chrome.cookies || !chrome.cookies.getAll) return null;
     const cookies = await chrome.cookies.getAll({ url: url });
     if (cookies && cookies.length > 0) {
       return cookies.map(c => `${c.name}=${c.value}`).join("; ");
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn('[Vortex] Failed to extract cookies for:', url, err);
+  }
   return null;
 }
 
@@ -65,11 +117,35 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
     return;
   }
 
-  (async () => {
+  // Check if download interception is enabled in user settings
+  const checkStorage = (callback) => {
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ interceptEnabled: true }, (items) => {
+        callback(items ? items.interceptEnabled !== false : true);
+      });
+    } else {
+      callback(true);
+    }
+  };
+
+  checkStorage(async (isEnabled) => {
+    if (!isEnabled) {
+      suggest();
+      return;
+    }
+
     let cookieString = null;
     try {
-      cookieString = await getCookiesForUrl(url);
+      const targetUrl = downloadItem.finalUrl || downloadItem.url;
+      cookieString = await getCookiesForUrl(targetUrl);
+      // Only inherit cookies from initial URL if both belong to the exact same apex domain (prevents cross-origin leak e.g. S3 redirect)
+      if (!cookieString && downloadItem.url && downloadItem.url !== targetUrl && isSameOriginDomain(targetUrl, downloadItem.url)) {
+        cookieString = await getCookiesForUrl(downloadItem.url);
+      }
     } catch (_) {}
+
+    const referer = downloadItem.referrer || "";
+    const userAgent = navigator.userAgent || "";
 
     const payload = {
       url: url,
@@ -77,8 +153,9 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
       fileSize: downloadItem.fileSize > 0 ? downloadItem.fileSize : null,
       mime: downloadItem.mime || null,
       cookies: cookieString,
-      referrer: downloadItem.referrer || null,
-      userAgent: navigator.userAgent
+      referer: referer,
+      referrer: referer,
+      userAgent: userAgent
     };
 
     try {
@@ -92,7 +169,15 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
 
         chrome.action.setBadgeText({ text: "⚡" });
         chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-        setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+        setTimeout(() => {
+          if (chrome.storage && chrome.storage.local) {
+            chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+              syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+            });
+          } else {
+            chrome.action.setBadgeText({ text: "" });
+          }
+        }, 3000);
       } else {
         // Safe fallback: If Vortex is offline, let Chrome download natively
         suggest();
@@ -100,7 +185,7 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
     } catch (_) {
       suggest();
     }
-  })();
+  });
 
   return true; // Keep async channel open for suggest()!
 });
@@ -128,8 +213,11 @@ async function handleMediaDownload(message, sender) {
     fileName: suggestedFileName,
     suggestedFileName: suggestedFileName,
     pageUrl: pageUrl,
+    fileSize: null,
+    mime: null,
     cookies: cookieString,
-    referrer: pageUrl,
+    referer: pageUrl || "",
+    referrer: pageUrl || "",
     userAgent: navigator.userAgent
   };
 
@@ -139,7 +227,15 @@ async function handleMediaDownload(message, sender) {
   if (captured) {
     chrome.action.setBadgeText({ text: "⚡" });
     chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+    setTimeout(() => {
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+          syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+        });
+      } else {
+        chrome.action.setBadgeText({ text: "" });
+      }
+    }, 3000);
 
     try {
       chrome.notifications.create({
@@ -194,12 +290,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   const cookieString = await getCookiesForUrl(targetUrl);
+  const referer = tab ? tab.url : (info.pageUrl || "");
   const payload = {
     url: targetUrl,
     fileName: null,
-    pageUrl: tab ? tab.url : null,
+    fileSize: null,
+    mime: null,
+    pageUrl: referer,
     cookies: cookieString,
-    referrer: tab ? tab.url : null,
+    referer: referer,
+    referrer: referer,
     userAgent: navigator.userAgent
   };
 
@@ -208,7 +308,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (captured) {
     chrome.action.setBadgeText({ text: "⚡" });
     chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+    setTimeout(() => {
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+          syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+        });
+      } else {
+        chrome.action.setBadgeText({ text: "" });
+      }
+    }, 3000);
 
     try {
       chrome.notifications.create({
@@ -229,42 +337,3 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-// 4. Click Extension Icon in Toolbar: Test Connection & Display Status
-chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
-
-    const res = await fetch(VORTEX_PING_URL, {
-      method: "GET",
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      chrome.action.setBadgeText({ text: "ON" });
-      chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 4000);
-
-      chrome.notifications.create({
-        type: "basic",
-        iconUrl: "icons/icon128.png",
-        title: "VortexDownloader Aktif ⚡",
-        message: "Masaüstü motoruna bağlı (Port 19741). Dosya ve videolar otomatik yakalanıyor."
-      });
-      return;
-    }
-  } catch (_) {}
-
-  // Offline notification
-  chrome.action.setBadgeText({ text: "OFF" });
-  chrome.action.setBadgeBackgroundColor({ color: "#EF4444" });
-  setTimeout(() => chrome.action.setBadgeText({ text: "" }), 4000);
-
-  chrome.notifications.create({
-    type: "basic",
-    iconUrl: "icons/icon128.png",
-    title: "VortexDownloader Çevrimdışı ⚠️",
-    message: "Masaüstü uygulaması kapalı görünüyor. Lütfen VortexDownloader'ı başlatın."
-  });
-});
