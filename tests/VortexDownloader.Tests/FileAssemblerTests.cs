@@ -137,7 +137,7 @@ public class FileAssemblerTests
             };
 
             var reports = new List<double>();
-            var progress = new Progress<double>(p => reports.Add(p));
+            var progress = new SyncProgress<double>(p => { lock (reports) { reports.Add(p); } });
 
             await FileAssembler.AssembleAsync(task, progress);
 
@@ -158,5 +158,10 @@ public class FileAssemblerTests
                 try { Directory.Delete(tempDir, recursive: true); } catch { }
             }
         }
+    }
+
+    private sealed class SyncProgress<T>(Action<T> handler) : IProgress<T>
+    {
+        public void Report(T value) => handler(value);
     }
 }
