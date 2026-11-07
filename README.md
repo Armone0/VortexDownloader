@@ -1,6 +1,6 @@
-# VortexDownloader ⚡
+# VortexDownloader ⚡ `v1.1.0`
 
-**VortexDownloader** is a high-performance, multi-threaded segmented download manager built with **.NET 9** and modern WPF. It features dynamic chunk re-allocation, a high-precision token-bucket speed limiter, crash-resilient state recovery, and zero-allocation socket streaming.
+**VortexDownloader** is a high-performance, multi-threaded segmented download manager built with **.NET 9** and modern Windows 11 WPF. It features dynamic chunk re-allocation, a high-precision token-bucket speed limiter, crash-resilient state recovery, and zero-allocation socket streaming.
 
 ---
 
