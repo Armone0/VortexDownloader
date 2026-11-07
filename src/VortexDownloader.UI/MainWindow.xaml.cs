@@ -73,10 +73,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
     {
-        if (WindowState == WindowState.Minimized)
-        {
-            Hide();
-        }
+        // Normal minimize behavior: Keep window visible on Windows Taskbar so user doesn't lose it
     }
 
     private void RestoreFromTray()
@@ -137,7 +134,7 @@ public partial class MainWindow : Window
         try
         {
             _extensionBridgeListener = new HttpListener();
-            _extensionBridgeListener.Prefixes.Add("http://127.0.0.1:19741/download/");
+            _extensionBridgeListener.Prefixes.Add("http://127.0.0.1:19741/");
             _extensionBridgeListener.Start();
 
             _bridgeCts = new CancellationTokenSource();

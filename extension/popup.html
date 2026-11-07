@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VortexDownloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="brand">
+        <span class="vortex-icon">🌪️</span>
+        <div class="brand-text">
+          <span class="title">VORTEX</span>
+          <span class="version">v1.3.1</span>
+        </div>
+      </div>
+      <div id="statusBadge" class="status-badge checking">
+        <span class="status-dot"></span>
+        <span id="statusText">Kontrol Ediliyor...</span>
+      </div>
+    </div>
+
+    <!-- Connection Card -->
+    <div class="card status-card">
+      <div class="card-row">
+        <span class="label">Masaüstü Motoru:</span>
+        <span id="engineStatus" class="value">127.0.0.1:19741</span>
+      </div>
+      <div id="statusTip" class="status-tip">
+        Masaüstü uygulaması ile yerel köprü kuruluyor...
+      </div>
+      <button id="btnCheckConnection" class="btn secondary-btn">🔄 Bağlantıyı Sına</button>
+    </div>
+
+    <!-- Quick Download Box -->
+    <div class="card download-card">
+      <label class="input-label" for="txtDownloadUrl">Hızlı İndirme (URL Yapıştır):</label>
+      <div class="input-group">
+        <input type="text" id="txtDownloadUrl" placeholder="https://site.com/dosya.zip" />
+        <button id="btnSendToVortex" class="btn primary-btn">İndir ⚡</button>
+      </div>
+      <div id="sendFeedback" class="feedback"></div>
+    </div>
+
+    <!-- Features Info List -->
+    <div class="features-info">
+      <div class="feature-item">
+        <span class="feature-icon">✓</span>
+        <span>Tarayıcı indirmelerini otomatik yakalama aktif</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">✓</span>
+        <span>Sağ tık: <strong>⚡ Vortex ile İndir</strong> menüsü aktif</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">✓</span>
+        <span>HTML5 video ve medya yakalayıcı aktif</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

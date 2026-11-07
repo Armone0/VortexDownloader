@@ -30,7 +30,8 @@
     }
   ],
   "action": {
-    "default_title": "VortexDownloader Entegrasyonu",
+    "default_title": "VortexDownloader",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
