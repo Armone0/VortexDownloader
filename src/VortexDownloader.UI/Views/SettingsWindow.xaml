@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="VortexDownloader - Ayarlar"
-        Height="520" Width="680"
-        MinHeight="480" MinWidth="620"
+        Height="570" Width="740"
+        MinHeight="520" MinWidth="660"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}"
         Foreground="{DynamicResource TextPrimaryBrush}"
@@ -15,8 +15,9 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
-        <!-- Tab RadioButton Style -->
+        <!-- Tab RadioButton Style (No Dotted Focus Outline) -->
         <Style x:Key="SettingsTabButtonStyle" TargetType="RadioButton">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -51,6 +52,7 @@
 
         <!-- Modern TextBox -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
@@ -69,7 +71,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -93,13 +95,14 @@
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="true">
-                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{DynamicResource PrimaryAccentBrush}"/>
+                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="{DynamicResource AccentHighlightBrush}"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
 
         <!-- Modern ComboBox Style -->
         <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
@@ -145,8 +148,8 @@
             </Setter>
         </Style>
 
-        <!-- ComboBoxItem Style -->
         <Style TargetType="ComboBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="Padding" Value="10,6"/>
@@ -161,11 +164,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource PrimaryAccentBrush}"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource SelectedRowBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -173,14 +175,15 @@
             </Setter>
         </Style>
 
-        <!-- Save Button Style -->
+        <!-- Save Button Style (High Contrast) -->
         <Style x:Key="SaveActionButton" TargetType="Button">
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Padding" Value="18,0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="20,0"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Background" Value="{DynamicResource PrimaryAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonPrimaryFgBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -201,29 +204,32 @@
             </Setter>
         </Style>
 
-        <!-- Cancel / Secondary Button Style -->
+        <!-- Cancel / Secondary Button Style (High Contrast) -->
         <Style x:Key="SecondaryButton" TargetType="Button">
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="18,0"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonSecondaryFgBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" 
-                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6">
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -231,22 +237,22 @@
             </Setter>
         </Style>
 
-        <!-- Modern CheckBox -->
+        <!-- CheckBox Style -->
         <Style x:Key="ModernCheckBox" TargetType="CheckBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <BulletDecorator Background="Transparent">
                             <BulletDecorator.Bullet>
-                                <Border x:Name="border" Width="16" Height="16" CornerRadius="4" 
+                                <Border x:Name="border" Width="18" Height="18" CornerRadius="4" 
                                         Background="{DynamicResource InputBackgroundBrush}" 
-                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
-                                        Margin="0,0,8,0" VerticalAlignment="Center">
-                                    <Path x:Name="checkMark" Data="M 3 8 L 6 11 L 13 4" Stroke="{DynamicResource PrimaryAccentBrush}" StrokeThickness="2" 
+                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,0,8,0">
+                                    <Path x:Name="checkMark" Data="M 3 8 L 7 12 L 14 4" 
+                                          Stroke="{DynamicResource AccentHighlightBrush}" StrokeThickness="2" 
                                           Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                             </BulletDecorator.Bullet>
@@ -255,10 +261,6 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryAccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -267,33 +269,33 @@
         </Style>
     </Window.Resources>
 
-    <!-- Two-column Motrix Layout -->
+    <!-- MAIN TWO-COLUMN SETTINGS LAYOUT -->
     <Grid>
         <Grid.ColumnDefinitions>
-            <!-- Left Sidebar Navigation -->
-            <ColumnDefinition Width="200"/>
-            <!-- Content Area -->
+            <!-- Left Tabs Navigation -->
+            <ColumnDefinition Width="190"/>
+            <!-- Right Settings Details Work Area -->
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- LEFT SIDEBAR -->
+        <!-- LEFT TAB SIDEBAR -->
         <Border Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}" 
-                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,1,0" Padding="16,20">
-            <Grid>
+                BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="12,18,12,16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Settings Header -->
-                <TextBlock Grid.Row="0" Text="{DynamicResource Str_Settings}" FontSize="16" FontWeight="Bold" 
-                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="8,0,0,18"/>
+                <!-- Settings Title -->
+                <TextBlock Grid.Row="0" Text="{DynamicResource Str_Settings}" FontSize="15" FontWeight="Bold" 
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="8,0,0,14"/>
 
-                <!-- Tab Navigation Buttons -->
+                <!-- Navigation Tabs -->
                 <StackPanel Grid.Row="1">
                     <RadioButton x:Name="TabBtnGeneral" Style="{StaticResource SettingsTabButtonStyle}" 
-                                 GroupName="SettingsTabs" IsChecked="True">
+                                 IsChecked="True" GroupName="SettingsTabs">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="⚙️" FontSize="13" Margin="0,0,10,0"/>
                             <TextBlock Text="{DynamicResource Str_General}" VerticalAlignment="Center"/>
@@ -320,14 +322,14 @@
                 <!-- Version chip at bottom -->
                 <Border Grid.Row="2" Background="{DynamicResource CardBackgroundBrush}" 
                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4">
-                    <TextBlock Text="VORTEX v1.2" FontSize="10" FontWeight="Bold" 
+                    <TextBlock Text="VORTEX v1.3" FontSize="10" FontWeight="Bold" 
                                Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center"/>
                 </Border>
             </Grid>
         </Border>
 
         <!-- RIGHT CONTENT AREA -->
-        <Grid Grid.Column="1" Margin="24,20,24,20">
+        <Grid Grid.Column="1" Margin="24,20,24,18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -336,18 +338,18 @@
             <!-- TAB 1: GENEL (GENERAL) -->
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding IsChecked, ElementName=TabBtnGeneral, Converter={StaticResource BoolToVis}}">
-                <StackPanel Margin="0,0,8,0">
-                    <TextBlock Text="{DynamicResource Str_General}" FontSize="18" FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                <StackPanel Margin="0,0,6,0">
+                    <TextBlock Text="{DynamicResource Str_General}" FontSize="17" FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,14"/>
 
                     <!-- Download Directory Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
+                            BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource Str_DefaultFolder}" FontWeight="SemiBold" FontSize="13" 
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="İndirilen dosyaların otomatik kaydedileceği klasör" FontSize="11" 
-                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,10"/>
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,3"/>
+                            <TextBlock Text="İndirilen dosyaların otomatik kaydedileceği klasör yolu" FontSize="11" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -355,26 +357,26 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="TxtDefaultFolder" Grid.Column="0" Style="{StaticResource ModernTextBox}" Margin="0,0,8,0"/>
                                 <Button x:Name="BtnBrowseFolder" Grid.Column="1" Style="{StaticResource SecondaryButton}" 
-                                        Content="{DynamicResource Str_Browse}" Click="BtnBrowseFolder_Click"/>
+                                        Content="{DynamicResource Str_Browse}" Click="BtnBrowseFolder_Click" Height="32"/>
                             </Grid>
                         </StackPanel>
                     </Border>
 
                     <!-- Concurrency & Chunks Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
+                            BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                         <StackPanel>
                             <!-- Max Concurrent Downloads -->
-                            <Grid Margin="0,0,0,14">
+                            <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="140"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{DynamicResource Str_MaxConcurrent}" FontWeight="SemiBold" FontSize="13" 
                                                Foreground="{DynamicResource TextPrimaryBrush}"/>
                                     <TextBlock Text="Aynı anda aktif indirilen maksimum görev sayısı" FontSize="11" 
-                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <ComboBox x:Name="CmbMaxConcurrent" Grid.Column="1" Style="{StaticResource ModernComboBox}">
                                     <ComboBoxItem Content="1 Görev" Tag="1"/>
@@ -391,11 +393,11 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="140"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{DynamicResource Str_DefaultChunks}" FontWeight="SemiBold" FontSize="13" 
                                                Foreground="{DynamicResource TextPrimaryBrush}"/>
                                     <TextBlock Text="Dosya başına açılan eşzamanlı soket parçası" FontSize="11" 
-                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <ComboBox x:Name="CmbDefaultChunks" Grid.Column="1" Style="{StaticResource ModernComboBox}">
                                     <ComboBoxItem Content="4 Parça" Tag="4"/>
@@ -409,37 +411,37 @@
 
                     <!-- Automation Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16">
+                            BorderThickness="1" CornerRadius="8" Padding="14">
                         <StackPanel>
                             <CheckBox x:Name="ChkShutdownWhenDone" Style="{StaticResource ModernCheckBox}" 
                                       Content="{DynamicResource Str_ShutdownWhenDone}" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="Tüm görevler bittiğinde bilgisayarı otomatik olarak güvenle kapatır." 
-                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="24,0,0,0"/>
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- TAB 2: GÖRÜNÜM & DİL (APPEARANCE & LANGUAGE) -->
+            <!-- TAB 2: GÖRÜNÜM & DİL (APPEARANCE & LANGUAGE - NO TRUNCATION & BALANCED LAYOUT) -->
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding IsChecked, ElementName=TabBtnAppearance, Converter={StaticResource BoolToVis}}">
-                <StackPanel Margin="0,0,8,0">
-                    <TextBlock Text="{DynamicResource Str_Appearance}" FontSize="18" FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                <StackPanel Margin="0,0,6,0">
+                    <TextBlock Text="{DynamicResource Str_Appearance}" FontSize="17" FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,14"/>
 
                     <!-- Theme Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
+                            BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="150"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
                                 <TextBlock Text="{DynamicResource Str_Theme}" FontWeight="SemiBold" FontSize="13" 
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <TextBlock Text="Arayüz renk temasını anında dinamik değiştirir" FontSize="11" 
-                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="Arayüz renk temasını anında dinamik olarak günceller" FontSize="11" 
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ComboBox x:Name="CmbTheme" Grid.Column="1" Style="{StaticResource ModernComboBox}" 
                                       SelectionChanged="CmbTheme_SelectionChanged">
@@ -451,17 +453,17 @@
 
                     <!-- Language Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16">
+                            BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="150"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
                                 <TextBlock Text="{DynamicResource Str_Language}" FontWeight="SemiBold" FontSize="13" 
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <TextBlock Text="Uygulama dilini anında dinamik değiştirir" FontSize="11" 
-                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="Uygulama dilini anında dinamik olarak değiştirir" FontSize="11" 
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                             <ComboBox x:Name="CmbLanguage" Grid.Column="1" Style="{StaticResource ModernComboBox}" 
                                       SelectionChanged="CmbLanguage_SelectionChanged">
@@ -470,48 +472,75 @@
                             </ComboBox>
                         </Grid>
                     </Border>
+
+                    <!-- Visual Polish / Behavior Card (Dolu ve Dengeli Tasarım) -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
+                            BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="Ekran ve Bildirim Tercihleri" FontWeight="SemiBold" FontSize="13" 
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                            <CheckBox Content="İndirme tamamlandığında Windows masaüstü bildirimi göster" 
+                                      Style="{StaticResource ModernCheckBox}" IsChecked="True" Margin="0,0,0,6"/>
+                            <CheckBox Content="Pencere kapatıldığında arka planda sistem tepsisine (Tray) küçült" 
+                                      Style="{StaticResource ModernCheckBox}" IsChecked="True"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- TAB 3: HAKKINDA (ABOUT) -->
+            <!-- TAB 3: HAKKINDA (ABOUT - PENCEREYE TAM SIĞAR, ÇİFT KAYDIRMA YOK) -->
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding IsChecked, ElementName=TabBtnAbout, Converter={StaticResource BoolToVis}}">
-                <StackPanel Margin="0,0,8,0">
-                    <TextBlock Text="{DynamicResource Str_About}" FontSize="18" FontWeight="Bold" 
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                <StackPanel Margin="0,0,6,0">
+                    <TextBlock Text="{DynamicResource Str_About}" FontSize="17" FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
 
+                    <!-- Main Brand Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="10" Padding="24" Margin="0,0,0,14">
+                            BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,10">
                         <StackPanel HorizontalAlignment="Center">
-                            <Image Source="pack://application:,,,/Assets/vortex_logo.png" Width="64" Height="64" Margin="0,0,0,12" 
+                            <Image Source="pack://application:,,,/Assets/vortex_logo.png" Width="48" Height="48" Margin="0,0,0,8" 
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="VORTEX DOWNLOADER" FontSize="17" FontWeight="Black" 
+                            <TextBlock Text="VORTEX DOWNLOADER" FontSize="15" FontWeight="Black" 
                                        Foreground="{DynamicResource AccentHighlightBrush}" HorizontalAlignment="Center"/>
-                            <TextBlock Text="v1.2.1 • Soft Loft Edition" FontSize="12" FontWeight="SemiBold" 
-                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,3,0,14"/>
-                            <TextBlock Text="&quot;Veriyi bekleme; onu girdaba çek.&quot;" FontStyle="Italic" FontSize="13" FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                            <TextBlock Text="Dijital ağda yapay bir yerçekimi alanı oluşturan Vortex, çok kanallı dinamik bisection ile son %1 darboğazını yok eden ve veriyi merkeze çeken yeni nesil indirme motorudur." 
-                                       FontSize="11" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                            <TextBlock Text="v1.3.0 • Professional Edition" FontSize="11" FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,8"/>
+                            <TextBlock Text="&quot;Veriyi bekleme; onu girdaba çek.&quot;" FontStyle="Italic" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="Çok kanallı dinamik bisection ile son %1 darboğazını yok eden ve veriyi merkeze çeken yüksek performanslı indirme yöneticisi." 
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="440"/>
                         </StackPanel>
                     </Border>
 
+                    <!-- Engine Specs Card -->
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
-                            BorderThickness="1" CornerRadius="8" Padding="16">
+                            BorderThickness="1" CornerRadius="8" Padding="12,10">
                         <StackPanel>
-                            <TextBlock Text="🚀 Motor Özellikleri" FontWeight="SemiBold" FontSize="13" 
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
-                            <TextBlock Text="• SocketsHttpHandler ile Sıfır-Alloc Bellek Havuzlama" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                            <TextBlock Text="• Dinamik Çok Kanallı Chunking ve Eşzamanlı Soket Motoru" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                            <TextBlock Text="• SHA-256 Otomatik Doğrulama ve ZIP Güvenli Önizleme" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
-                            <TextBlock Text="• Chrome &amp; Edge Tarayıcı Entegrasyonu (Yerel Köprü)" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                            <TextBlock Text="🚀 Motor Mimarisi" FontWeight="SemiBold" FontSize="12" 
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="• SocketsHttpHandler Zero-Alloc" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="1" Text="• Dinamik Çok Kanallı Bisection" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </Grid>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="• SHA-256 Otomatik Doğrulama" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="1" Text="• Yerel Tarayıcı Köprüsü (Port 19741)" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- BOTTOM ACTION BUTTONS -->
-            <Border Grid.Row="1" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,14,0,0">
+            <!-- BOTTOM ACTION BUTTONS (Geniş, Ferah & Yüksek Kontrast) -->
+            <Border Grid.Row="1" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,10,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="BtnCancel" Style="{StaticResource SecondaryButton}" Content="{DynamicResource Str_Cancel}" 
                             Margin="0,0,10,0" Click="BtnCancel_Click"/>

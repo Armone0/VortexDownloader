@@ -45,6 +45,13 @@
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource Color.Text.Secondary}" />
     <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource Color.Text.Muted}" />
 
+    <!-- Buton Kontrast Renkleri -->
+    <SolidColorBrush x:Key="ButtonPrimaryBgBrush" Color="#8EA191" />
+    <SolidColorBrush x:Key="ButtonPrimaryFgBrush" Color="#1E2022" />
+    <SolidColorBrush x:Key="ButtonSecondaryBgBrush" Color="#282B2F" />
+    <SolidColorBrush x:Key="ButtonSecondaryBorderBrush" Color="#383D42" />
+    <SolidColorBrush x:Key="ButtonSecondaryFgBrush" Color="#F0ECE1" />
+
     <!-- Durum Renkleri (Doğal Lo-Fi Toprak Tonları) -->
     <SolidColorBrush x:Key="StatusDownloadingBrush" Color="#8EA191" />
     <SolidColorBrush x:Key="StatusCompletedBrush" Color="#93AB8F" />
