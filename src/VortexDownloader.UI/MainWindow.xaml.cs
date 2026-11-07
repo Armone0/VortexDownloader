@@ -71,6 +71,17 @@ public partial class MainWindow : Window
         catch { }
     }
 
+    private static void BridgeLog(string msg)
+    {
+        try
+        {
+            var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VortexDownloader");
+            Directory.CreateDirectory(appData);
+            File.AppendAllText(Path.Combine(appData, "bridge.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n");
+        }
+        catch { }
+    }
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
@@ -152,11 +163,14 @@ public partial class MainWindow : Window
             _extensionBridgeListener.Prefixes.Add("http://127.0.0.1:19741/");
             _extensionBridgeListener.Start();
 
+            BridgeLog("HTTP Bridge started successfully on http://127.0.0.1:19741/");
+
             _bridgeCts = new CancellationTokenSource();
             _ = Task.Run(() => BridgeListenLoopAsync(_bridgeCts.Token));
         }
         catch (Exception ex)
         {
+            BridgeLog($"FATAL: HTTP Bridge failed to bind port 19741: {ex.Message}");
             Log($"Extension bridge listener failed to start: {ex.Message}");
         }
     }
@@ -179,18 +193,25 @@ public partial class MainWindow : Window
 
     private async Task HandleBrowserCaptureRequestAsync(HttpListenerContext context)
     {
+        string method = context.Request.HttpMethod;
+        string path = context.Request.Url?.AbsolutePath ?? "/";
+        string? host = context.Request.Headers["Host"];
+        string? origin = context.Request.Headers["Origin"];
+        string? authToken = context.Request.Headers["X-Vortex-Auth"];
+
+        BridgeLog($"--> [{method}] {path} | Host: '{host}' | Origin: '{origin}' | AuthToken: '{(string.IsNullOrEmpty(authToken) ? "None" : "Present")}'");
+
         try
         {
             // Security 1: Host header validation (Defend against DNS rebinding attacks)
-            string? host = context.Request.Headers["Host"];
             if (string.IsNullOrEmpty(host) || (!host.StartsWith("127.0.0.1") && !host.StartsWith("localhost")))
             {
+                BridgeLog($"<-- 403 Forbidden: Invalid host header '{host}'");
                 context.Response.StatusCode = 403;
                 return;
             }
 
             // Security 2: Origin validation & CORS setup
-            string? origin = context.Request.Headers["Origin"];
             if (!string.IsNullOrEmpty(origin))
             {
                 bool isExtension = origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase) ||
@@ -210,6 +231,7 @@ public partial class MainWindow : Window
             // Handle CORS Preflight FIRST before any auth checks
             if (context.Request.HttpMethod == "OPTIONS")
             {
+                BridgeLog("<-- 200 OK: Handled CORS Preflight OPTIONS");
                 context.Response.StatusCode = 200;
                 return;
             }
@@ -217,6 +239,7 @@ public partial class MainWindow : Window
             // Restore / Bring to Front endpoint for single-instance activation
             if (context.Request.Url?.AbsolutePath.EndsWith("/restore", StringComparison.OrdinalIgnoreCase) == true)
             {
+                BridgeLog("<-- 200 OK: Single-Instance Restore requested");
                 _ = Dispatcher.InvokeAsync(RestoreFromTray);
                 context.Response.StatusCode = 200;
                 context.Response.ContentType = "application/json";
@@ -230,6 +253,7 @@ public partial class MainWindow : Window
             // Ping / Health Check Endpoint for Extension Status
             if (context.Request.HttpMethod == "GET")
             {
+                BridgeLog("<-- 200 OK: Ping Health Check");
                 context.Response.StatusCode = 200;
                 context.Response.ContentType = "application/json";
                 using (var pingWriter = new StreamWriter(context.Response.OutputStream))
@@ -240,9 +264,9 @@ public partial class MainWindow : Window
             }
 
             // Security: Shared auth token header verification between extension and desktop bridge
-            string? authToken = context.Request.Headers["X-Vortex-Auth"];
             if (authToken != "vortex-bridge-extension-auth-token")
             {
+                BridgeLog($"<-- 403 Forbidden: Auth token mismatch (got '{authToken}')");
                 context.Response.StatusCode = 403;
                 return;
             }
@@ -259,11 +283,13 @@ public partial class MainWindow : Window
                     if (!Uri.TryCreate(data.Url, UriKind.Absolute, out var uri) ||
                         (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                     {
+                        BridgeLog($"<-- 400 Bad Request: Invalid URL scheme '{data.Url}'");
                         context.Response.StatusCode = 400;
                         return;
                     }
 
                     string safeFileName = SanitizeFileName(data.FileName);
+                    BridgeLog($"<-- 200 OK: Enqueued download for '{safeFileName}' ({uri.AbsoluteUri}) | Size: {data.FileSize} bytes");
 
                     // Send HTTP 200 response IMMEDIATELY so the browser extension can cancel browser download without timeout!
                     context.Response.StatusCode = 200;
@@ -285,8 +311,15 @@ public partial class MainWindow : Window
 
                     return;
                 }
+                else
+                {
+                    BridgeLog("<-- 400 Bad Request: Empty URL in POST payload");
+                    context.Response.StatusCode = 400;
+                    return;
+                }
             }
 
+            BridgeLog($"<-- 200 OK: Fallback handler for {method} {path}");
             context.Response.StatusCode = 200;
             context.Response.ContentType = "application/json";
             using (var fallbackWriter = new StreamWriter(context.Response.OutputStream))
@@ -294,8 +327,9 @@ public partial class MainWindow : Window
                 await fallbackWriter.WriteAsync("{\"status\":\"ok\"}");
             }
         }
-        catch
+        catch (Exception ex)
         {
+            BridgeLog($"<-- 500 Internal Server Error: {ex.Message}");
             try { context.Response.StatusCode = 500; } catch { }
         }
         finally

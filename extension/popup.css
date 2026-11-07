@@ -292,3 +292,72 @@ input:checked + .slider:before {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
+/* Diagnostic Log Console */
+.log-card {
+  margin-top: 10px;
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.log-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.small-btn {
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #2A2E33;
+  color: #D1D5DB;
+  border: 1px solid #373C42;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.small-btn:hover {
+  background: #363B42;
+  color: #FFFFFF;
+}
+
+.log-console {
+  background: #111315;
+  border: 1px solid #2E3238;
+  border-radius: 6px;
+  padding: 6px 8px;
+  max-height: 110px;
+  overflow-y: auto;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #9CA3AF;
+  word-break: break-all;
+}
+
+.log-entry {
+  margin-bottom: 3px;
+}
+
+.log-entry.info {
+  color: #9CA3AF;
+}
+
+.log-entry.success {
+  color: #10B981;
+}
+
+.log-entry.warn {
+  color: #F59E0B;
+}
+
+.log-entry.error {
+  color: #EF4444;
+  font-weight: bold;
+}
+

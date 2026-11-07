@@ -25,6 +25,37 @@ function syncInterceptionBadge(enabled) {
   }
 }
 
+// Persistent diagnostic event logger (retains last 50 events in chrome.storage.local)
+function addLog(level, message, details = null) {
+  const time = new Date().toLocaleTimeString();
+  const entry = { time, level, message, details: details ? (typeof details === 'object' ? JSON.stringify(details) : String(details)) : null };
+  console.log(`[Vortex ${level.toUpperCase()} ${time}]`, message, details || "");
+
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ debugLogs: [] }, (res) => {
+        const logs = res ? (res.debugLogs || []) : [];
+        logs.push(entry);
+        if (logs.length > 50) logs.shift();
+        chrome.storage.local.set({ debugLogs: logs });
+      });
+    }
+  } catch (_) {}
+}
+
+function showDesktopNotification(title, message) {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.notifications && chrome.notifications.create) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: title || "VortexDownloader",
+        message: message || ""
+      });
+    }
+  } catch (_) {}
+}
+
 // Initialize badge on startup
 if (chrome.storage && chrome.storage.local) {
   chrome.storage.local.get({ interceptEnabled: true }, (items) => {
@@ -162,6 +193,8 @@ async function sendToVortex(payload) {
   const timeout = setTimeout(() => controller.abort(), 3000);
 
   try {
+    addLog("info", `Masaüstü köprüsüne istek gönderiliyor: "${payload.fileName || 'isimsiz'}"`, payload.url);
+
     const response = await fetch(VORTEX_BRIDGE_URL, {
       method: "POST",
       headers: {
@@ -173,9 +206,27 @@ async function sendToVortex(payload) {
     });
 
     clearTimeout(timeout);
-    return response.ok;
+
+    if (response.ok) {
+      addLog("success", `İndirme başarıyla Vortex'e aktarıldı! (HTTP ${response.status})`);
+      return true;
+    } else {
+      const errText = await response.text().catch(() => "");
+      const msg = `Masaüstü HTTP ${response.status} hatası döndü: ${errText || response.statusText}`;
+      addLog("error", msg);
+      showDesktopNotification("VortexDownloader Hatası", msg);
+      return false;
+    }
   } catch (err) {
     clearTimeout(timeout);
+    let msg = "Masaüstü uygulamasına bağlanılamadı (Port 19741 kapalı).";
+    if (err && err.name === "AbortError") {
+      msg = "Masaüstü uygulamasına bağlantı zaman aşımına uğradı (3s).";
+    } else if (err && err.message) {
+      msg = `Bağlantı hatası: ${err.message}`;
+    }
+    addLog("error", msg);
+    showDesktopNotification("VortexDownloader Uyarısı", `${msg}\nLütfen VortexDownloader.exe'yi çalıştırın.`);
     return false;
   }
 }
@@ -183,15 +234,20 @@ async function sendToVortex(payload) {
 // 1. Intercept browser downloads and route to VortexDownloader via onDeterminingFilename
 chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
   const url = downloadItem.finalUrl || downloadItem.url;
-  
+  const fileName = downloadItem.filename ? downloadItem.filename.split(/[\\/]/).pop() : "isimsiz";
+
+  addLog("info", `İndirme algılandı: #${downloadItem.id} "${fileName}"`, { url, mime: downloadItem.mime });
+
   // Ignore data/blob/extension urls
   if (!url || url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("chrome-extension:")) {
+    addLog("warn", `Desteklenmeyen protokol (atlanıyor): ${url}`);
     suggest();
     return;
   }
 
   // If this download was triggered as a fallback by the extension, do not re-intercept
   if (fallbackUrls.has(url)) {
+    addLog("info", `Yedek indirme listesinde, tarayıcıya devredildi: ${url}`);
     fallbackUrls.delete(url);
     suggest();
     return;
@@ -199,7 +255,7 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
 
   // Check if download interception is enabled in user settings
   const checkStorage = (callback) => {
-    if (chrome.storage && chrome.storage.local) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get({ interceptEnabled: true }, (items) => {
         callback(items ? items.interceptEnabled !== false : true);
       });
@@ -210,6 +266,7 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
 
   checkStorage(async (isEnabled) => {
     if (!isEnabled) {
+      addLog("warn", "Kullanıcı ayarlarında otomatik yakalama KAPALI. Tarayıcıya devredildi.");
       suggest();
       return;
     }
@@ -229,11 +286,11 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
     } catch (_) {}
 
     const referer = downloadItem.referrer || "";
-    const userAgent = navigator.userAgent || "";
+    const userAgent = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : "";
 
     const payload = {
       url: url,
-      fileName: downloadItem.filename ? downloadItem.filename.split(/[\\/]/).pop() : null,
+      fileName: fileName,
       fileSize: downloadItem.fileSize > 0 ? downloadItem.fileSize : null,
       mime: downloadItem.mime || null,
       cookies: cookieString,
@@ -248,34 +305,40 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
         // ALWAYS call suggest() first so Chromium's filename determination promise resolves cleanly!
         suggest();
         chrome.downloads.cancel(downloadItem.id, () => {
-          if (chrome.runtime.lastError) {
+          if (chrome.runtime && chrome.runtime.lastError) {
             // Suppress error if download was already cancelled, interrupted, or finished
           }
           try {
             chrome.downloads.erase({ id: downloadItem.id }, () => {
-              if (chrome.runtime.lastError) {
+              if (chrome.runtime && chrome.runtime.lastError) {
                 // Suppress error if download item was already removed
               }
             });
           } catch (_) {}
         });
 
-        chrome.action.setBadgeText({ text: "⚡" });
-        chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-        setTimeout(() => {
-          if (chrome.storage && chrome.storage.local) {
-            chrome.storage.local.get({ interceptEnabled: true }, (res) => {
-              syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
-            });
-          } else {
-            chrome.action.setBadgeText({ text: "" });
+        if (typeof chrome !== 'undefined' && chrome.action) {
+          chrome.action.setBadgeText({ text: "⚡" });
+          if (chrome.action.setBadgeBackgroundColor) {
+            chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
           }
-        }, 3000);
+          setTimeout(() => {
+            if (chrome.storage && chrome.storage.local) {
+              chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+                syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+              });
+            } else {
+              chrome.action.setBadgeText({ text: "" });
+            }
+          }, 3000);
+        }
       } else {
         // Safe fallback: If Vortex is offline, let Chrome download natively
+        addLog("warn", `İndirme Vortex'e aktarılamadı, tarayıcıda devam ediyor: "${fileName}"`);
         suggest();
       }
-    } catch (_) {
+    } catch (err) {
+      addLog("error", "onDeterminingFilename içinde hata, tarayıcıya bırakıldı:", err ? err.message : String(err));
       suggest();
     }
   });
@@ -283,11 +346,31 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
   return true; // Keep async channel open for suggest()!
 });
 
-// 2. Handle media download requests from content scripts (Video Sniffer / Grabber)
+// 2. Handle media download requests and diagnostic log requests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.action === "download_media") {
     handleMediaDownload(message, sender).then(sendResponse);
     return true; // Keep message channel open for async response
+  }
+  if (message && message.action === "get_logs") {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ debugLogs: [] }, (res) => {
+        sendResponse({ logs: res ? (res.debugLogs || []) : [] });
+      });
+      return true;
+    }
+    sendResponse({ logs: [] });
+    return false;
+  }
+  if (message && message.action === "clear_logs") {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ debugLogs: [] }, () => {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+    sendResponse({ success: false });
+    return false;
   }
 });
 

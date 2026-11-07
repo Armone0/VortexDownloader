@@ -28,11 +28,83 @@ document.addEventListener("DOMContentLoaded", () => {
   const txtUrl = document.getElementById("txtDownloadUrl");
   const sendFeedback = document.getElementById("sendFeedback");
 
+  // Log Console Elements
+  const logConsole = document.getElementById("logConsole");
+  const btnCopyLogs = document.getElementById("btnCopyLogs");
+  const btnClearLogs = document.getElementById("btnClearLogs");
+
   // Interception Toggle Elements
   const toggleIntercept = document.getElementById("toggleIntercept");
   const interceptStatusDesc = document.getElementById("interceptStatusDesc");
   const featureIconIntercept = document.getElementById("featureIconIntercept");
   const featureTextIntercept = document.getElementById("featureTextIntercept");
+
+  function renderLogs(logs) {
+    if (!logConsole) return;
+    if (!logs || logs.length === 0) {
+      logConsole.innerHTML = '<div class="log-entry info">[--:--:--] Günlük boş. İndirme denemesi bekleniyor...</div>';
+      return;
+    }
+    logConsole.innerHTML = logs.map(l => {
+      const cls = l.level || "info";
+      const detailStr = l.details ? ` (${l.details})` : "";
+      return `<div class="log-entry ${cls}">[${l.time || ""}] ${escapeHtml(l.message || "")}${escapeHtml(detailStr)}</div>`;
+    }).join("");
+    logConsole.scrollTop = logConsole.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function loadLogs() {
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get({ debugLogs: [] }, (res) => {
+        renderLogs(res ? (res.debugLogs || []) : []);
+      });
+    }
+  }
+
+  if (chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.debugLogs) {
+        renderLogs(changes.debugLogs.newValue || []);
+      }
+    });
+  }
+
+  if (btnCopyLogs) {
+    btnCopyLogs.addEventListener("click", () => {
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get({ debugLogs: [] }, (res) => {
+          const logs = res ? (res.debugLogs || []) : [];
+          if (logs.length === 0) {
+            btnCopyLogs.textContent = "Boş!";
+            setTimeout(() => btnCopyLogs.textContent = "📋 Kopyala", 1500);
+            return;
+          }
+          const text = logs.map(l => `[${l.time}] [${(l.level || 'INFO').toUpperCase()}] ${l.message}${l.details ? ' | ' + l.details : ''}`).join("\n");
+          navigator.clipboard.writeText(text).then(() => {
+            btnCopyLogs.textContent = "Kopyalandı! ✓";
+            setTimeout(() => btnCopyLogs.textContent = "📋 Kopyala", 2000);
+          }).catch(() => {
+            btnCopyLogs.textContent = "Hata!";
+            setTimeout(() => btnCopyLogs.textContent = "📋 Kopyala", 1500);
+          });
+        });
+      }
+    });
+  }
+
+  if (btnClearLogs) {
+    btnClearLogs.addEventListener("click", () => {
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ debugLogs: [] }, () => {
+          renderLogs([]);
+        });
+      }
+    });
+  }
 
   function updateInterceptUI(enabled) {
     if (toggleIntercept) toggleIntercept.checked = enabled;
@@ -96,16 +168,28 @@ document.addEventListener("DOMContentLoaded", () => {
         statusText.textContent = "BAĞLI";
         statusTip.textContent = `Vortex motoru aktif (${data.version || "v1.4.0"}). İndirmeler ve sağ tık menüsü hazır.`;
         return true;
+      } else {
+        statusBadge.className = "status-badge offline";
+        statusText.textContent = "HATA";
+        statusTip.textContent = `Sunucu HTTP ${res.status} kodu döndürdü.`;
+        return false;
       }
-    } catch (_) {}
-
-    statusBadge.className = "status-badge offline";
-    statusText.textContent = "KAPALI";
-    statusTip.textContent = "Masaüstü uygulaması kapalı görünüyor. Lütfen VortexDownloader.exe'yi çalıştırın.";
-    return false;
+    } catch (err) {
+      statusBadge.className = "status-badge offline";
+      statusText.textContent = "KAPALI";
+      let detail = "VortexDownloader.exe çalışmıyor veya port 19741 engelleniyor.";
+      if (err && err.message) {
+        detail = `${err.message} — VortexDownloader.exe açık mı?`;
+      }
+      statusTip.textContent = detail;
+      return false;
+    }
   }
 
-  btnCheck.addEventListener("click", checkBridge);
+  btnCheck.addEventListener("click", () => {
+    checkBridge();
+    loadLogs();
+  });
 
   btnSend.addEventListener("click", async () => {
     const rawUrl = txtUrl.value.trim();
@@ -144,16 +228,20 @@ document.addEventListener("DOMContentLoaded", () => {
         sendFeedback.className = "feedback success";
         sendFeedback.textContent = "Vortex indirme penceresi açıldı! ⚡";
         txtUrl.value = "";
+        loadLogs();
       } else {
         sendFeedback.className = "feedback error";
         sendFeedback.textContent = `Hata: Sunucu ${res.status} kodu döndü.`;
+        loadLogs();
       }
     } catch (e) {
       sendFeedback.className = "feedback error";
-      sendFeedback.textContent = "Vortex masaüstü uygulamasına ulaşılamadı.";
+      sendFeedback.textContent = `Ulaşılamadı: ${e.message || "Masaüstü uygulaması kapalı"}`;
+      loadLogs();
     }
   });
 
-  // Initial check on popup open
+  // Initial check and load on popup open
   checkBridge();
+  loadLogs();
 });
