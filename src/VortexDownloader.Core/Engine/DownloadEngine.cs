@@ -66,22 +66,32 @@ public class DownloadEngine : IAsyncDisposable
         }
     }
 
-    public async Task<UrlMetadata> InspectUrlAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<UrlMetadata> InspectUrlAsync(
+        string url,
+        CancellationToken cancellationToken = default,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
-        return await UrlMetadataInspector.InspectAsync(_httpClient, url, cancellationToken).ConfigureAwait(false);
+        return await UrlMetadataInspector.InspectAsync(
+            _httpClient, url, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
     }
 
     public async Task<DownloadTask> AddDownloadAsync(
         string url,
         string destinationPath,
         int chunkCount = 8,
-        bool autoStart = true)
+        bool autoStart = true,
+        UrlMetadata? preloadedMetadata = null,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
 
-        // Fetch URL metadata
-        var metadata = await InspectUrlAsync(url).ConfigureAwait(false);
+        // Fetch URL metadata only if not preloaded (preserves single-use tokens!)
+        var metadata = preloadedMetadata ?? await InspectUrlAsync(url, CancellationToken.None, cookies, referrer, userAgent).ConfigureAwait(false);
 
         string fileName = Path.GetFileName(destinationPath);
         if (string.IsNullOrWhiteSpace(fileName))
@@ -108,7 +118,10 @@ public class DownloadEngine : IAsyncDisposable
             MaxChunks = Math.Clamp(chunkCount, 1, 32),
             TempDirectory = tempDir,
             Status = DownloadStatus.Queued,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Cookies = cookies,
+            Referrer = referrer,
+            UserAgent = userAgent
         };
 
         // Initialize initial chunks
@@ -242,7 +255,7 @@ public class DownloadEngine : IAsyncDisposable
     {
         if (_tasks.TryGetValue(taskId, out var task))
         {
-            if (task.Status == DownloadStatus.Paused || task.Status == DownloadStatus.Failed)
+            if (task.Status == DownloadStatus.Paused || task.Status == DownloadStatus.Failed || task.Status == DownloadStatus.Canceled)
             {
                 task.Status = DownloadStatus.Queued;
                 TaskUpdated?.Invoke(task);
@@ -299,7 +312,7 @@ public class DownloadEngine : IAsyncDisposable
         {
             foreach (var task in _tasks.Values)
             {
-                if (task.Status == DownloadStatus.Paused)
+                if (task.Status == DownloadStatus.Paused || task.Status == DownloadStatus.Failed)
                 {
                     task.Status = DownloadStatus.Queued;
                     TaskUpdated?.Invoke(task);
@@ -437,7 +450,11 @@ public class DownloadEngine : IAsyncDisposable
                         singleChunk,
                         _globalSpeedLimiter,
                         onBytesReceived: null,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        supportsRange: task.SupportsRange,
+                        cookies: task.Cookies,
+                        referrer: task.Referrer,
+                        userAgent: task.UserAgent).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -510,8 +527,11 @@ public class DownloadEngine : IAsyncDisposable
         finally
         {
             SleepPreventer.StopPreventingSleep();
-            _runningTokens.TryRemove(task.Id, out var cts);
-            cts?.Dispose();
+            if (_runningTokens.TryRemove(task.Id, out var cts))
+            {
+                try { cts.Cancel(); } catch { }
+                cts.Dispose();
+            }
             _runningExecutionTasks.TryRemove(task.Id, out _);
             ProcessDownloadQueue();
         }
@@ -538,7 +558,11 @@ public class DownloadEngine : IAsyncDisposable
                         currentChunk,
                         _globalSpeedLimiter,
                         onBytesReceived: null,
-                        cancellationToken).ConfigureAwait(false);
+                        cancellationToken,
+                        supportsRange: task.SupportsRange,
+                        cookies: task.Cookies,
+                        referrer: task.Referrer,
+                        userAgent: task.UserAgent).ConfigureAwait(false);
                 }
                 finally
                 {

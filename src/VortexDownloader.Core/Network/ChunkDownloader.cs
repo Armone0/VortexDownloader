@@ -22,12 +22,15 @@ public class ChunkDownloader
             EnableMultipleHttp2Connections = true,
             InitialHttp2StreamWindowSize = 16 * 1024 * 1024, // 16 MB flow control window prevents Gigabit BDP bottleneck
             ConnectTimeout = TimeSpan.FromSeconds(15),
-            AutomaticDecompression = DecompressionMethods.None // Essential for byte-range integrity
+            AutomaticDecompression = DecompressionMethods.None, // Essential for byte-range integrity
+            ActivityHeadersPropagator = null // Prevents AWS S3 & CloudFront 403 Forbidden SignatureDoesNotMatch
         };
+
+        handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, errors) => true;
 
         var client = new HttpClient(handler, disposeHandler: true)
         {
-            Timeout = TimeSpan.FromSeconds(60)
+            Timeout = Timeout.InfiniteTimeSpan // Infinite stream timeout: prevents .NET 60s silent pause bug
         };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
         return client;
@@ -39,7 +42,11 @@ public class ChunkDownloader
         DownloadChunk chunk,
         SpeedLimiter speedLimiter,
         Action<int>? onBytesReceived = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool supportsRange = true,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(chunk);
@@ -52,7 +59,9 @@ public class ChunkDownloader
         {
             try
             {
-                await DownloadChunkInternalAsync(httpClient, url, chunk, speedLimiter, onBytesReceived, cancellationToken).ConfigureAwait(false);
+                await DownloadChunkInternalAsync(
+                    httpClient, url, chunk, speedLimiter, onBytesReceived, cancellationToken,
+                    supportsRange, cookies, referrer, userAgent).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex) when (ex is HttpRequestException or IOException && attempt < maxRetries - 1 && !cancellationToken.IsCancellationRequested)
@@ -72,7 +81,11 @@ public class ChunkDownloader
         DownloadChunk chunk,
         SpeedLimiter speedLimiter,
         Action<int>? onBytesReceived,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool supportsRange = true,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
         if (chunk.IsCompleted)
         {
@@ -111,19 +124,40 @@ public class ChunkDownloader
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-        long startByte = chunk.CurrentPos;
-        if (chunk.EndPos >= 0)
+        // Browser headers & cookies forwarding
+        request.Headers.Accept.ParseAdd("*/*");
+        request.Headers.AcceptLanguage.ParseAdd("tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7");
+
+        if (!string.IsNullOrWhiteSpace(cookies))
         {
-            if (startByte > chunk.EndPos)
-            {
-                chunk.IsCompleted = true;
-                return;
-            }
-            request.Headers.Range = new RangeHeaderValue(startByte, chunk.EndPos);
+            request.Headers.TryAddWithoutValidation("Cookie", cookies);
         }
-        else if (startByte > 0)
+        if (!string.IsNullOrWhiteSpace(referrer))
         {
-            request.Headers.Range = new RangeHeaderValue(startByte, null);
+            request.Headers.TryAddWithoutValidation("Referer", referrer);
+        }
+        if (!string.IsNullOrWhiteSpace(userAgent))
+        {
+            request.Headers.UserAgent.Clear();
+            request.Headers.UserAgent.ParseAdd(userAgent);
+        }
+
+        long startByte = chunk.CurrentPos;
+        if (supportsRange)
+        {
+            if (chunk.EndPos >= 0)
+            {
+                if (startByte > chunk.EndPos)
+                {
+                    chunk.IsCompleted = true;
+                    return;
+                }
+                request.Headers.Range = new RangeHeaderValue(startByte, chunk.EndPos);
+            }
+            else if (startByte > 0)
+            {
+                request.Headers.Range = new RangeHeaderValue(startByte, null);
+            }
         }
 
         using var response = await httpClient.SendAsync(
@@ -135,6 +169,14 @@ public class ChunkDownloader
         {
             chunk.IsCompleted = true;
             return;
+        }
+
+        // If range was requested but server returned 200 OK (ignored range), reset to position 0
+        if (startByte > 0 && response.StatusCode == HttpStatusCode.OK)
+        {
+            fileStream.SetLength(0);
+            fileStream.Seek(0, SeekOrigin.Begin);
+            chunk.CurrentPos = 0;
         }
 
         response.EnsureSuccessStatusCode();

@@ -137,10 +137,23 @@ public class DownloadItemViewModel : ViewModelBase
     public bool CanResume => Status == DownloadStatus.Paused || Status == DownloadStatus.Failed || Status == DownloadStatus.Canceled;
     public bool IsActive => Status == DownloadStatus.Downloading || Status == DownloadStatus.Assembling;
 
+    public string DownloadedBytesFormatted => DownloadTask.FormatBytes(DownloadedBytes);
+    public string TotalBytesFormatted => TotalBytes > 0 ? DownloadTask.FormatBytes(TotalBytes) : "Bilinmiyor";
+    public string SpeedFormatted => FormattedSpeed;
+    public int ChunksCount => _chunksCount;
+
+    private int _chunksCount = 1;
+
     public string FormattedSpeed
     {
         get => _formattedSpeed;
-        set => SetProperty(ref _formattedSpeed, value);
+        set
+        {
+            if (SetProperty(ref _formattedSpeed, value))
+            {
+                OnPropertyChanged(nameof(SpeedFormatted));
+            }
+        }
     }
 
     public string FormattedProgress
@@ -184,8 +197,14 @@ public class DownloadItemViewModel : ViewModelBase
 
         int totalChunks = task.Chunks.Count;
         int activeChunks = task.ActiveChunkCount;
+        _chunksCount = totalChunks > 0 ? totalChunks : 1;
         ChunkInfo = task.SupportsRange
             ? (activeChunks > 0 ? $"{activeChunks}/{totalChunks} Parça Dinamik" : $"{totalChunks} Parça Dinamik")
             : "Tek Parça (Range Yok)";
+
+        OnPropertyChanged(nameof(DownloadedBytesFormatted));
+        OnPropertyChanged(nameof(TotalBytesFormatted));
+        OnPropertyChanged(nameof(SpeedFormatted));
+        OnPropertyChanged(nameof(ChunksCount));
     }
 }

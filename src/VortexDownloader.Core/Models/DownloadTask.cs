@@ -22,6 +22,9 @@ public class DownloadTask
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public string TempDirectory { get; set; } = string.Empty;
+    public string? Cookies { get; set; }
+    public string? Referrer { get; set; }
+    public string? UserAgent { get; set; }
 
     private readonly object _chunksLock = new();
 

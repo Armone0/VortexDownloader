@@ -12,6 +12,18 @@ function sanitizeFileName(name) {
   return clean || "video.mp4";
 }
 
+// Extract cookies for authenticated downloads (Google Drive, GitHub, Mediafire, etc.)
+async function getCookiesForUrl(url) {
+  try {
+    if (!chrome.cookies || !url) return null;
+    const cookies = await chrome.cookies.getAll({ url: url });
+    if (cookies && cookies.length > 0) {
+      return cookies.map(c => `${c.name}=${c.value}`).join("; ");
+    }
+  } catch (_) {}
+  return null;
+}
+
 // Reusable function to dispatch download requests to the Vortex desktop engine
 async function sendToVortex(payload) {
   const controller = new AbortController();
@@ -53,30 +65,42 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
     return;
   }
 
-  const payload = {
-    url: url,
-    fileName: downloadItem.filename ? downloadItem.filename.split(/[\\/]/).pop() : null,
-    fileSize: downloadItem.fileSize > 0 ? downloadItem.fileSize : null,
-    mime: downloadItem.mime || null
-  };
+  (async () => {
+    let cookieString = null;
+    try {
+      cookieString = await getCookiesForUrl(url);
+    } catch (_) {}
 
-  sendToVortex(payload).then((captured) => {
-    if (captured) {
-      // Vortex captured the download! Cancel browser download cleanly
-      chrome.downloads.cancel(downloadItem.id, () => {
-        try { chrome.downloads.erase({ id: downloadItem.id }); } catch (_) {}
-      });
+    const payload = {
+      url: url,
+      fileName: downloadItem.filename ? downloadItem.filename.split(/[\\/]/).pop() : null,
+      fileSize: downloadItem.fileSize > 0 ? downloadItem.fileSize : null,
+      mime: downloadItem.mime || null,
+      cookies: cookieString,
+      referrer: downloadItem.referrer || null,
+      userAgent: navigator.userAgent
+    };
 
-      chrome.action.setBadgeText({ text: "⚡" });
-      chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
-    } else {
-      // Safe fallback: If Vortex is offline, let Chrome download natively
+    try {
+      const captured = await sendToVortex(payload);
+      if (captured) {
+        // ALWAYS call suggest() first so Chromium's filename determination promise resolves cleanly!
+        suggest();
+        chrome.downloads.cancel(downloadItem.id, () => {
+          try { chrome.downloads.erase({ id: downloadItem.id }); } catch (_) {}
+        });
+
+        chrome.action.setBadgeText({ text: "⚡" });
+        chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+        setTimeout(() => chrome.action.setBadgeText({ text: "" }), 3000);
+      } else {
+        // Safe fallback: If Vortex is offline, let Chrome download natively
+        suggest();
+      }
+    } catch (_) {
       suggest();
     }
-  }).catch(() => {
-    suggest();
-  });
+  })();
 
   return true; // Keep async channel open for suggest()!
 });
@@ -97,12 +121,16 @@ async function handleMediaDownload(message, sender) {
 
   const suggestedFileName = sanitizeFileName(message.suggestedFileName || message.pageTitle || "vortex_video.mp4");
   const pageUrl = message.pageUrl || (sender && sender.tab ? sender.tab.url : null);
+  const cookieString = await getCookiesForUrl(url);
 
   const payload = {
     url: url,
     fileName: suggestedFileName,
     suggestedFileName: suggestedFileName,
-    pageUrl: pageUrl
+    pageUrl: pageUrl,
+    cookies: cookieString,
+    referrer: pageUrl,
+    userAgent: navigator.userAgent
   };
 
   // 1. Attempt transfer to local VortexDownloader desktop bridge
@@ -165,10 +193,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
+  const cookieString = await getCookiesForUrl(targetUrl);
   const payload = {
     url: targetUrl,
     fileName: null,
-    pageUrl: tab ? tab.url : null
+    pageUrl: tab ? tab.url : null,
+    cookies: cookieString,
+    referrer: tab ? tab.url : null,
+    userAgent: navigator.userAgent
   };
 
   const captured = await sendToVortex(payload);

@@ -63,7 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: JSON.stringify({
           url: rawUrl,
-          fileName: null
+          fileName: null,
+          userAgent: navigator.userAgent
         })
       });
 

@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="VortexDownloader - Yüksek Hızlı İndirme Yöneticisi" 
         Height="660" Width="1040"
-        MinHeight="460" MinWidth="740"
+        MinHeight="480" MinWidth="780"
         WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/Assets/vortex_app.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -274,12 +274,12 @@
                             </Grid.ColumnDefinitions>
                             <Border x:Name="border" Grid.Column="0" Width="16" Height="16" CornerRadius="4" 
                                     Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
-                                    Margin="0,0,10,0" VerticalAlignment="Center">
+                                    Margin="0,0,12,0" VerticalAlignment="Center">
                                 <Path x:Name="checkMark" Data="M 3 8 L 6.5 11.5 L 13 4" Stroke="{DynamicResource AccentHighlightBrush}" StrokeThickness="2" 
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
-                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True" Margin="2,0,0,0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">

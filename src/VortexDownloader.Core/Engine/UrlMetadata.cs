@@ -17,10 +17,26 @@ public static class UrlMetadataInspector
     public static async Task<UrlMetadata> InspectAsync(
         HttpClient httpClient,
         string url,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
+
+        static void ApplyHeaders(HttpRequestMessage req, string? c, string? r, string? ua)
+        {
+            req.Headers.Accept.ParseAdd("*/*");
+            req.Headers.AcceptLanguage.ParseAdd("tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7");
+            if (!string.IsNullOrWhiteSpace(c)) req.Headers.TryAddWithoutValidation("Cookie", c);
+            if (!string.IsNullOrWhiteSpace(r)) req.Headers.TryAddWithoutValidation("Referer", r);
+            if (!string.IsNullOrWhiteSpace(ua))
+            {
+                req.Headers.UserAgent.Clear();
+                req.Headers.UserAgent.ParseAdd(ua);
+            }
+        }
 
         string fileName = ExtractFileNameFromUrl(url);
         long contentLength = -1;
@@ -33,6 +49,7 @@ public static class UrlMetadataInspector
         try
         {
             using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
+            ApplyHeaders(headRequest, cookies, referrer, userAgent);
             headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             if (headResponse.IsSuccessStatusCode)
             {
@@ -73,6 +90,7 @@ public static class UrlMetadataInspector
             try
             {
                 using var getRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                ApplyHeaders(getRequest, cookies, referrer, userAgent);
                 getRequest.Headers.Range = new RangeHeaderValue(0, 0);
 
                 using var getResponse = await httpClient.SendAsync(

@@ -81,6 +81,9 @@ public partial class MainWindow : Window
         Show();
         WindowState = WindowState.Normal;
         Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
     }
 
     private void RealExit()
@@ -181,21 +184,7 @@ public partial class MainWindow : Window
                 bool isExtension = origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("edge-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("moz-extension://", StringComparison.OrdinalIgnoreCase);
-                if (isExtension)
-                {
-                    context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
-                }
-                else
-                {
-                    // Non-extension origins (e.g. websites) are rejected unless auth token matches
-                    string? authCheck = context.Request.Headers["X-Vortex-Auth"];
-                    if (authCheck != "vortex-bridge-extension-auth-token")
-                    {
-                        context.Response.StatusCode = 403;
-                        return;
-                    }
-                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                }
+                context.Response.Headers.Add("Access-Control-Allow-Origin", isExtension ? origin : "*");
             }
             else
             {
@@ -206,10 +195,23 @@ public partial class MainWindow : Window
             context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Vortex-Auth, Access-Control-Request-Private-Network");
             context.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
 
-            // Handle CORS Preflight
+            // Handle CORS Preflight FIRST before any auth checks
             if (context.Request.HttpMethod == "OPTIONS")
             {
                 context.Response.StatusCode = 200;
+                return;
+            }
+
+            // Restore / Bring to Front endpoint for single-instance activation
+            if (context.Request.Url?.AbsolutePath.EndsWith("/restore", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _ = Dispatcher.InvokeAsync(RestoreFromTray);
+                context.Response.StatusCode = 200;
+                context.Response.ContentType = "application/json";
+                using (var restoreWriter = new StreamWriter(context.Response.OutputStream))
+                {
+                    await restoreWriter.WriteAsync("{\"status\":\"restored\"}");
+                }
                 return;
             }
 
@@ -225,7 +227,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Security 3: Shared auth token header verification between extension and desktop bridge
+            // Security: Shared auth token header verification between extension and desktop bridge
             string? authToken = context.Request.Headers["X-Vortex-Auth"];
             if (authToken != "vortex-bridge-extension-auth-token")
             {
@@ -264,7 +266,13 @@ public partial class MainWindow : Window
                     _ = Dispatcher.InvokeAsync(() =>
                     {
                         RestoreFromTray();
-                        PromptNewDownloadFromBrowser(uri.AbsoluteUri, safeFileName, data.FileSize);
+                        PromptNewDownloadFromBrowser(
+                            uri.AbsoluteUri,
+                            safeFileName,
+                            data.FileSize,
+                            data.Cookies,
+                            data.Referrer,
+                            data.UserAgent);
                     });
 
                     return;
@@ -293,9 +301,15 @@ public partial class MainWindow : Window
         return UrlMetadataInspector.CleanFileName(rawFileName);
     }
 
-    private async void PromptNewDownloadFromBrowser(string url, string? fileName, long? size)
+    private async void PromptNewDownloadFromBrowser(
+        string url,
+        string? fileName,
+        long? size,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
-        var prompt = new DownloadPromptWindow(_viewModel.Engine, url, fileName, size)
+        var prompt = new DownloadPromptWindow(_viewModel.Engine, url, fileName, size, cookies, referrer, userAgent)
         {
             Topmost = true,
             WindowStartupLocation = WindowStartupLocation.CenterScreen
@@ -321,7 +335,11 @@ public partial class MainWindow : Window
                     prompt.ResultUrl,
                     prompt.ResultDestinationPath,
                     prompt.ResultChunkCount,
-                    autoStart: prompt.StartImmediately);
+                    autoStart: prompt.StartImmediately,
+                    preloadedMetadata: prompt.CachedMetadata,
+                    cookies: prompt.Cookies,
+                    referrer: prompt.Referrer,
+                    userAgent: prompt.UserAgent);
             }
             catch (Exception ex)
             {
@@ -426,5 +444,11 @@ public partial class MainWindow : Window
         MessageBox.Show(this, "Site ve Medya Yakalayıcı (Grabber) hazır.", "Medya Yakalayıcı", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    private record BrowserDownloadPayload(string Url, string? FileName, long? FileSize);
+    private record BrowserDownloadPayload(
+        string Url,
+        string? FileName,
+        long? FileSize,
+        string? Cookies = null,
+        string? Referrer = null,
+        string? UserAgent = null);
 }

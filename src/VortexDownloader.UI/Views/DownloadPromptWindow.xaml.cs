@@ -15,6 +15,10 @@ public partial class DownloadPromptWindow : Window
     public string ResultDestinationPath { get; private set; } = string.Empty;
     public int ResultChunkCount { get; private set; } = 8;
     public bool StartImmediately { get; private set; } = true;
+    public UrlMetadata? CachedMetadata { get; private set; }
+    public string? Cookies { get; set; }
+    public string? Referrer { get; set; }
+    public string? UserAgent { get; set; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -22,12 +26,22 @@ public partial class DownloadPromptWindow : Window
         ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
     }
 
-    public DownloadPromptWindow(DownloadEngine engine, string url, string? suggestedFileName = null, long? size = null)
+    public DownloadPromptWindow(
+        DownloadEngine engine,
+        string url,
+        string? suggestedFileName = null,
+        long? size = null,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null)
     {
         InitializeComponent();
         _engine = engine;
         ResultUrl = url;
         ResultChunkCount = AppSettings.Current.DefaultChunkCount;
+        Cookies = cookies;
+        Referrer = referrer;
+        UserAgent = userAgent;
 
         TxtUrl.Text = url;
         _currentDirectory = AppSettings.Current.DefaultDownloadDirectory;
@@ -42,6 +56,13 @@ public partial class DownloadPromptWindow : Window
         if (size.HasValue && size.Value > 0)
         {
             TxtFileSize.Text = FormatBytes(size.Value);
+            // Preload metadata to prevent single-use token burn
+            CachedMetadata = new UrlMetadata(
+                url,
+                suggestedFileName ?? "download.bin",
+                size.Value,
+                SupportsRange: true,
+                ETag: null);
         }
 
         Loaded += DownloadPromptWindow_Loaded;
@@ -49,9 +70,18 @@ public partial class DownloadPromptWindow : Window
 
     private async void DownloadPromptWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        // If metadata is already known from extension, skip extra probe to preserve single-use download links!
+        if (CachedMetadata != null && CachedMetadata.ContentLength > 0)
+        {
+            UpdateDestinationPath();
+            return;
+        }
+
         try
         {
-            var meta = await _engine.InspectUrlAsync(ResultUrl);
+            var meta = await _engine.InspectUrlAsync(ResultUrl, CancellationToken.None, Cookies, Referrer, UserAgent);
+            CachedMetadata = meta;
+
             if (string.IsNullOrWhiteSpace(TxtFileName.Text) || TxtFileName.Text == "download.bin")
             {
                 TxtFileName.Text = meta.SuggestedFileName;

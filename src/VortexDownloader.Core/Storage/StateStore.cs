@@ -87,9 +87,9 @@ public class StateStore
             foreach (var task in tasks)
             {
                 task.RecalculateDownloadedBytes();
-                if (task.Status == DownloadStatus.Downloading)
+                if (task.Status == DownloadStatus.Downloading || task.Status == DownloadStatus.Assembling)
                 {
-                    // If power cut occurred during download, mark as Paused so user can resume
+                    // If power cut occurred during download or assembly, mark as Paused so user can resume
                     task.Status = DownloadStatus.Paused;
                 }
             }

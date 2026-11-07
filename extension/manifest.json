@@ -6,7 +6,8 @@
   "permissions": [
     "downloads",
     "notifications",
-    "contextMenus"
+    "contextMenus",
+    "cookies"
   ],
   "host_permissions": [
     "<all_urls>"
