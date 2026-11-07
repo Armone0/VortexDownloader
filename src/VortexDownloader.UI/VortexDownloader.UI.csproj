@@ -13,9 +13,9 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>VortexDownloader</AssemblyName>
     <ApplicationIcon>Assets\vortex_app.ico</ApplicationIcon>
-    <Version>1.3.0</Version>
-    <AssemblyVersion>1.3.0.0</AssemblyVersion>
-    <FileVersion>1.3.0.0</FileVersion>
+    <Version>1.3.1</Version>
+    <AssemblyVersion>1.3.1.0</AssemblyVersion>
+    <FileVersion>1.3.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

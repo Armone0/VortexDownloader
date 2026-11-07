@@ -56,6 +56,20 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.3.1] - 2026-11-07 — Üst Çubuk Taşma Koruması, Responsive Wrap ve Ayarlar Buton Düzeltmesi
+
+### 📐 Üst Çubuk Taşma ve Çakışma Düzeltmesi (Topbar Responsive Wrap)
+- Pencere daraltıldığında üst araç çubuğundaki filtre başlığı ile eylem butonlarının üst üste binmesi (`overlap`) `WrapPanel` ve dinamik `Margin` optimizasyonlarıyla tamamen engellendi.
+- Küçük ekran boyutlarında dahi tüm kontroller kusursuzca alt satıra kayarak görünür kalır.
+
+### 🎨 Checkbox Padding & Görsel Boşluklar
+- Modern Checkbox şablonundaki metin ile kutu arasındaki iç boşluklar (`Padding="8,0,0,0"`) düzeltildi; metinlerin kutunun üzerine binmesi engellendi.
+
+### ⚙️ Ayarlar Penceresi Düğme Taşması Düzeltmesi
+- Ayarlar penceresinin alt kısmındaki "Kaydet" ve "İptal" butonlarının alt kenara taşması `Padding` ve `Margin` dengelenmesiyle giderildi; tüm çözünürlüklerde erişilebilir kılındı.
+
+---
+
 ## [1.3.0] - 2026-11-07 — Kristal Açık Mod, 5px İnce Scrollbar ve Üst Bar Yenilemesi
 
 ### 💎 Kristal Netliğinde Slate Açık Mod (Crystal Clear Light Theme)
