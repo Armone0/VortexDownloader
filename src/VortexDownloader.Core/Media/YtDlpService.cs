@@ -182,6 +182,27 @@ public class YtDlpService
         return url.Replace("\"", "").Replace("\r", "").Replace("\n", "").Trim();
     }
 
+    public static string? ResolveJsRuntime()
+    {
+        try
+        {
+            var pathEnv = Environment.GetEnvironmentVariable("PATH");
+            var nodeFromPath = SidecarManager.FindInPath("node.exe", pathEnv);
+            if (!string.IsNullOrEmpty(nodeFromPath))
+            {
+                return "node";
+            }
+
+            if (File.Exists(@"C:\Program Files\nodejs\node.exe"))
+            {
+                return @"node:C:\Program Files\nodejs\node.exe";
+            }
+        }
+        catch { }
+
+        return null;
+    }
+
     public async Task<MediaMetadata> InspectMediaAsync(string url, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
@@ -193,7 +214,9 @@ public class YtDlpService
             throw new FileNotFoundException("yt-dlp çalıştırılabilir dosyası bulunamadı. Lütfen önce EnsureSidecarsAsync çağırın.");
         }
 
-        var arguments = $"--dump-single-json --no-warnings --no-playlist -- \"{cleanUrl}\"";
+        var jsRuntime = ResolveJsRuntime();
+        var jsRuntimeArg = !string.IsNullOrEmpty(jsRuntime) ? $"--js-runtimes {jsRuntime} " : string.Empty;
+        var arguments = $"{jsRuntimeArg}--dump-single-json --no-warnings --no-playlist -- \"{cleanUrl}\"";
         var result = await _processRunner.RunAsync(ytDlpPath, arguments, ct: ct);
 
         if (result.ExitCode != 0)
@@ -279,7 +302,13 @@ public class YtDlpService
         var cleanUrl = SanitizeUrl(options.Url);
 
         var args = new StringBuilder();
-        args.Append("--newline --progress --no-playlist ");
+        var jsRuntime = ResolveJsRuntime();
+        if (!string.IsNullOrEmpty(jsRuntime))
+        {
+            args.Append($"--js-runtimes {jsRuntime} ");
+        }
+
+        args.Append("--newline --progress --no-playlist --windows-filenames --no-mtime ");
         args.Append($"--concurrent-fragments {Math.Max(1, options.ConcurrentFragments)} ");
 
         if (options.ExtractAudioOnly)
@@ -313,7 +342,7 @@ public class YtDlpService
     {
         if (string.IsNullOrWhiteSpace(selectedFormatId))
         {
-            return "bestvideo+bestaudio/best";
+            return "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best";
         }
 
         var trimmed = selectedFormatId.Trim();
@@ -322,7 +351,13 @@ public class YtDlpService
         if (trimmed.EndsWith("p", StringComparison.OrdinalIgnoreCase) &&
             int.TryParse(trimmed[..^1], out var height) && height > 0)
         {
-            return $"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best";
+            return $"bestvideo[height<={height}][format_note!*=?Premium]+bestaudio/bestvideo[height<={height}]+bestaudio/best[height<={height}]/best";
+        }
+
+        if (trimmed.Contains("bestvideo", StringComparison.OrdinalIgnoreCase) &&
+            !trimmed.Contains("format_note", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed.Replace("bestvideo", "bestvideo[format_note!*=?Premium]");
         }
 
         return trimmed;

@@ -7,6 +7,13 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        Topmost="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed"
+        RenderOptions.ClearTypeHint="Enabled"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
 
     <Window.Resources>

@@ -148,13 +148,13 @@ public class MediaTests
     }
 
     [Theory]
-    [InlineData("1080p", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best")]
-    [InlineData("720p", "bestvideo[height<=720]+bestaudio/best[height<=720]/best")]
-    [InlineData("480p", "bestvideo[height<=480]+bestaudio/best[height<=480]/best")]
-    [InlineData("bestvideo+bestaudio", "bestvideo+bestaudio")]
+    [InlineData("1080p", "bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best")]
+    [InlineData("720p", "bestvideo[height<=720][format_note!*=?Premium]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/best")]
+    [InlineData("480p", "bestvideo[height<=480][format_note!*=?Premium]+bestaudio/bestvideo[height<=480]+bestaudio/best[height<=480]/best")]
+    [InlineData("bestvideo+bestaudio", "bestvideo[format_note!*=?Premium]+bestaudio")]
     [InlineData("137+140", "137+140")]
-    [InlineData("", "bestvideo+bestaudio/best")]
-    [InlineData(null, "bestvideo+bestaudio/best")]
+    [InlineData("", "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
+    [InlineData(null, "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
     public void ResolveFormatSelector_ResolvesResolutionOrCustomFormatId(string? input, string expected)
     {
         var result = YtDlpService.ResolveFormatSelector(input);
@@ -180,7 +180,7 @@ public class MediaTests
         Assert.Contains("--newline", args);
         Assert.Contains("--progress", args);
         Assert.Contains("--concurrent-fragments 16", args);
-        Assert.Contains("-f \"bestvideo[height<=1080]+bestaudio/best[height<=1080]/best\"", args);
+        Assert.Contains("-f \"bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best\"", args);
         Assert.Contains("--merge-output-format mp4", args);
         Assert.Contains(@"--ffmpeg-location ""C:\Tools\ffmpeg.exe""", args);
         Assert.Contains("--write-subs --sub-langs all --embed-subs", args);
@@ -355,6 +355,29 @@ public class MediaTests
 
             var notFound = SidecarManager.FindInPath("nonexistent.exe", tempPathDir);
             Assert.Null(notFound);
+        }
+        finally
+        {
+            try { Directory.Delete(tempPathDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void SidecarManager_FindInPath_WithValidator_RejectsWhenValidatorReturnsFalse()
+    {
+        var tempPathDir = Path.Combine(Path.GetTempPath(), $"VortexTest_PathVal_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempPathDir);
+
+        try
+        {
+            var testExe = Path.Combine(tempPathDir, "bad_tool.exe");
+            File.WriteAllText(testExe, "bad");
+
+            var resolved = SidecarManager.FindInPath("bad_tool.exe", tempPathDir, _ => false);
+            Assert.Null(resolved);
+
+            var accepted = SidecarManager.FindInPath("bad_tool.exe", tempPathDir, _ => true);
+            Assert.NotNull(accepted);
         }
         finally
         {

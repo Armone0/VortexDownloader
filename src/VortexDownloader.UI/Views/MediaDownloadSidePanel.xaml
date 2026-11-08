@@ -1,0 +1,592 @@
+<UserControl x:Class="VortexDownloader.UI.Views.MediaDownloadSidePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="460"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             RenderOptions.ClearTypeHint="Enabled"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
+
+    <UserControl.Resources>
+        <!-- Primary Action Button (Mat Adaçayı Yeşili / Sage Green #8EA191) -->
+        <Style x:Key="PanelPrimaryButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="#1E2022"/>
+            <Setter Property="Background" Value="#8EA191"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Theme Button -->
+        <Style x:Key="PanelSecondaryButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#282B2F"/>
+            <Setter Property="BorderBrush" Value="#383D42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#F0ECE1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#33373B"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#8EA191"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Seal Style Format Selection Pill / Chip (Interactive RadioButton) -->
+        <Style x:Key="SealFormatPillStyle" TargetType="RadioButton">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#222528"/>
+            <Setter Property="BorderBrush" Value="#383D42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#F0ECE1"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="pillBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="10,6">
+                            <Grid VerticalAlignment="Center">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pillBorder" Property="BorderBrush" Value="#8EA191"/>
+                                <Setter TargetName="pillBorder" Property="Background" Value="#2A2F33"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="pillBorder" Property="Background" Value="#8EA191"/>
+                                <Setter TargetName="pillBorder" Property="BorderBrush" Value="#8EA191"/>
+                                <Setter Property="Foreground" Value="#1E2022"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Quick Select Chip Button -->
+        <Style x:Key="ChipButtonStyle" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#222528"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="BorderBrush" Value="#383D42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="chipBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="chipBorder" Property="Background" Value="#33373B"/>
+                                <Setter TargetName="chipBorder" Property="BorderBrush" Value="#8EA191"/>
+                                <Setter Property="Foreground" Value="#8EA191"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="chipBorder" Property="Background" Value="#8EA191"/>
+                                <Setter Property="Foreground" Value="#1E2022"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- High-Contrast Modern TextBox -->
+        <Style x:Key="PanelTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#1E2022"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#383D42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#8EA191"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox Toggle Button Template -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border x:Name="templateRoot" Background="{TemplateBinding Background}" 
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                    CornerRadius="8" SnapsToDevicePixels="true">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="28"/>
+                    </Grid.ColumnDefinitions>
+                    <Path x:Name="arrow" Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#CBD5E1" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="#8EA191"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Modern ComboBox Style -->
+        <Style x:Key="PanelComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#1E2022"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#383D42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                            <ToggleButton x:Name="toggleButton" Background="{TemplateBinding Background}" 
+                                          BorderBrush="{TemplateBinding BorderBrush}" 
+                                          BorderThickness="{TemplateBinding BorderThickness}" 
+                                          ClickMode="Press" Focusable="false" 
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                          Template="{StaticResource ComboBoxToggleButtonTemplate}"/>
+                            <ContentPresenter x:Name="contentPresenter" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" 
+                                              HorizontalAlignment="Left" IsHitTestVisible="false" 
+                                              Margin="12,0,30,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                              VerticalAlignment="Center">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        <Setter Property="FontSize" Value="12"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" 
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                                   Placement="Bottom" PopupAnimation="Slide">
+                                <Border x:Name="dropDownBorder" Background="#282B2F" 
+                                        BorderBrush="#383D42" 
+                                        BorderThickness="1" CornerRadius="8" 
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}" 
+                                        MinWidth="{Binding ActualWidth, ElementName=templateRoot}" 
+                                        SnapsToDevicePixels="true" Margin="0,4,0,0">
+                                    <ScrollViewer x:Name="DropDownScrollViewer" Margin="2">
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" 
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#F0ECE1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}" Margin="2,1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#33373B"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#363B40"/>
+                                <Setter Property="Foreground" Value="#8EA191"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Side Panel Main Container -->
+    <Grid Background="#1E2022">
+        <Grid.RowDefinitions>
+            <!-- Header: Title + Close Button -->
+            <RowDefinition Height="Auto"/>
+            <!-- Body: Scrollable Form with Crystal Clear Typography -->
+            <RowDefinition Height="*"/>
+            <!-- Footer: Action Buttons -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ==================== HEADER ==================== -->
+        <Border Grid.Row="0" Background="#191B1C" BorderBrush="#383D42" BorderThickness="0,0,0,1" Padding="16,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Icon Frame -->
+                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="8" Margin="0,0,12,0"
+                        Background="#282B2F" BorderBrush="#383D42" BorderThickness="1">
+                    <TextBlock Text="🎬" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Title & Badge -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="YOUTUBE &amp; MEDYA İNDİRİCİ" FontSize="12" FontWeight="Black" Foreground="#A3B8A6" Margin="0,0,8,0"/>
+                        <Border Background="#2F3632" BorderBrush="#8EA191" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                            <TextBlock Text="yt-dlp Entegre" FontSize="10" FontWeight="Bold" Foreground="#8EA191"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock x:Name="TxtHeaderStatus" Text="Video veya ses akışını yapılandırın" FontSize="13" FontWeight="SemiBold" Foreground="#F0ECE1" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <!-- Close Panel Button (✕) -->
+                <Button Grid.Column="2" Content="✕" Width="28" Height="28" Background="Transparent" 
+                        Foreground="#CBD5E1" BorderThickness="0" FontSize="14" FontWeight="Bold" Cursor="Hand" 
+                        Click="BtnClose_Click" ToolTip="Sekmeyi Kapat"/>
+            </Grid>
+        </Border>
+
+        <!-- ==================== BODY (SCROLLABLE FORM) ==================== -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,14">
+            <StackPanel>
+
+                <!-- 1. Media URL Input & Analyze -->
+                <TextBlock Text="MEDYA VEYA VİDEO BAĞLANTISI" FontSize="12" FontWeight="Bold" Foreground="#A3B8A6" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="TxtMediaUrl" Style="{StaticResource PanelTextBoxStyle}" 
+                             Text="https://www.youtube.com/watch?v=..." FontSize="13" Margin="0,0,8,0" 
+                             TextChanged="TxtMediaUrl_TextChanged"/>
+                    <Button Grid.Column="1" x:Name="BtnAnalyzeMedia" Content="⚡ Çözümle" 
+                            Style="{StaticResource PanelSecondaryButton}" Padding="14,0" Click="BtnAnalyzeMedia_Click"/>
+                </Grid>
+
+                <!-- 2. Video Info Card (Thumbnail, Title, Uploader, Duration) -->
+                <Border Background="#282B2F" BorderBrush="#383D42" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Top row: Thumbnail & Duration -->
+                        <Border Grid.Row="0" Height="140" CornerRadius="8" ClipToBounds="True" 
+                                Background="#141618" BorderBrush="#383D42" BorderThickness="1" Margin="0,0,0,10">
+                            <Grid>
+                                <!-- Thumbnail Image -->
+                                <Image x:Name="ThumbnailImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                <!-- Loading / Placeholder Overlay -->
+                                <Grid x:Name="ThumbnailPlaceholder" Background="#1A1D20" Visibility="Collapsed">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="🎬" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Video Önizlemesi" FontSize="11" FontWeight="Bold" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Duration Badge -->
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" 
+                                        Background="#E61E2022" CornerRadius="4" Padding="6,2">
+                                    <TextBlock x:Name="TxtDurationBadge" Text="⏱️ --:--" FontSize="11" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Bottom row: Title & Badges -->
+                        <StackPanel Grid.Row="1">
+                            <TextBlock x:Name="TxtMediaTitle" Text="Medya başlığı bekleniyor..." 
+                                       FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" 
+                                       TextWrapping="Wrap" MaxHeight="44" TextTrimming="CharacterEllipsis" Margin="0,0,0,8"/>
+
+                            <WrapPanel Margin="0,0,0,6">
+                                <Border Background="#1E2022" BorderBrush="#383D42" BorderThickness="1" CornerRadius="5" Padding="8,3" Margin="0,0,6,4">
+                                    <TextBlock x:Name="TxtChannel" Text="👤 Kanal: Yükleniyor..." FontSize="11" FontWeight="SemiBold" Foreground="#CBD5E1"/>
+                                </Border>
+                                <Border Background="#1E2022" BorderBrush="#383D42" BorderThickness="1" CornerRadius="5" Padding="8,3" Margin="0,0,6,4">
+                                    <TextBlock x:Name="TxtDuration" Text="⏱️ Süre: Hesaplanıyor" FontSize="11" FontWeight="SemiBold" Foreground="#CBD5E1"/>
+                                </Border>
+                                <Border Background="#2F3632" BorderBrush="#8EA191" BorderThickness="1" CornerRadius="5" Padding="8,3" Margin="0,0,0,4">
+                                    <TextBlock x:Name="TxtMediaBadge" Text="⚡ Hızlı İndirme" FontSize="11" FontWeight="Bold" Foreground="#8EA191"/>
+                                </Border>
+                            </WrapPanel>
+
+                            <TextBlock x:Name="TxtStreamInfo" Text="En yüksek kaliteli video ve ses akışları otomatik birleştirilecektir." 
+                                       FontSize="11" Foreground="#CBD5E1" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 3. Quality & Format Pills (Seal Style 2x2 Grid) -->
+                <TextBlock Text="HIZLI KALİTE SEÇİMİ (SEAL HAPLARI)" FontSize="12" FontWeight="Bold" Foreground="#A3B8A6" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 🏆 4K / 2K Pill -->
+                    <RadioButton Grid.Row="0" Grid.Column="0" x:Name="Radio4K" GroupName="QualityGroup" 
+                                 Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                <TextBlock Text="🏆" FontSize="13" Margin="0,0,5,0"/>
+                                <TextBlock Text="4K / 2K" FontSize="13" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="En Yüksek Kalite" FontSize="11" FontWeight="SemiBold" Opacity="0.9" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <!-- 📺 1080p Pill (Default) -->
+                    <RadioButton Grid.Row="0" Grid.Column="1" x:Name="Radio1080p" GroupName="QualityGroup" IsChecked="True" 
+                                 Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                <TextBlock Text="📺" FontSize="13" Margin="0,0,5,0"/>
+                                <TextBlock Text="1080p" FontSize="13" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="Full HD MP4 (Önerilen)" FontSize="11" FontWeight="SemiBold" Opacity="0.9" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <!-- 📱 720p Pill -->
+                    <RadioButton Grid.Row="1" Grid.Column="0" x:Name="Radio720p" GroupName="QualityGroup" 
+                                 Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                <TextBlock Text="📱" FontSize="13" Margin="0,0,5,0"/>
+                                <TextBlock Text="720p" FontSize="13" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="Hızlı HD MP4" FontSize="11" FontWeight="SemiBold" Opacity="0.9" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <!-- 🎵 MP3 Pill (Audio Only) -->
+                    <RadioButton Grid.Row="1" Grid.Column="1" x:Name="RadioMP3" GroupName="QualityGroup" 
+                                 Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                <TextBlock Text="🎵" FontSize="13" Margin="0,0,5,0"/>
+                                <TextBlock Text="MP3" FontSize="13" FontWeight="Bold"/>
+                            </StackPanel>
+                            <TextBlock Text="Ses (320 kbps)" FontSize="11" FontWeight="SemiBold" Opacity="0.9" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                </Grid>
+
+                <!-- 4. Advanced Format ComboBox -->
+                <TextBlock Text="GELİŞMİŞ FORMAT &amp; KODLAMA" FontSize="12" FontWeight="Bold" Foreground="#A3B8A6" Margin="0,0,0,6"/>
+                <ComboBox x:Name="CmbFormats" Style="{StaticResource PanelComboBoxStyle}" Margin="0,0,0,14" SelectionChanged="CmbFormats_SelectionChanged">
+                    <ComboBoxItem Content="📺 1080p Full HD (MP4 - H.264 + AAC Ses)" Tag="1080p" IsSelected="True"/>
+                    <ComboBoxItem Content="🏆 2160p 4K Ultra HD (WebM / MP4 - 60fps)" Tag="2160p"/>
+                    <ComboBoxItem Content="🌟 1440p 2K QHD (WebM / MP4 - 60fps)" Tag="1440p"/>
+                    <ComboBoxItem Content="📱 720p HD (MP4 - Hızlı İndirme)" Tag="720p"/>
+                    <ComboBoxItem Content="🎞️ 480p SD Standart Çözünürlük (MP4)" Tag="480p"/>
+                    <ComboBoxItem Content="💾 360p Düşük Veri Tasarrufu (MP4)" Tag="360p"/>
+                    <ComboBoxItem Content="🎵 Sadece Ses: MP3 (320 kbps Yüksek Kalite)" Tag="mp3"/>
+                    <ComboBoxItem Content="🎧 Sadece Ses: M4A / AAC (Orijinal Akış)" Tag="m4a"/>
+                    <ComboBoxItem Content="🎼 Sadece Ses: FLAC (Kayıpsız / Lossless Audio)" Tag="flac"/>
+                    <ComboBoxItem Content="📻 Sadece Ses: OPUS (Ultra Verimli / 160 kbps)" Tag="opus"/>
+                </ComboBox>
+
+                <!-- 5. Destination Folder & File Name -->
+                <TextBlock Text="KAYDEDİLECEK DOSYA ADI" FontSize="12" FontWeight="Bold" Foreground="#A3B8A6" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="TxtFileName" Style="{StaticResource PanelTextBoxStyle}" Margin="0,0,8,0"/>
+                    <Border Grid.Column="1" Background="#282B2F" BorderBrush="#383D42" BorderThickness="1" CornerRadius="8" Padding="12,8">
+                        <TextBlock x:Name="TxtExtension" Text=".mp4" FontSize="13" FontWeight="Bold" Foreground="#8EA191"/>
+                    </Border>
+                </Grid>
+
+                <TextBlock Text="KAYDEDİLECEK KLASÖR" FontSize="12" FontWeight="Bold" Foreground="#A3B8A6" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="TxtDestPath" Style="{StaticResource PanelTextBoxStyle}" 
+                             Foreground="#CBD5E1" IsReadOnly="True" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" x:Name="BtnBrowseFolder" Content="Seç..." Style="{StaticResource PanelSecondaryButton}" 
+                            Padding="16,0" Click="BtnBrowseFolder_Click"/>
+                </Grid>
+
+                <!-- 6. Concurrent Fragments (1-16) -->
+                <Border Background="#282B2F" BorderBrush="#383D42" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Eşzamanlı Parça / Akış" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <Border Width="16" Height="16" CornerRadius="8" Background="#1E2022" BorderBrush="#383D42" BorderThickness="1" Margin="6,0,0,0" VerticalAlignment="Center" Cursor="Help">
+                                    <Border.ToolTip>
+                                        <ToolTip Background="#282B2F" Foreground="#FFFFFF" BorderBrush="#8EA191" BorderThickness="1">
+                                            <TextBlock Text="YouTube parçalarını paralel soketlerle indirerek hızı katlar." FontSize="11" Margin="4"/>
+                                        </ToolTip>
+                                    </Border.ToolTip>
+                                    <TextBlock Text="ℹ" FontSize="10" FontWeight="Bold" Foreground="#8EA191" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="1" Style="{StaticResource ChipButtonStyle}" Tag="1" Click="BtnChipFragment_Click"/>
+                                <Button Content="4" Style="{StaticResource ChipButtonStyle}" Tag="4" Click="BtnChipFragment_Click"/>
+                                <Button Content="8" Style="{StaticResource ChipButtonStyle}" Tag="8" Click="BtnChipFragment_Click"/>
+                                <Button Content="16" Style="{StaticResource ChipButtonStyle}" Tag="16" Click="BtnChipFragment_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="SliderConcurrentFragments" Grid.Column="0" Minimum="1" Maximum="16" Value="8" 
+                                    TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="0,0,10,0" 
+                                    ValueChanged="SliderConcurrentFragments_ValueChanged"/>
+                            <Border Grid.Column="1" Background="#8EA191" CornerRadius="6" Padding="10,2" MinWidth="34" HorizontalAlignment="Center">
+                                <TextBlock x:Name="TxtFragmentCount" Text="8" FontSize="12" FontWeight="Bold" Foreground="#1E2022" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- 7. Options: Subtitles & Metadata -->
+                <StackPanel Margin="2,0,0,6">
+                    <CheckBox x:Name="ChkDownloadSubtitles" Content="Altyazıları dahil et (.srt / .vtt)" 
+                              Foreground="#CBD5E1" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6" Cursor="Hand"/>
+                    <CheckBox x:Name="ChkEmbedMetadata" Content="Kapak resmini ve video etiketlerini göm" 
+                              IsChecked="True" Foreground="#CBD5E1" FontSize="12" FontWeight="SemiBold" Cursor="Hand"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ==================== FOOTER: ACTION BUTTONS ==================== -->
+        <Border Grid.Row="2" Background="#191B1C" BorderBrush="#383D42" BorderThickness="0,1,0,0" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Cancel / Close -->
+                <Button Grid.Column="0" Content="Kapat" Style="{StaticResource PanelSecondaryButton}" Click="BtnClose_Click"/>
+
+                <!-- Right Action Buttons -->
+                <Button Grid.Column="2" x:Name="BtnQueue" Content="⏳ Kuyruğa Ekle" Style="{StaticResource PanelSecondaryButton}" 
+                        Margin="0,0,8,0" Click="BtnQueue_Click"/>
+                <Button Grid.Column="3" x:Name="BtnDownloadNow" Content="⚡ Vortex ile İndir" Style="{StaticResource PanelPrimaryButton}" 
+                        Click="BtnDownloadNow_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

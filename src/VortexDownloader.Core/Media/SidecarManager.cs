@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 
 namespace VortexDownloader.Core.Media;
@@ -5,7 +6,8 @@ namespace VortexDownloader.Core.Media;
 public class SidecarManager
 {
     public const string DefaultYtDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
-    public const string DefaultFfmpegUrl = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+    public const string DefaultFfmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
+    public const string FallbackFfmpegUrl = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
 
     public string AppDataBinDir { get; set; }
     public string AppBaseBinDir { get; set; }
@@ -26,12 +28,92 @@ public class SidecarManager
             "bin");
 
         AppBaseBinDir = appBaseBinDir ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bin");
-        _httpClient = httpClient ?? new HttpClient();
+        
+        if (httpClient != null)
+        {
+            _httpClient = httpClient;
+        }
+        else
+        {
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = System.Net.DecompressionMethods.All
+            };
+            _httpClient = new HttpClient(handler);
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) VortexDownloader/1.6");
+        }
     }
+
+    public Func<string, bool>? FfmpegValidator { get; set; } = IsValidFfmpeg;
 
     public string? GetYtDlpPath() => ResolveExecutable("yt-dlp.exe");
 
-    public string? GetFfmpegPath() => ResolveExecutable("ffmpeg.exe");
+    public string? GetFfmpegPath()
+    {
+        // 1. %APPDATA%\VortexDownloader\bin\
+        var appDataCandidate = Path.Combine(AppDataBinDir, "ffmpeg.exe");
+        if (File.Exists(appDataCandidate))
+        {
+            return Path.GetFullPath(appDataCandidate);
+        }
+
+        // 2. Uygulama çalışma dizinindeki bin\ veya çalışma dizini
+        var appBaseBinCandidate = Path.Combine(AppBaseBinDir, "ffmpeg.exe");
+        if (File.Exists(appBaseBinCandidate))
+        {
+            return Path.GetFullPath(appBaseBinCandidate);
+        }
+
+        var appBaseCandidate = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+        if (File.Exists(appBaseCandidate))
+        {
+            return Path.GetFullPath(appBaseCandidate);
+        }
+
+        // 3. Sistem PATH ortam değişkeni (yalnızca modern ve -hide_banner destekleyen FFmpeg kabul edilir)
+        var pathEnv = CustomPathEnvironment ?? Environment.GetEnvironmentVariable("PATH");
+        var fromPath = FindInPath("ffmpeg.exe", pathEnv, FfmpegValidator);
+        if (!string.IsNullOrEmpty(fromPath))
+        {
+            return fromPath;
+        }
+
+        return null;
+    }
+
+    public static bool IsValidFfmpeg(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return false;
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = path,
+                Arguments = "-hide_banner -version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null) return false;
+
+            if (!process.WaitForExit(3000))
+            {
+                try { process.Kill(); } catch { }
+                return false;
+            }
+
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public string? ResolveExecutable(string exeName)
     {
@@ -72,7 +154,7 @@ public class SidecarManager
         return null;
     }
 
-    public static string? FindInPath(string exeName, string? pathEnv)
+    public static string? FindInPath(string exeName, string? pathEnv, Func<string, bool>? validator = null)
     {
         if (string.IsNullOrWhiteSpace(pathEnv)) return null;
 
@@ -84,7 +166,11 @@ public class SidecarManager
                 var candidate = Path.Combine(dir, exeName);
                 if (File.Exists(candidate))
                 {
-                    return Path.GetFullPath(candidate);
+                    var full = Path.GetFullPath(candidate);
+                    if (validator == null || validator(full))
+                    {
+                        return full;
+                    }
                 }
             }
             catch
@@ -131,12 +217,21 @@ public class SidecarManager
 
         if (GetFfmpegPath() == null)
         {
-            statusProgress?.Report("FFmpeg bulunamadı, indiriliyor...");
+            statusProgress?.Report("FFmpeg bulunamadı veya güncel değil, indiriliyor...");
             var tempZip = Path.Combine(AppDataBinDir, $"ffmpeg_{Guid.NewGuid():N}.zip");
 
             try
             {
-                await DownloadFileAsync(FfmpegDownloadUrl, tempZip, statusProgress, "FFmpeg", ct);
+                try
+                {
+                    await DownloadFileAsync(FfmpegDownloadUrl, tempZip, statusProgress, "FFmpeg", ct);
+                }
+                catch
+                {
+                    statusProgress?.Report("Birincil FFmpeg indirme kaynağı başarısız oldu, yedek kaynaktan deneniyor...");
+                    await DownloadFileAsync(FallbackFfmpegUrl, tempZip, statusProgress, "FFmpeg", ct);
+                }
+
                 statusProgress?.Report("FFmpeg arşivi ayıklanıyor...");
 
                 using (var zipStream = File.OpenRead(tempZip))

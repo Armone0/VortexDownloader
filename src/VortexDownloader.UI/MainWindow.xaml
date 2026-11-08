@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:VortexDownloader.UI.ViewModels"
+        xmlns:views="clr-namespace:VortexDownloader.UI.Views"
         mc:Ignorable="d"
         Title="VortexDownloader - Yüksek Hızlı İndirme Yöneticisi" 
         Height="660" Width="1040"
@@ -12,6 +13,12 @@
         Icon="pack://application:,,,/Assets/vortex_app.ico"
         Background="{DynamicResource WindowBackgroundBrush}"
         Foreground="{DynamicResource TextPrimaryBrush}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed"
+        RenderOptions.ClearTypeHint="Enabled"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
 
     <Window.TaskbarItemInfo>
@@ -338,13 +345,15 @@
         </Style>
     </Window.Resources>
 
-    <!-- MAIN TWO-COLUMN APPLICATION LAYOUT -->
+    <!-- MAIN THREE-COLUMN APPLICATION LAYOUT -->
     <Grid>
         <Grid.ColumnDefinitions>
             <!-- Left Sidebar Navigation -->
             <ColumnDefinition Width="220"/>
-            <!-- Right Main Work Area -->
+            <!-- Center Main Work Area -->
             <ColumnDefinition Width="*"/>
+            <!-- Right Media & YouTube Download Side Tab (Opens Sideways) -->
+            <ColumnDefinition x:Name="ColMediaSidePanel" Width="Auto"/>
         </Grid.ColumnDefinitions>
 
         <!-- ==================== LEFT SIDEBAR ==================== -->
@@ -854,5 +863,15 @@
                 </ScrollViewer>
             </Grid>
         </Grid>
+
+        <!-- ==================== RIGHT SIDE TAB: YOUTUBE & MEDYA İNDİR ==================== -->
+        <Border Grid.Column="2" x:Name="MediaSidePanelBorder" 
+                Width="460"
+                Visibility="Collapsed"
+                Background="{DynamicResource WindowBackgroundBrush}" 
+                BorderBrush="{DynamicResource CardBorderBrush}" 
+                BorderThickness="1,0,0,0">
+            <views:MediaDownloadSidePanel x:Name="MediaSidePanelControl"/>
+        </Border>
     </Grid>
 </Window>
