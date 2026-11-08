@@ -40,6 +40,9 @@ public partial class SettingsWindow : Window
         // Populate Default Chunks
         SelectComboBoxItemByTag(CmbDefaultChunks, settings.DefaultChunkCount.ToString());
 
+        // Populate Auto-Start
+        ChkAutoStartBrowserDownloads.IsChecked = settings.AutoStartBrowserDownloads;
+
         // Populate Close to Tray
         ChkCloseToTray.IsChecked = settings.CloseToTray;
 
@@ -136,6 +139,7 @@ public partial class SettingsWindow : Window
             settings.DefaultChunkCount = chunkVal;
         }
 
+        settings.AutoStartBrowserDownloads = ChkAutoStartBrowserDownloads.IsChecked == true;
         settings.CloseToTray = ChkCloseToTray.IsChecked == true;
         settings.ShutdownWhenCompleted = ChkShutdownWhenDone.IsChecked == true;
         settings.Save();

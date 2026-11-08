@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
+using VortexDownloader.UI.Common;
 using VortexDownloader.UI.Services;
 using VortexDownloader.UI.ViewModels;
 using VortexDownloader.UI.Views;
@@ -388,33 +389,95 @@ public partial class MainWindow : Window
 
     private async Task ProcessNextBrowserPromptAsync()
     {
-        if (_browserPromptQueue.Count == 0)
-        {
-            _isPromptShowing = false;
-            _activePromptUrl = null;
-            return;
-        }
-
         _isPromptShowing = true;
-        var nextItem = _browserPromptQueue.Dequeue();
-        _activePromptUrl = nextItem.Url;
-
         try
         {
-            RestoreFromTray();
-            await PromptNewDownloadFromBrowserAsync(
-                nextItem.Url,
-                nextItem.FileName,
-                nextItem.Size,
-                nextItem.Cookies,
-                nextItem.Referrer,
-                nextItem.UserAgent);
+            while (_browserPromptQueue.TryDequeue(out var nextItem))
+            {
+                _activePromptUrl = nextItem.Url;
+                try
+                {
+                    if (AppSettings.Current.AutoStartBrowserDownloads)
+                    {
+                        await AutoStartDownloadFromBrowserAsync(nextItem);
+                    }
+                    else
+                    {
+                        RestoreFromTray();
+                        await PromptNewDownloadFromBrowserAsync(
+                            nextItem.Url,
+                            nextItem.FileName,
+                            nextItem.Size,
+                            nextItem.Cookies,
+                            nextItem.Referrer,
+                            nextItem.UserAgent);
+                    }
+                }
+                finally
+                {
+                    _activePromptUrl = null;
+                }
+            }
         }
         finally
         {
+            _isPromptShowing = false;
             _activePromptUrl = null;
-            // Process any remaining items in queue sequentially
-            await ProcessNextBrowserPromptAsync();
+        }
+    }
+
+    private async Task AutoStartDownloadFromBrowserAsync(BrowserPromptItem item)
+    {
+        try
+        {
+            string targetDir = AppSettings.Current.DefaultDownloadDirectory;
+            if (string.IsNullOrWhiteSpace(targetDir) || !Directory.Exists(targetDir))
+            {
+                targetDir = AppSettings.GetDefaultDownloadPath();
+            }
+
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            string? rawName = item.FileName;
+            if (string.IsNullOrWhiteSpace(rawName))
+            {
+                if (Uri.TryCreate(item.Url, UriKind.Absolute, out var uri))
+                {
+                    rawName = Path.GetFileName(uri.AbsolutePath);
+                }
+            }
+
+            string safeFileName = SanitizeFileName(rawName);
+            if (string.IsNullOrWhiteSpace(safeFileName))
+            {
+                safeFileName = "download.bin";
+            }
+
+            string targetPath = Path.Combine(targetDir, safeFileName);
+            var activePaths = _viewModel.Downloads.Select(d => d.DestinationPath);
+            string destinationPath = PathHelper.GetUniqueDestinationPath(targetPath, activePaths);
+
+            BridgeLog($"[Auto-Start] Direct initiating download for '{item.Url}' -> '{destinationPath}' (Chunks: {AppSettings.Current.DefaultChunkCount})");
+
+            var task = await _viewModel.Engine.AddDownloadAsync(
+                item.Url,
+                destinationPath,
+                AppSettings.Current.DefaultChunkCount,
+                autoStart: true,
+                cookies: item.Cookies,
+                referrer: item.Referrer,
+                userAgent: item.UserAgent);
+
+            _trayIcon?.ShowNotification("⚡ VortexDownloader", $"İndirme Başlatıldı: {task.FileName}");
+            BridgeLog($"[Auto-Start] Download started successfully: TaskId={task.Id}, File='{task.FileName}', Size={task.TotalBytes} bytes");
+        }
+        catch (Exception ex)
+        {
+            BridgeLog($"[Auto-Start ERROR] Failed to auto-start download for '{item.Url}': {ex.Message}");
+            _trayIcon?.ShowNotification("⚠️ VortexDownloader", $"İndirme Başlatılamadı: {ex.Message}");
         }
     }
 
@@ -437,12 +500,8 @@ public partial class MainWindow : Window
             try { prompt.Owner = this; } catch { }
         }
 
-        try
-        {
-            prompt.Activate();
-            prompt.Focus();
-        }
-        catch { }
+        WindowHelper.BringToFrontAndFocus(prompt);
+        prompt.Loaded += (_, _) => WindowHelper.BringToFrontAndFocus(prompt);
 
         if (prompt.ShowDialog() == true)
         {

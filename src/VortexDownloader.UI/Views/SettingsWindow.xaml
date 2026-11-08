@@ -428,6 +428,11 @@
                     <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
                             BorderThickness="1" CornerRadius="8" Padding="14">
                         <StackPanel>
+                            <CheckBox x:Name="ChkAutoStartBrowserDownloads" Style="{StaticResource ModernCheckBox}" 
+                                      Content="Tarayıcı indirmelerini onay sormadan doğrudan başlat (Zero-Click Auto-Start)" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Tarayıcı uzantısından gelen indirmeleri onay penceresi beklemeden doğrudan varsayılan klasöre ve en yüksek hızla başlatır." 
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12" TextWrapping="Wrap"/>
+
                             <CheckBox x:Name="ChkCloseToTray" Style="{StaticResource ModernCheckBox}" 
                                       Content="Pencere kapatıldığında sistem tepsisine küçült (Arka planda çalış)" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="Pencere kapatıldığında indirmelerin arka planda devam etmesini ve tarayıcı indirmelerinin yakalanmasını sağlar." 

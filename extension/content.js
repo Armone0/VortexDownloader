@@ -412,8 +412,8 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Show instant HUD toast
-    showToast(`⚡ Vortex'e Aktarıldı (${fileName})`, 'info', 3000);
+    // Show transmitting HUD toast
+    showToast(`İletiliyor... ⚡ (${fileName})`, 'info', 3000);
 
     chrome.runtime.sendMessage({
       action: 'intercept_link',
@@ -431,7 +431,7 @@
           }
         }, 600);
       } else {
-        showToast(`⚡ Vortex'e Aktarıldı (${fileName})`, 'success', 3500);
+        showToast(`⚡ İndirme Başlatıldı (${fileName})`, 'success', 3500);
       }
     });
   }
