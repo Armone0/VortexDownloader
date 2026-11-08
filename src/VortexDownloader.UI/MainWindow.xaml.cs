@@ -520,13 +520,19 @@ public partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.CenterScreen
         };
 
-        if (IsVisible)
+        if (IsVisible && WindowState != WindowState.Minimized)
         {
             try { prompt.Owner = this; } catch { }
         }
 
-        WindowHelper.BringToFrontAndFocus(prompt);
-        prompt.Loaded += (_, _) => WindowHelper.BringToFrontAndFocus(prompt);
+        prompt.ContentRendered += (_, _) =>
+        {
+            try
+            {
+                WindowHelper.BringToFront(prompt);
+            }
+            catch { }
+        };
 
         if (prompt.ShowDialog() == true)
         {

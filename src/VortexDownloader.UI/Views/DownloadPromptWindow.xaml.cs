@@ -93,7 +93,9 @@ public partial class DownloadPromptWindow : Window
 
         try
         {
-            var meta = await _engine.InspectUrlAsync(ResultUrl, CancellationToken.None, Cookies, Referrer, UserAgent);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var meta = await _engine.InspectUrlAsync(ResultUrl, cts.Token, Cookies, Referrer, UserAgent);
+            if (!IsLoaded) return;
             CachedMetadata = meta;
 
             if (string.IsNullOrWhiteSpace(TxtFileName.Text) || TxtFileName.Text == "download.bin")
@@ -115,6 +117,7 @@ public partial class DownloadPromptWindow : Window
         }
         catch
         {
+            if (!IsLoaded) return;
             if (string.IsNullOrWhiteSpace(TxtFileName.Text))
             {
                 TxtFileName.Text = "download.bin";
@@ -124,6 +127,7 @@ public partial class DownloadPromptWindow : Window
             UpdateRangeBadge(null);
         }
 
+        if (!IsLoaded) return;
         UpdateDestinationPath();
     }
 
@@ -269,24 +273,24 @@ public partial class DownloadPromptWindow : Window
 
         if (supportsRange == true)
         {
-            BadgeRange.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
-            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+            BadgeRange.Background = TryFindResource("BadgeBackgroundBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x2F, 0x36, 0x32));
+            BadgeRange.BorderBrush = TryFindResource("AccentHighlightBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x8E, 0xA1, 0x91));
             TxtRangeSupport.Text = "⚡ Range: Destekleniyor";
-            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+            TxtRangeSupport.Foreground = TryFindResource("AccentHighlightBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x8E, 0xA1, 0x91));
         }
         else if (supportsRange == false)
         {
-            BadgeRange.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
-            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+            BadgeRange.Background = new SolidColorBrush(Color.FromArgb(50, 224, 177, 133));
+            BadgeRange.BorderBrush = TryFindResource("StatusPausedBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0xE0, 0xB1, 0x85));
             TxtRangeSupport.Text = "⚠️ Range: Yok (Tek Parça)";
-            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+            TxtRangeSupport.Foreground = TryFindResource("StatusPausedBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0xE0, 0xB1, 0x85));
         }
         else
         {
-            BadgeRange.Background = new SolidColorBrush(Color.FromRgb(30, 41, 59));
-            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85));
+            BadgeRange.Background = TryFindResource("InputBackgroundBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x22, 0x25, 0x28));
+            BadgeRange.BorderBrush = TryFindResource("CardBorderBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x38, 0x3D, 0x42));
             TxtRangeSupport.Text = "⏳ Range: Kontrol Ediliyor...";
-            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+            TxtRangeSupport.Foreground = TryFindResource("TextMutedBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x78));
         }
     }
 
