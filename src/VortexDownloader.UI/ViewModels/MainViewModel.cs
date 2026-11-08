@@ -312,6 +312,7 @@ public class MainViewModel : ViewModelBase
         _engine.TaskAdded += OnEngineTaskAdded;
         _engine.TaskUpdated += OnEngineTaskUpdated;
         _engine.TaskRemoved += OnEngineTaskRemoved;
+        Downloads.CollectionChanged += (_, _) => UpdateAggregates();
 
         StartAllCommand = new RelayCommand(() => _engine.StartAll());
         PauseAllCommand = new RelayCommand(async () => await _engine.PauseAllAsync());
@@ -321,11 +322,19 @@ public class MainViewModel : ViewModelBase
             foreach (var item in completed)
             {
                 await _engine.RemoveTaskAsync(item.Id);
+                if (Downloads.Contains(item))
+                {
+                    Downloads.Remove(item);
+                }
             }
         });
         PauseTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
-            if (item != null) await _engine.PauseTaskAsync(item.Id);
+            if (item != null)
+            {
+                await _engine.PauseTaskAsync(item.Id);
+                item.CancelAction?.Invoke();
+            }
         });
         ResumeTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
@@ -333,7 +342,15 @@ public class MainViewModel : ViewModelBase
         });
         DeleteTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
-            if (item != null) await _engine.RemoveTaskAsync(item.Id);
+            if (item != null)
+            {
+                await _engine.RemoveTaskAsync(item.Id);
+                item.CancelAction?.Invoke();
+                if (Downloads.Contains(item))
+                {
+                    Downloads.Remove(item);
+                }
+            }
         });
         OpenFolderCommand = new RelayCommand<DownloadItemViewModel>(item =>
         {
@@ -409,7 +426,7 @@ public class MainViewModel : ViewModelBase
         });
     }
 
-    private void UpdateAggregates()
+    public void UpdateAggregates()
     {
         double sumSpeed = Downloads.Where(d => d.Status == DownloadStatus.Downloading).Sum(d => d.SpeedBytesPerSec);
         TotalSpeedFormatted = DownloadTask.FormatBytesPerSec(sumSpeed);

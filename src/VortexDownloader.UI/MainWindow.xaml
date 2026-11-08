@@ -49,6 +49,41 @@
             </Setter>
         </Style>
 
+        <!-- Media / Video Action Button (Soft Loft Card Style with Sage Green Accent) -->
+        <Style x:Key="MediaSidebarButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Sidebar Category Button Style -->
         <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -364,14 +399,23 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- 2. Primary Action Button -->
-                <Button Grid.Row="1" x:Name="BtnNewDownload" Style="{StaticResource PrimarySidebarButton}" 
-                        Margin="0,18,0,18" Click="BtnNewDownload_Click">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="＋" FontSize="14" FontWeight="Bold" Margin="0,0,6,0"/>
-                        <TextBlock Text="{DynamicResource Str_NewDownload}" FontSize="12" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Button>
+                <!-- 2. Primary Action Buttons -->
+                <StackPanel Grid.Row="1" Margin="0,16,0,16">
+                    <Button x:Name="BtnNewDownload" Style="{StaticResource PrimarySidebarButton}" 
+                            Margin="0,0,0,8" Click="BtnNewDownload_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="＋" FontSize="14" FontWeight="Bold" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource Str_NewDownload}" FontSize="12" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnMediaDownload" Style="{StaticResource MediaSidebarButton}" 
+                            Click="BtnMediaDownload_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="🎬" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str_MediaDownload}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
 
                 <!-- 3. Navigation Categories (Clickable Filter Buttons) with ScrollViewer -->
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,-8,10" Padding="0,0,8,0">
@@ -665,6 +709,16 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🧹" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{DynamicResource Str_ClearCompleted}" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
+
+                            <!-- Media / YouTube Download -->
+                            <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="12,5" Click="BtnMediaDownload_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🎬" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource Str_MediaDownload}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentHighlightBrush}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>

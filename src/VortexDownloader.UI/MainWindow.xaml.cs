@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
+using VortexDownloader.Core.Media;
 using VortexDownloader.Core.Models;
 using VortexDownloader.UI.Common;
 using VortexDownloader.UI.Services;
@@ -681,6 +682,157 @@ public partial class MainWindow : Window
             catch (Exception ex)
             {
                 MessageBox.Show(this, $"İndirme başlatılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void BtnMediaDownload_Click(object sender, RoutedEventArgs e)
+    {
+        var prompt = new MediaDownloadPromptWindow(_viewModel.Engine)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        prompt.ContentRendered += (_, _) =>
+        {
+            try
+            {
+                WindowHelper.BringToFront(prompt);
+            }
+            catch { }
+        };
+
+        if (prompt.ShowDialog() == true)
+        {
+            try
+            {
+                var options = prompt.ToDownloadOptions();
+                if (string.IsNullOrWhiteSpace(options.Url) || string.IsNullOrWhiteSpace(options.DestinationPath))
+                {
+                    return;
+                }
+
+                var cts = new CancellationTokenSource();
+                var downloadItem = new DownloadItemViewModel
+                {
+                    Id = Guid.NewGuid(),
+                    FileName = Path.GetFileName(options.DestinationPath),
+                    Url = options.Url,
+                    DestinationPath = options.DestinationPath,
+                    Status = DownloadStatus.Downloading,
+                    CustomStatusText = "İndiriliyor (yt-dlp)",
+                    ChunkInfo = $"{options.ConcurrentFragments} Akış / Parça",
+                    FormattedSpeed = "Başlatılıyor...",
+                    ProgressPercentage = 0,
+                    CancelAction = () =>
+                    {
+                        try { cts.Cancel(); } catch { }
+                    }
+                };
+
+                _viewModel.Downloads.Insert(0, downloadItem);
+                _viewModel.UpdateAggregates();
+
+                var progressReporter = new Progress<MediaProgressInfo>(info =>
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        if (info.Status == MediaDownloadStatus.Downloading)
+                        {
+                            downloadItem.Status = DownloadStatus.Downloading;
+                            downloadItem.CustomStatusText = "İndiriliyor (yt-dlp)";
+                            downloadItem.ProgressPercentage = info.Percentage;
+                            if (info.TotalBytes > 0) downloadItem.TotalBytes = info.TotalBytes;
+                            if (info.DownloadedBytes > 0) downloadItem.DownloadedBytes = info.DownloadedBytes;
+                            if (!string.IsNullOrEmpty(info.SpeedText))
+                            {
+                                downloadItem.FormattedSpeed = !string.IsNullOrEmpty(info.EtaText)
+                                    ? $"{info.SpeedText} (ETA: {info.EtaText})"
+                                    : info.SpeedText;
+                            }
+                        }
+                        else if (info.Status == MediaDownloadStatus.Remuxing)
+                        {
+                            downloadItem.Status = DownloadStatus.Assembling;
+                            downloadItem.CustomStatusText = "Birleştiriliyor (FFmpeg)";
+                            downloadItem.ProgressPercentage = 99.0;
+                            downloadItem.FormattedSpeed = string.IsNullOrWhiteSpace(info.SpeedText) ? "Dönüştürülüyor..." : info.SpeedText;
+                        }
+                        else if (info.Status == MediaDownloadStatus.Completed)
+                        {
+                            downloadItem.Status = DownloadStatus.Completed;
+                            downloadItem.CustomStatusText = "Tamamlandı";
+                            downloadItem.ProgressPercentage = 100.0;
+                            downloadItem.FormattedSpeed = "Tamamlandı";
+                            _viewModel.UpdateAggregates();
+                        }
+                        else if (info.Status == MediaDownloadStatus.Error)
+                        {
+                            downloadItem.Status = DownloadStatus.Failed;
+                            downloadItem.CustomStatusText = "Hata";
+                            downloadItem.ErrorMessage = info.SpeedText;
+                            _viewModel.UpdateAggregates();
+                        }
+                    });
+                });
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var sidecar = new SidecarManager();
+                        if (sidecar.GetYtDlpPath() == null || sidecar.GetFfmpegPath() == null)
+                        {
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                downloadItem.CustomStatusText = "Bileşenler İndiriliyor...";
+                            });
+                            await sidecar.EnsureSidecarsAsync(ct: cts.Token);
+                        }
+
+                        var ytService = new YtDlpService(sidecar);
+                        await ytService.DownloadMediaAsync(options, progressReporter, cts.Token);
+
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            downloadItem.Status = DownloadStatus.Completed;
+                            downloadItem.CustomStatusText = "Tamamlandı";
+                            downloadItem.ProgressPercentage = 100.0;
+                            downloadItem.FormattedSpeed = "Tamamlandı";
+                            _viewModel.UpdateAggregates();
+                            _trayIcon?.ShowNotification("⚡ VortexDownloader", $"Medya İndirildi: {options.DestinationPath}");
+                        });
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            downloadItem.Status = DownloadStatus.Canceled;
+                            downloadItem.CustomStatusText = "İptal Edildi";
+                            _viewModel.UpdateAggregates();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            downloadItem.Status = DownloadStatus.Failed;
+                            downloadItem.CustomStatusText = "Hata";
+                            downloadItem.ErrorMessage = ex.Message;
+                            _viewModel.UpdateAggregates();
+                            MessageBox.Show(this, $"Medya indirme başarısız oldu:\n{ex.Message}", "Medya İndirme Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+                        });
+                    }
+                    finally
+                    {
+                        cts.Dispose();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Medya indirme başlatılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -3,6 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <sys:String x:Key="Str_BrandTitle">VORTEX</sys:String>
     <sys:String x:Key="Str_NewDownload">New Download</sys:String>
+    <sys:String x:Key="Str_MediaDownload">Media / Video Download</sys:String>
     <sys:String x:Key="Str_AllTasks">All Tasks</sys:String>
     <sys:String x:Key="Str_Downloading">Downloading</sys:String>
     <sys:String x:Key="Str_Paused">Paused</sys:String>

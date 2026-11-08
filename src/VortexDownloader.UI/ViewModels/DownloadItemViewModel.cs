@@ -46,16 +46,44 @@ public class DownloadItemViewModel : ViewModelBase
         set => SetProperty(ref _destinationPath, value);
     }
 
+    private string? _customStatusText;
+
+    public string? CustomStatusText
+    {
+        get => _customStatusText;
+        set
+        {
+            if (SetProperty(ref _customStatusText, value))
+            {
+                OnPropertyChanged(nameof(StatusText));
+            }
+        }
+    }
+
+    public Action? CancelAction { get; set; }
+
     public long TotalBytes
     {
         get => _totalBytes;
-        set => SetProperty(ref _totalBytes, value);
+        set
+        {
+            if (SetProperty(ref _totalBytes, value))
+            {
+                OnPropertyChanged(nameof(TotalBytesFormatted));
+            }
+        }
     }
 
     public long DownloadedBytes
     {
         get => _downloadedBytes;
-        set => SetProperty(ref _downloadedBytes, value);
+        set
+        {
+            if (SetProperty(ref _downloadedBytes, value))
+            {
+                OnPropertyChanged(nameof(DownloadedBytesFormatted));
+            }
+        }
     }
 
     public double SpeedBytesPerSec
@@ -81,17 +109,19 @@ public class DownloadItemViewModel : ViewModelBase
         }
     }
 
-    public string StatusText => Status switch
-    {
-        DownloadStatus.Queued => "Sırada",
-        DownloadStatus.Downloading => "İndiriliyor",
-        DownloadStatus.Paused => "Duraklatıldı",
-        DownloadStatus.Assembling => "Birleştiriliyor",
-        DownloadStatus.Completed => "Tamamlandı",
-        DownloadStatus.Failed => "Hata",
-        DownloadStatus.Canceled => "İptal Edildi",
-        _ => Status.ToString()
-    };
+    public string StatusText => !string.IsNullOrEmpty(_customStatusText)
+        ? _customStatusText
+        : Status switch
+        {
+            DownloadStatus.Queued => "Sırada",
+            DownloadStatus.Downloading => "İndiriliyor",
+            DownloadStatus.Paused => "Duraklatıldı",
+            DownloadStatus.Assembling => "Birleştiriliyor",
+            DownloadStatus.Completed => "Tamamlandı",
+            DownloadStatus.Failed => "Hata",
+            DownloadStatus.Canceled => "İptal Edildi",
+            _ => Status.ToString()
+        };
 
     private static readonly SolidColorBrush EmeraldBrush = FreezeBrush(new SolidColorBrush(Color.FromRgb(52, 211, 153)));
     private static readonly SolidColorBrush AmberBrush   = FreezeBrush(new SolidColorBrush(Color.FromRgb(251, 191, 36)));
