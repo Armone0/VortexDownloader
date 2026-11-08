@@ -111,8 +111,8 @@ flowchart TD
 
 ### Option 1: Download Ready-to-Run Portable Package (Recommended)
 
-1. Navigate to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases/tag/v1.5.0) page.
-2. Download **`VortexDownloader-v1.5.0-win-x64.zip`**.
+1. Navigate to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases/tag/v1.6.0) page.
+2. Download **`VortexDownloader-v1.6.0-win-x64.zip`**.
 3. Extract the ZIP archive to your preferred location.
 4. Run **`VortexDownloader.exe`**.
    * Completely **self-contained portable executable** (no external .NET runtime installation required).
