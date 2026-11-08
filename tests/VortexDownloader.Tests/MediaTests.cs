@@ -197,13 +197,13 @@ public class MediaTests
     }
 
     [Theory]
-    [InlineData("1080p", "bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best")]
-    [InlineData("720p", "bestvideo[height<=720][format_note!*=?Premium]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/best")]
-    [InlineData("480p", "bestvideo[height<=480][format_note!*=?Premium]+bestaudio/bestvideo[height<=480]+bestaudio/best[height<=480]/best")]
-    [InlineData("bestvideo+bestaudio", "bestvideo[format_note!*=?Premium]+bestaudio")]
+    [InlineData("1080p", "bestvideo[height<=1080][format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best")]
+    [InlineData("720p", "bestvideo[height<=720][format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[height<=720][format_note!*=?Premium]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/best")]
+    [InlineData("480p", "bestvideo[height<=480][format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[height<=480][format_note!*=?Premium]+bestaudio/bestvideo[height<=480]+bestaudio/best[height<=480]/best")]
+    [InlineData("bestvideo+bestaudio", "bestvideo[format_note!*=?Premium][protocol!*=?m3u8]+bestaudio")]
     [InlineData("137+140", "137+140")]
-    [InlineData("", "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
-    [InlineData(null, "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
+    [InlineData("", "bestvideo[format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
+    [InlineData(null, "bestvideo[format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best")]
     public void ResolveFormatSelector_ResolvesResolutionOrCustomFormatId(string? input, string expected)
     {
         var result = YtDlpService.ResolveFormatSelector(input);
@@ -229,7 +229,7 @@ public class MediaTests
         Assert.Contains("--newline", args);
         Assert.Contains("--progress", args);
         Assert.Contains("--concurrent-fragments 16", args);
-        Assert.Contains("-f \"bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best\"", args);
+        Assert.Contains("-f \"bestvideo[height<=1080][format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[height<=1080][format_note!*=?Premium]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best\"", args);
         Assert.Contains("--merge-output-format mp4", args);
         Assert.Contains(@"--ffmpeg-location ""C:\Tools\ffmpeg.exe""", args);
         Assert.Contains("--write-subs --sub-langs all --embed-subs", args);

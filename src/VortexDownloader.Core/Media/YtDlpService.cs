@@ -215,7 +215,7 @@ public class YtDlpService
         }
 
         var jsRuntime = ResolveJsRuntime();
-        var jsRuntimeArg = !string.IsNullOrEmpty(jsRuntime) ? $"--js-runtimes {jsRuntime} " : string.Empty;
+        var jsRuntimeArg = !string.IsNullOrEmpty(jsRuntime) ? $"--js-runtimes \"{jsRuntime}\" " : string.Empty;
         var arguments = $"{jsRuntimeArg}--dump-single-json --no-warnings --no-playlist -- \"{cleanUrl}\"";
         var result = await _processRunner.RunAsync(ytDlpPath, arguments, ct: ct);
 
@@ -309,7 +309,7 @@ public class YtDlpService
         var jsRuntime = ResolveJsRuntime();
         if (!string.IsNullOrEmpty(jsRuntime))
         {
-            args.Append($"--js-runtimes {jsRuntime} ");
+            args.Append($"--js-runtimes \"{jsRuntime}\" ");
         }
 
         args.Append("--newline --progress --no-playlist --windows-filenames --no-mtime ");
@@ -346,22 +346,22 @@ public class YtDlpService
     {
         if (string.IsNullOrWhiteSpace(selectedFormatId))
         {
-            return "bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best";
+            return "bestvideo[format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[format_note!*=?Premium]+bestaudio/bestvideo+bestaudio/best";
         }
 
         var trimmed = selectedFormatId.Trim();
 
-        // örn. "1080p", "720p", "480p", "360p"
+        // örn. "1080p", "720p", "480p", "360p", "1440p", "2160p"
         if (trimmed.EndsWith("p", StringComparison.OrdinalIgnoreCase) &&
             int.TryParse(trimmed[..^1], out var height) && height > 0)
         {
-            return $"bestvideo[height<={height}][format_note!*=?Premium]+bestaudio/bestvideo[height<={height}]+bestaudio/best[height<={height}]/best";
+            return $"bestvideo[height<={height}][format_note!*=?Premium][protocol!*=?m3u8]+bestaudio[protocol!*=?m3u8]/bestvideo[height<={height}][format_note!*=?Premium]+bestaudio/bestvideo[height<={height}]+bestaudio/best[height<={height}]/best";
         }
 
         if (trimmed.Contains("bestvideo", StringComparison.OrdinalIgnoreCase) &&
             !trimmed.Contains("format_note", StringComparison.OrdinalIgnoreCase))
         {
-            return trimmed.Replace("bestvideo", "bestvideo[format_note!*=?Premium]");
+            return trimmed.Replace("bestvideo", "bestvideo[format_note!*=?Premium][protocol!*=?m3u8]");
         }
 
         return trimmed;
