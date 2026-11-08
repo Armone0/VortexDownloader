@@ -35,7 +35,7 @@ public class AppSettings
     public int DefaultChunkCount { get; set; } = 8;
     public bool ShutdownWhenCompleted { get; set; } = false;
     public bool CloseToTray { get; set; } = true;
-    public bool AutoStartBrowserDownloads { get; set; } = true;
+    public bool AutoStartBrowserDownloads { get; set; } = false;
 
     public static string GetDefaultDownloadPath()
     {

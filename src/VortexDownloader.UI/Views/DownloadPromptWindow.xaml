@@ -1,8 +1,8 @@
 <Window x:Class="VortexDownloader.UI.Views.DownloadPromptWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VortexDownloader - Yeni İndirme"
-        Height="440" Width="620"
+        Title="VortexDownloader - Dosya İndirme Bilgisi"
+        Height="660" Width="680"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -11,15 +11,16 @@
 
     <Window.Resources>
         <!-- Modern Glow Border Effect -->
-        <DropShadowEffect x:Key="WindowShadow" BlurRadius="28" Color="#00F2FE" Opacity="0.25" ShadowDepth="0"/>
+        <DropShadowEffect x:Key="WindowShadow" BlurRadius="30" Color="#00F2FE" Opacity="0.25" ShadowDepth="0"/>
 
-        <!-- Action Button Style -->
+        <!-- Primary Action Button (Vortex Fast Download) -->
         <Style x:Key="PrimaryGradientButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Foreground" Value="#090D16"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Padding" Value="18,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -45,13 +46,48 @@
             </Setter>
         </Style>
 
+        <!-- Browser Fallback Button (Purple Accent) -->
+        <Style x:Key="BrowserFallbackButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#8B5CF6" Offset="0.0"/>
+                                    <GradientStop Color="#6366F1" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Dark Button (Cancel, Queue, Browse) -->
         <Style x:Key="SecondaryDarkButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="#1E293B"/>
             <Setter Property="Foreground" Value="#F8FAFC"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Padding" Value="14,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -70,22 +106,213 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Quick Select Chip Button -->
+        <Style x:Key="ChipButtonStyle" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="chipBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="chipBorder" Property="Background" Value="#2A374D"/>
+                                <Setter TargetName="chipBorder" Property="BorderBrush" Value="#00F2FE"/>
+                                <Setter Property="Foreground" Value="#00F2FE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="chipBorder" Property="Background" Value="#00F2FE"/>
+                                <Setter Property="Foreground" Value="#090D16"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Dark TextBox -->
+        <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#141C2E"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#00F2FE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Dark PasswordBox -->
+        <Style x:Key="ModernPasswordBoxStyle" TargetType="PasswordBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#141C2E"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#00F2FE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox Toggle Button Template -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border x:Name="templateRoot" Background="{TemplateBinding Background}" 
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                    CornerRadius="6" SnapsToDevicePixels="true">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="28"/>
+                    </Grid.ColumnDefinitions>
+                    <Path x:Name="arrow" Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#94A3B8" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter Property="BorderBrush" TargetName="templateRoot" Value="#00F2FE"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Modern ComboBox Style -->
+        <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#141C2E"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                            <ToggleButton x:Name="toggleButton" Background="{TemplateBinding Background}" 
+                                          BorderBrush="{TemplateBinding BorderBrush}" 
+                                          BorderThickness="{TemplateBinding BorderThickness}" 
+                                          ClickMode="Press" Focusable="false" 
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                          Template="{StaticResource ComboBoxToggleButtonTemplate}"/>
+                            <ContentPresenter x:Name="contentPresenter" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" 
+                                              HorizontalAlignment="Left" IsHitTestVisible="false" 
+                                              Margin="12,0,30,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                              VerticalAlignment="Center"/>
+                            <Popup x:Name="PART_Popup" AllowsTransparency="true" Focusable="false" 
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                                   Placement="Bottom" PopupAnimation="Slide">
+                                <Border x:Name="dropDownBorder" Background="#141C2E" 
+                                        BorderBrush="#334155" 
+                                        BorderThickness="1" CornerRadius="8" 
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}" 
+                                        MinWidth="{Binding ActualWidth, ElementName=templateRoot}" 
+                                        SnapsToDevicePixels="true" Margin="0,3,0,0">
+                                    <ScrollViewer x:Name="DropDownScrollViewer" Margin="2">
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" 
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}" Margin="2,1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1E293B"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#25334D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Outer Container with Shadow -->
     <Border Margin="14" CornerRadius="14" Background="#0C101B" BorderBrush="#1E293B" BorderThickness="1" Effect="{StaticResource WindowShadow}">
-        <Grid Margin="24">
+        <Grid Margin="22">
             <Grid.RowDefinitions>
                 <!-- Header with Drag and Logo -->
                 <RowDefinition Height="Auto"/>
-                <!-- Form Inputs -->
+                <!-- Form Inputs (Scrollable) -->
                 <RowDefinition Height="*"/>
                 <!-- Footer Buttons -->
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <Grid Grid.Row="0" Margin="0,0,0,18" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Margin="0,0,0,14" MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -93,7 +320,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Abstract Logo Thumbnail -->
-                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Margin="0,0,14,0">
+                <Border Grid.Column="0" Width="42" Height="42" CornerRadius="10" Margin="0,0,12,0">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                             <GradientStop Color="#00F2FE" Offset="0"/>
@@ -106,96 +333,187 @@
                 <!-- Titles -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="YENİ İNDİRME YAKALANDI" FontSize="11" FontWeight="Bold" Foreground="#00F2FE" Margin="0,0,8,0"/>
+                        <TextBlock Text="DOSYA İNDİRME BİLGİSİ" FontSize="11" FontWeight="Bold" Foreground="#00F2FE" Margin="0,0,8,0"/>
                         <Border Background="#1E293B" CornerRadius="4" Padding="6,2">
-                            <TextBlock Text="Tarayıcı Yakalama" FontSize="10" Foreground="#94A3B8"/>
+                            <TextBlock Text="IDM Hızlı İndirici" FontSize="10" Foreground="#94A3B8"/>
                         </Border>
                     </StackPanel>
-                    <TextBlock x:Name="TxtHeaderFileName" Text="Dosya bilgisi alınıyor..." FontSize="16" FontWeight="Bold" Foreground="#F8FAFC" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                    <TextBlock x:Name="TxtHeaderFileName" Text="Dosya bilgisi alınıyor..." FontSize="15" FontWeight="Bold" Foreground="#F8FAFC" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                 </StackPanel>
 
                 <!-- Close Button -->
                 <Button Grid.Column="2" Content="✕" Width="30" Height="30" Background="Transparent" Foreground="#64748B" BorderThickness="0" FontSize="14" Cursor="Hand" Click="BtnClose_Click"/>
             </Grid>
 
-            <!-- Form Body -->
-            <StackPanel Grid.Row="1" Margin="0,4,0,16">
-                <!-- URL Display Card -->
-                <Border Background="#141C2E" CornerRadius="8" Padding="12,10" Margin="0,0,0,12" BorderBrush="#1E293B" BorderThickness="1">
-                    <Grid>
+            <!-- Form Body with Smooth Scroll -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" Margin="0,0,-8,0" Padding="0,0,8,0">
+                <StackPanel Margin="0,0,0,8">
+                    <!-- URL Display Card -->
+                    <Border Background="#141C2E" CornerRadius="8" Padding="12,8" Margin="0,0,0,10" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="🔗" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" x:Name="TxtUrl" Text="https://..." FontSize="12" Foreground="#94A3B8" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Category (Kategori) Selection -->
+                    <StackPanel Margin="0,0,0,10">
+                        <TextBlock Text="KATEGORİ" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbCategory" Style="{StaticResource ModernComboBoxStyle}" SelectionChanged="CmbCategory_SelectionChanged">
+                            <ComboBoxItem Tag="General" IsSelected="True">
+                                <TextBlock Text="📁 Genel (Downloads)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                            <ComboBoxItem Tag="Compressed">
+                                <TextBlock Text="🗜️ Sıkıştırılmış / Arşiv (Downloads\Compressed)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                            <ComboBoxItem Tag="Programs">
+                                <TextBlock Text="💻 Programlar &amp; Kurulum (Downloads\Programs)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                            <ComboBoxItem Tag="Video">
+                                <TextBlock Text="🎬 Videolar (Downloads\Video)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                            <ComboBoxItem Tag="Music">
+                                <TextBlock Text="🎵 Müzik &amp; Ses (Downloads\Music)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                            <ComboBoxItem Tag="Documents">
+                                <TextBlock Text="📄 Belgeler (Downloads\Documents)" Foreground="#F8FAFC"/>
+                            </ComboBoxItem>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- File Info Details (Name, Size & Range Support Badge) -->
+                    <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="🔗" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" x:Name="TxtUrl" Text="https://..." FontSize="12" Foreground="#94A3B8" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+
+                        <!-- Save As File Name -->
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="KAYDEDİLECEK DOSYA ADI" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtFileName" Style="{StaticResource ModernTextBoxStyle}" FontSize="13" TextChanged="TxtFileName_TextChanged"/>
+                        </StackPanel>
+
+                        <!-- File Size & Range Badge -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="BOYUT &amp; DURUM" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="#1E293B" CornerRadius="6" Padding="12,7" BorderBrush="#334155" BorderThickness="1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtFileSize" Text="Hesaplanıyor..." FontSize="12" FontWeight="Bold" Foreground="#00F2FE"/>
+                                </Border>
+                                <Border x:Name="BadgeRange" Background="#1E293B" CornerRadius="6" Padding="10,7" BorderBrush="#334155" BorderThickness="1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtRangeSupport" Text="⏳ Range: Kontrol Ediliyor..." FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
                     </Grid>
-                </Border>
 
-                <!-- File Info Details -->
-                <Grid Margin="0,0,0,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <!-- Destination Directory -->
+                    <TextBlock Text="KAYDEDİLECEK KLASÖR" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" x:Name="TxtDestPath" Style="{StaticResource ModernTextBoxStyle}" IsReadOnly="True" Margin="0,0,8,0"/>
+                        <Button Grid.Column="1" Content="Seç..." Style="{StaticResource SecondaryDarkButton}" Padding="16,6" Click="BtnBrowseFolder_Click"/>
+                    </Grid>
 
-                    <!-- Save As File Name -->
-                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="KAYDEDİLECEK DOSYA ADI" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
-                        <TextBox x:Name="TxtFileName" Background="#141C2E" Foreground="#F8FAFC" BorderBrush="#334155" BorderThickness="1" Padding="10,8" FontSize="13" TextChanged="TxtFileName_TextChanged"/>
-                    </StackPanel>
+                    <!-- Dynamic Chunk Count Selection & Quick Select Badges -->
+                    <Border Background="#141C2E" CornerRadius="8" Padding="12,9" Margin="0,0,0,10" BorderBrush="#1E293B" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                    <!-- File Size Pill -->
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="BOYUT" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
-                        <Border Background="#1E293B" CornerRadius="6" Padding="14,8" BorderBrush="#334155" BorderThickness="1">
-                            <TextBlock x:Name="TxtFileSize" Text="Hesaplanıyor..." FontSize="13" FontWeight="Bold" Foreground="#00F2FE"/>
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Dinamik Bağlantı Kanalı (Parça Sayısı)" FontSize="12" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                    <TextBlock Text="Bant genişliğini doyurmak için çoklu soket açılır" FontSize="10" Foreground="#64748B"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Hızlı:" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <Button Content="1" Style="{StaticResource ChipButtonStyle}" Tag="1" Click="BtnChipChunk_Click"/>
+                                    <Button Content="4" Style="{StaticResource ChipButtonStyle}" Tag="4" Click="BtnChipChunk_Click"/>
+                                    <Button Content="8" Style="{StaticResource ChipButtonStyle}" Tag="8" Click="BtnChipChunk_Click"/>
+                                    <Button Content="16" Style="{StaticResource ChipButtonStyle}" Tag="16" Click="BtnChipChunk_Click"/>
+                                    <Button Content="32" Style="{StaticResource ChipButtonStyle}" Tag="32" Click="BtnChipChunk_Click"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SliderChunks" Grid.Column="0" Minimum="1" Maximum="32" Value="8" Margin="0,0,10,0" 
+                                        TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChunks_ValueChanged"/>
+                                <Border Grid.Column="1" Background="#00F2FE" CornerRadius="4" Padding="10,2" MinWidth="40" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TxtChunkCount" Text="8" FontSize="12" FontWeight="Bold" Foreground="#090D16" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Authentication Expander (HTTP Auth) -->
+                    <Expander Header="🔒 Giriş Bilgileri (HTTP Auth)" Margin="0,0,0,8" Foreground="#94A3B8" FontSize="12" FontWeight="SemiBold">
+                        <Border Background="#141C2E" CornerRadius="8" Padding="12,8" Margin="0,4,0,0" BorderBrush="#1E293B" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Kullanıcı Adı" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="TxtAuthUser" Style="{StaticResource ModernTextBoxStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Şifre" FontSize="11" Foreground="#64748B" Margin="0,0,0,4"/>
+                                    <PasswordBox x:Name="TxtAuthPassword" Style="{StaticResource ModernPasswordBoxStyle}"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                </Grid>
+                    </Expander>
 
-                <!-- Destination Directory -->
-                <TextBlock Text="KAYDEDİLECEK KLASÖR" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
-                <Grid Margin="0,0,0,14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" x:Name="TxtDestPath" Background="#141C2E" Foreground="#94A3B8" BorderBrush="#334155" BorderThickness="1" Padding="10,8" FontSize="12" IsReadOnly="True" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="Seç..." Style="{StaticResource SecondaryDarkButton}" Click="BtnBrowseFolder_Click"/>
-                </Grid>
-
-                <!-- Dynamic Chunk Count Selection -->
-                <Grid Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Dinamik Bağlantı Kanalı (Parça Sayısı)" FontSize="12" FontWeight="SemiBold" Foreground="#F8FAFC"/>
-                        <TextBlock Text="Bant genişliğini sonuna kadar doyurmak için paralel kanal açılır" FontSize="11" Foreground="#64748B"/>
+                    <!-- Description / Note Field -->
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock Text="AÇIKLAMA / NOT (İsteğe Bağlı)" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtDescription" Style="{StaticResource ModernTextBoxStyle}"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Slider x:Name="SliderChunks" Minimum="1" Maximum="32" Value="8" Width="140" Margin="0,0,10,0" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChunks_ValueChanged"/>
-                        <Border Background="#00F2FE" CornerRadius="4" Padding="8,2" Width="36" HorizontalAlignment="Center">
-                            <TextBlock x:Name="TxtChunkCount" Text="8" FontSize="12" FontWeight="Bold" Foreground="#090D16" HorizontalAlignment="Center"/>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
 
-            <!-- Footer Buttons -->
-            <Grid Grid.Row="2" Margin="0,8,0,0">
+                    <!-- Don't ask again CheckBox -->
+                    <CheckBox x:Name="ChkDontAskAgain" Content="Bunu bir daha sorma, her zaman Vortex ile otomatik başlat" 
+                              Foreground="#94A3B8" FontSize="11" Margin="2,4,0,4" Cursor="Hand"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Action Buttons -->
+            <Grid Grid.Row="2" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0" Content="Daha Sonra İndir (Kuyruğa Ekle)" Style="{StaticResource SecondaryDarkButton}" HorizontalAlignment="Left" Click="BtnQueue_Click"/>
+                <!-- Left: Cancel -->
+                <Button Grid.Column="0" Content="✕ İptal" Style="{StaticResource SecondaryDarkButton}" Click="BtnClose_Click"/>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="İptal" Style="{StaticResource SecondaryDarkButton}" Margin="0,0,10,0" Click="BtnClose_Click"/>
-                    <Button Content="⚡ Hemen İndir" Style="{StaticResource PrimaryGradientButton}" Click="BtnDownloadNow_Click"/>
+                <!-- Right Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="⏳ Kuyruğa Ekle" Style="{StaticResource SecondaryDarkButton}" Margin="0,0,8,0" Click="BtnQueue_Click"/>
+                    <Button Content="🌐 Tarayıcı ile İndir (Normal)" Style="{StaticResource BrowserFallbackButton}" Margin="0,0,8,0" Click="BtnDownloadWithBrowser_Click"/>
+                    <Button Content="⚡ Vortex ile İndir" Style="{StaticResource PrimaryGradientButton}" Click="BtnDownloadNow_Click"/>
                 </StackPanel>
             </Grid>
         </Grid>

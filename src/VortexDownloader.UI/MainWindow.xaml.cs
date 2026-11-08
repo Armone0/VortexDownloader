@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
     private readonly Queue<BrowserPromptItem> _browserPromptQueue = new();
     private bool _isPromptShowing = false;
     private string? _activePromptUrl = null;
+    private readonly ConcurrentDictionary<string, DateTime> _fallbackBrowserUrls = new(StringComparer.OrdinalIgnoreCase);
 
     public MainWindow()
     {
@@ -313,6 +316,28 @@ public partial class MainWindow : Window
                         return;
                     }
 
+                    // Check if this URL is marked for browser fallback
+                    if (_fallbackBrowserUrls.TryGetValue(effectiveUrl, out var expireTime) ||
+                        _fallbackBrowserUrls.TryGetValue(uri.AbsoluteUri, out expireTime))
+                    {
+                        if (DateTime.UtcNow <= expireTime)
+                        {
+                            BridgeLog($"<-- 409 Conflict: URL is in browser fallback list (delegated to browser): '{effectiveUrl}'");
+                            context.Response.StatusCode = 409;
+                            context.Response.ContentType = "application/json";
+                            using (var conflictWriter = new StreamWriter(context.Response.OutputStream))
+                            {
+                                await conflictWriter.WriteAsync("{\"status\":\"browser_fallback\"}");
+                            }
+                            return;
+                        }
+                        else
+                        {
+                            _fallbackBrowserUrls.TryRemove(effectiveUrl, out _);
+                            _fallbackBrowserUrls.TryRemove(uri.AbsoluteUri, out _);
+                        }
+                    }
+
                     string safeFileName = SanitizeFileName(data?.FileName);
                     string? referrer = data?.EffectiveReferrer;
                     BridgeLog($"<-- 200 OK: Enqueued download for '{safeFileName}' ({uri.AbsoluteUri}) | Size: {data?.FileSize} bytes");
@@ -505,9 +530,24 @@ public partial class MainWindow : Window
 
         if (prompt.ShowDialog() == true)
         {
+            if (prompt.DownloadWithBrowser)
+            {
+                _fallbackBrowserUrls[url] = DateTime.UtcNow.AddSeconds(30);
+                try
+                {
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    BridgeLog($"Failed to open fallback URL in browser: {ex.Message}");
+                }
+                _trayIcon?.ShowNotification("🌐 VortexDownloader", $"İndirme tarayıcıya devredildi: {prompt.ResultFileName}");
+                return;
+            }
+
             try
             {
-                await _viewModel.Engine.AddDownloadAsync(
+                var task = await _viewModel.Engine.AddDownloadAsync(
                     prompt.ResultUrl,
                     prompt.ResultDestinationPath,
                     prompt.ResultChunkCount,
@@ -516,6 +556,8 @@ public partial class MainWindow : Window
                     cookies: prompt.Cookies,
                     referrer: prompt.Referrer,
                     userAgent: prompt.UserAgent);
+
+                _trayIcon?.ShowNotification("⚡ VortexDownloader", $"İndirme Başlatıldı: {task.FileName}");
             }
             catch (Exception ex)
             {

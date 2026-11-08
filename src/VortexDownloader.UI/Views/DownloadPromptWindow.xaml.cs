@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.UI.Services;
 
@@ -10,15 +12,21 @@ public partial class DownloadPromptWindow : Window
 {
     private readonly DownloadEngine _engine;
     private string _currentDirectory;
+    private bool _isInternalCategoryUpdating;
 
     public string ResultUrl { get; private set; }
     public string ResultDestinationPath { get; private set; } = string.Empty;
+    public string ResultFileName => TxtFileName?.Text?.Trim() ?? string.Empty;
     public int ResultChunkCount { get; private set; } = 8;
     public bool StartImmediately { get; private set; } = true;
+    public bool DownloadWithBrowser { get; private set; } = false;
     public UrlMetadata? CachedMetadata { get; private set; }
     public string? Cookies { get; set; }
     public string? Referrer { get; set; }
     public string? UserAgent { get; set; }
+    public string? Description { get; private set; }
+    public string? AuthUsername { get; private set; }
+    public string? AuthPassword { get; private set; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -39,30 +47,36 @@ public partial class DownloadPromptWindow : Window
         _engine = engine;
         ResultUrl = url;
         ResultChunkCount = AppSettings.Current.DefaultChunkCount;
+        SliderChunks.Value = ResultChunkCount;
+        TxtChunkCount.Text = ResultChunkCount.ToString();
         Cookies = cookies;
         Referrer = referrer;
         UserAgent = userAgent;
 
         TxtUrl.Text = url;
-        _currentDirectory = AppSettings.Current.DefaultDownloadDirectory;
+        _currentDirectory = GetBaseDownloadDirectory();
         TxtDestPath.Text = _currentDirectory;
 
-        if (!string.IsNullOrWhiteSpace(suggestedFileName))
-        {
-            TxtFileName.Text = suggestedFileName;
-            TxtHeaderFileName.Text = suggestedFileName;
-        }
+        string initialName = !string.IsNullOrWhiteSpace(suggestedFileName) ? suggestedFileName : "download.bin";
+        TxtFileName.Text = initialName;
+        TxtHeaderFileName.Text = initialName;
+
+        AutoSelectCategory(initialName);
 
         if (size.HasValue && size.Value > 0)
         {
             TxtFileSize.Text = FormatBytes(size.Value);
-            // Preload metadata to prevent single-use token burn
+            UpdateRangeBadge(true);
             CachedMetadata = new UrlMetadata(
                 url,
-                suggestedFileName ?? "download.bin",
+                initialName,
                 size.Value,
                 SupportsRange: true,
                 ETag: null);
+        }
+        else
+        {
+            UpdateRangeBadge(null);
         }
 
         Loaded += DownloadPromptWindow_Loaded;
@@ -86,6 +100,7 @@ public partial class DownloadPromptWindow : Window
             {
                 TxtFileName.Text = meta.SuggestedFileName;
                 TxtHeaderFileName.Text = meta.SuggestedFileName;
+                AutoSelectCategory(meta.SuggestedFileName);
             }
             if (meta.ContentLength > 0)
             {
@@ -95,6 +110,8 @@ public partial class DownloadPromptWindow : Window
             {
                 TxtFileSize.Text = "Bilinmiyor (Akış)";
             }
+
+            UpdateRangeBadge(meta.SupportsRange);
         }
         catch
         {
@@ -104,6 +121,7 @@ public partial class DownloadPromptWindow : Window
                 TxtHeaderFileName.Text = "download.bin";
             }
             TxtFileSize.Text = "Belirsiz";
+            UpdateRangeBadge(null);
         }
 
         UpdateDestinationPath();
@@ -139,9 +157,12 @@ public partial class DownloadPromptWindow : Window
         }
     }
 
-    private void TxtFileName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    private void TxtFileName_TextChanged(object sender, TextChangedEventArgs e)
     {
-        TxtHeaderFileName.Text = string.IsNullOrWhiteSpace(TxtFileName.Text) ? "İsimsiz İndirme" : TxtFileName.Text;
+        if (TxtHeaderFileName != null)
+        {
+            TxtHeaderFileName.Text = string.IsNullOrWhiteSpace(TxtFileName.Text) ? "İsimsiz İndirme" : TxtFileName.Text;
+        }
         UpdateDestinationPath();
     }
 
@@ -155,16 +176,139 @@ public partial class DownloadPromptWindow : Window
         }
     }
 
+    private void BtnChipChunk_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out int val))
+        {
+            SliderChunks.Value = val;
+        }
+    }
+
+    private void CmbCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInternalCategoryUpdating || CmbCategory == null || TxtDestPath == null) return;
+
+        if (CmbCategory.SelectedItem is ComboBoxItem selected && selected.Tag is string tag)
+        {
+            string baseDir = GetBaseDownloadDirectory();
+            _currentDirectory = GetCategoryDirectory(tag, baseDir);
+            TxtDestPath.Text = _currentDirectory;
+            UpdateDestinationPath();
+        }
+    }
+
+    public static string DetectCategoryFromExtension(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return "General";
+        string ext = Path.GetExtension(fileName).Trim().ToLowerInvariant();
+        return ext switch
+        {
+            ".zip" or ".rar" or ".7z" or ".iso" or ".tar" or ".gz" or ".bz2" or ".xz" or ".tgz" => "Compressed",
+            ".exe" or ".msi" or ".apk" or ".bat" or ".cmd" or ".dmg" or ".pkg" or ".deb" or ".rpm" => "Programs",
+            ".mp4" or ".mkv" or ".avi" or ".webm" or ".mov" or ".flv" or ".wmv" or ".m4v" or ".ts" => "Video",
+            ".mp3" or ".flac" or ".wav" or ".aac" or ".ogg" or ".m4a" or ".wma" or ".opus" => "Music",
+            ".pdf" or ".docx" or ".doc" or ".xlsx" or ".xls" or ".pptx" or ".ppt" or ".txt" or ".epub" or ".csv" => "Documents",
+            _ => "General"
+        };
+    }
+
+    private void AutoSelectCategory(string fileName)
+    {
+        string detectedTag = DetectCategoryFromExtension(fileName);
+        _isInternalCategoryUpdating = true;
+        try
+        {
+            if (CmbCategory != null)
+            {
+                foreach (var obj in CmbCategory.Items)
+                {
+                    if (obj is ComboBoxItem item && item.Tag is string tag &&
+                        tag.Equals(detectedTag, StringComparison.OrdinalIgnoreCase))
+                    {
+                        CmbCategory.SelectedItem = item;
+                        string baseDir = GetBaseDownloadDirectory();
+                        _currentDirectory = GetCategoryDirectory(tag, baseDir);
+                        TxtDestPath.Text = _currentDirectory;
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _isInternalCategoryUpdating = false;
+        }
+    }
+
+    private static string GetCategoryDirectory(string tag, string baseDir)
+    {
+        return tag switch
+        {
+            "Compressed" => Path.Combine(baseDir, "Compressed"),
+            "Programs" => Path.Combine(baseDir, "Programs"),
+            "Video" => Path.Combine(baseDir, "Video"),
+            "Music" => Path.Combine(baseDir, "Music"),
+            "Documents" => Path.Combine(baseDir, "Documents"),
+            _ => baseDir
+        };
+    }
+
+    private static string GetBaseDownloadDirectory()
+    {
+        string targetDir = AppSettings.Current.DefaultDownloadDirectory;
+        if (string.IsNullOrWhiteSpace(targetDir) || !Directory.Exists(targetDir))
+        {
+            targetDir = AppSettings.GetDefaultDownloadPath();
+        }
+        return targetDir;
+    }
+
+    private void UpdateRangeBadge(bool? supportsRange)
+    {
+        if (BadgeRange == null || TxtRangeSupport == null) return;
+
+        if (supportsRange == true)
+        {
+            BadgeRange.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
+            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+            TxtRangeSupport.Text = "⚡ Range: Destekleniyor";
+            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+        }
+        else if (supportsRange == false)
+        {
+            BadgeRange.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
+            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+            TxtRangeSupport.Text = "⚠️ Range: Yok (Tek Parça)";
+            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+        }
+        else
+        {
+            BadgeRange.Background = new SolidColorBrush(Color.FromRgb(30, 41, 59));
+            BadgeRange.BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85));
+            TxtRangeSupport.Text = "⏳ Range: Kontrol Ediliyor...";
+            TxtRangeSupport.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+        }
+    }
+
     private void BtnQueue_Click(object sender, RoutedEventArgs e)
     {
+        DownloadWithBrowser = false;
         StartImmediately = false;
         ConfirmAndClose();
     }
 
     private void BtnDownloadNow_Click(object sender, RoutedEventArgs e)
     {
+        DownloadWithBrowser = false;
         StartImmediately = true;
         ConfirmAndClose();
+    }
+
+    private void BtnDownloadWithBrowser_Click(object sender, RoutedEventArgs e)
+    {
+        DownloadWithBrowser = true;
+        DialogResult = true;
+        Close();
     }
 
     private void ConfirmAndClose()
@@ -178,15 +322,47 @@ public partial class DownloadPromptWindow : Window
 
         try
         {
-            Directory.CreateDirectory(_currentDirectory);
-            string testFile = Path.Combine(_currentDirectory, $".vortex_perm_{Guid.NewGuid():N}.tmp");
-            File.WriteAllText(testFile, "ok");
-            File.Delete(testFile);
+            string? dir = Path.GetDirectoryName(ResultDestinationPath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                string testFile = Path.Combine(dir, $".vortex_perm_{Guid.NewGuid():N}.tmp");
+                File.WriteAllText(testFile, "ok");
+                File.Delete(testFile);
+            }
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Seçilen hedef klasöre yazma izni bulunmuyor:\n{ex.Message}\nLütfen farklı bir klasör seçin.", "Erişim Reddedildi", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        if (ChkDontAskAgain.IsChecked == true)
+        {
+            AppSettings.Current.AutoStartBrowserDownloads = true;
+            AppSettings.Current.Save();
+        }
+
+        Description = TxtDescription.Text.Trim();
+        AuthUsername = TxtAuthUser.Text.Trim();
+        AuthPassword = TxtAuthPassword.Password;
+
+        if (!string.IsNullOrWhiteSpace(AuthUsername))
+        {
+            try
+            {
+                var uriB = new UriBuilder(ResultUrl);
+                uriB.UserName = Uri.EscapeDataString(AuthUsername);
+                if (!string.IsNullOrEmpty(AuthPassword))
+                {
+                    uriB.Password = Uri.EscapeDataString(AuthPassword);
+                }
+                ResultUrl = uriB.Uri.AbsoluteUri;
+            }
+            catch { }
         }
 
         DialogResult = true;
@@ -195,6 +371,8 @@ public partial class DownloadPromptWindow : Window
 
     private void UpdateDestinationPath()
     {
+        if (TxtFileName == null || string.IsNullOrEmpty(_currentDirectory)) return;
+
         string fileName = Path.GetFileName(TxtFileName.Text.Trim());
         char[] invalid = Path.GetInvalidFileNameChars();
         foreach (char c in invalid)
@@ -206,8 +384,8 @@ public partial class DownloadPromptWindow : Window
             fileName = "download.bin";
         }
 
-        string target = Path.GetFullPath(Path.Combine(_currentDirectory, fileName));
         string currentDir = Path.GetFullPath(_currentDirectory);
+        string target = Path.GetFullPath(Path.Combine(currentDir, fileName));
         if (!target.StartsWith(currentDir, StringComparison.OrdinalIgnoreCase))
         {
             target = Path.Combine(currentDir, "download.bin");
