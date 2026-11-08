@@ -72,17 +72,6 @@ public partial class MainWindow : Window
         _trayIcon.FrameChanged += OnTrayFrameChanged;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-        MediaSidePanelControl.Initialize(_viewModel.Engine);
-        MediaSidePanelControl.CloseRequested += () =>
-        {
-            MediaSidePanelBorder.Visibility = Visibility.Collapsed;
-        };
-        MediaSidePanelControl.DownloadRequested += (options, startImmediately) =>
-        {
-            MediaSidePanelBorder.Visibility = Visibility.Collapsed;
-            ExecuteMediaDownload(options, startImmediately);
-        };
-
         StartBrowserExtensionBridge();
         Log("MainWindow constructor end");
     }
@@ -699,20 +688,25 @@ public partial class MainWindow : Window
 
     private void BtnMediaDownload_Click(object sender, RoutedEventArgs e)
     {
-        if (MediaSidePanelBorder.Visibility == Visibility.Visible)
+        var prompt = new MediaDownloadPromptWindow(_viewModel.Engine)
         {
-            MediaSidePanelBorder.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            if (WindowState == WindowState.Normal && ActualWidth < 1280)
-            {
-                var workArea = SystemParameters.WorkArea;
-                Width = Math.Min(ActualWidth + 460, workArea.Width);
-            }
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
 
-            MediaSidePanelBorder.Visibility = Visibility.Visible;
-            MediaSidePanelControl.CheckClipboardAndPopulate();
+        prompt.ContentRendered += (_, _) =>
+        {
+            try
+            {
+                WindowHelper.BringToFront(prompt);
+            }
+            catch { }
+        };
+
+        if (prompt.ShowDialog() == true)
+        {
+            var options = prompt.ToDownloadOptions();
+            ExecuteMediaDownload(options, prompt.StartImmediately);
         }
     }
 
@@ -777,6 +771,16 @@ public partial class MainWindow : Window
                         downloadItem.CustomStatusText = "Tamamlandı";
                         downloadItem.ProgressPercentage = 100.0;
                         downloadItem.FormattedSpeed = "Tamamlandı";
+                        if (File.Exists(options.DestinationPath))
+                        {
+                            try
+                            {
+                                var fi = new FileInfo(options.DestinationPath);
+                                downloadItem.TotalBytes = fi.Length;
+                                downloadItem.DownloadedBytes = fi.Length;
+                            }
+                            catch { }
+                        }
                         _viewModel.UpdateAggregates();
                     }
                     else if (info.Status == MediaDownloadStatus.Error)
@@ -812,6 +816,16 @@ public partial class MainWindow : Window
                         downloadItem.CustomStatusText = "Tamamlandı";
                         downloadItem.ProgressPercentage = 100.0;
                         downloadItem.FormattedSpeed = "Tamamlandı";
+                        if (File.Exists(options.DestinationPath))
+                        {
+                            try
+                            {
+                                var fi = new FileInfo(options.DestinationPath);
+                                downloadItem.TotalBytes = fi.Length;
+                                downloadItem.DownloadedBytes = fi.Length;
+                            }
+                            catch { }
+                        }
                         _viewModel.UpdateAggregates();
                         _trayIcon?.ShowNotification("⚡ VortexDownloader", $"Medya İndirildi: {options.DestinationPath}");
                     });

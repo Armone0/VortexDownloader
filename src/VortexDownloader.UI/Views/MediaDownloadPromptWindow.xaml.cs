@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Media;
+using VortexDownloader.Core.Models;
 using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
@@ -22,13 +23,14 @@ public partial class MediaDownloadPromptWindow : Window
     private string _currentDirectory;
     private bool _isInternalSelectionUpdating;
     private CancellationTokenSource? _thumbnailCts;
+    private MediaMetadata? _lastMetadata;
 
     // Public Result Properties for Engine & ViewModels
     public string ResultUrl { get; private set; } = string.Empty;
     public string ResultDestinationPath { get; private set; } = string.Empty;
     public string ResultTitle { get; private set; } = string.Empty;
     public string SelectedQuality { get; private set; } = "1080p";
-    public string SelectedFormatId { get; private set; } = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
+    public string SelectedFormatId { get; private set; } = "1080p";
     public string Extension { get; private set; } = ".mp4";
     public int ConcurrentFragments { get; private set; } = 8;
     public bool DownloadSubtitles { get; private set; } = false;
@@ -79,10 +81,8 @@ public partial class MediaDownloadPromptWindow : Window
         SliderConcurrentFragments.Value = ConcurrentFragments;
         TxtFragmentCount.Text = ConcurrentFragments.ToString();
 
-        // Check clipboard or initial URL
-        string urlToUse = !string.IsNullOrWhiteSpace(initialUrl)
-            ? initialUrl
-            : GetUrlFromClipboardOrPlaceholder();
+        // Kullanıcı linki kendisi yapıştıracak; hazır link konulmaz
+        string urlToUse = !string.IsNullOrWhiteSpace(initialUrl) ? initialUrl.Trim() : string.Empty;
 
         TxtMediaUrl.Text = urlToUse;
         ResultUrl = urlToUse;
@@ -98,26 +98,8 @@ public partial class MediaDownloadPromptWindow : Window
         }
         else
         {
-            ApplyDefaultPlaceholders("Bilinmeyen Medya Akışı", "Web Medya", "--:--", null);
+            ApplyDefaultPlaceholders("Medya Bağlantısı Bekleniyor", "Web Medya", "--:--", null);
         }
-    }
-
-    private static string GetUrlFromClipboardOrPlaceholder()
-    {
-        try
-        {
-            if (Clipboard.ContainsText())
-            {
-                string text = Clipboard.GetText().Trim();
-                if (IsValidWebMediaUrl(text))
-                {
-                    return text;
-                }
-            }
-        }
-        catch { }
-
-        return "https://www.youtube.com/watch?v=";
     }
 
     public static bool IsValidWebMediaUrl(string? url)
@@ -183,6 +165,7 @@ public partial class MediaDownloadPromptWindow : Window
 
     public void ApplyMetadata(MediaMetadata meta)
     {
+        _lastMetadata = meta;
         ResultTitle = meta.Title;
         ChannelName = meta.Uploader;
         ThumbnailUrl = meta.ThumbnailUrl;
@@ -195,6 +178,8 @@ public partial class MediaDownloadPromptWindow : Window
 
         SetMediaInfo(meta.Title, meta.Uploader, durationStr, meta.ThumbnailUrl,
             $"{meta.AvailableFormats.Count} akış/format mevcut. Otomatik en iyi kalite eşleştirildi.");
+
+        UpdateEstimatedSize();
     }
 
     public MediaDownloadOptions ToDownloadOptions()
@@ -426,48 +411,6 @@ public partial class MediaDownloadPromptWindow : Window
         AnalyzeMediaUrl(ResultUrl);
     }
 
-    private void QualityRadio_Checked(object sender, RoutedEventArgs e)
-    {
-        if (_isInternalSelectionUpdating) return;
-
-        _isInternalSelectionUpdating = true;
-        try
-        {
-            if (Radio4K.IsChecked == true)
-            {
-                SelectedQuality = "4K";
-                SelectedFormatId = "bestvideo[height<=2160]+bestaudio/best[height<=2160]";
-                SetFormatExtension(".mp4", isAudio: false);
-                SelectComboBoxByTag("2160p");
-            }
-            else if (Radio1080p.IsChecked == true)
-            {
-                SelectedQuality = "1080p";
-                SelectedFormatId = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
-                SetFormatExtension(".mp4", isAudio: false);
-                SelectComboBoxByTag("1080p");
-            }
-            else if (Radio720p.IsChecked == true)
-            {
-                SelectedQuality = "720p";
-                SelectedFormatId = "bestvideo[height<=720]+bestaudio/best[height<=720]";
-                SetFormatExtension(".mp4", isAudio: false);
-                SelectComboBoxByTag("720p");
-            }
-            else if (RadioMP3.IsChecked == true)
-            {
-                SelectedQuality = "MP3";
-                SelectedFormatId = "bestaudio/best";
-                SetFormatExtension(".mp3", isAudio: true);
-                SelectComboBoxByTag("mp3");
-            }
-        }
-        finally
-        {
-            _isInternalSelectionUpdating = false;
-        }
-    }
-
     private void CmbFormats_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isInternalSelectionUpdating || CmbFormats.SelectedItem is not ComboBoxItem item || item.Tag is not string tag)
@@ -481,66 +424,58 @@ public partial class MediaDownloadPromptWindow : Window
             switch (tag.ToLowerInvariant())
             {
                 case "2160p":
-                    Radio4K.IsChecked = true;
                     SelectedQuality = "4K";
-                    SelectedFormatId = "bestvideo[height<=2160]+bestaudio/best[height<=2160]";
+                    SelectedFormatId = "2160p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "1440p":
-                    Radio4K.IsChecked = true;
                     SelectedQuality = "2K";
-                    SelectedFormatId = "bestvideo[height<=1440]+bestaudio/best[height<=1440]";
+                    SelectedFormatId = "1440p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "1080p":
-                    Radio1080p.IsChecked = true;
                     SelectedQuality = "1080p";
-                    SelectedFormatId = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
+                    SelectedFormatId = "1080p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "720p":
-                    Radio720p.IsChecked = true;
                     SelectedQuality = "720p";
-                    SelectedFormatId = "bestvideo[height<=720]+bestaudio/best[height<=720]";
+                    SelectedFormatId = "720p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "480p":
-                    ClearRadioSelection();
                     SelectedQuality = "480p";
-                    SelectedFormatId = "bestvideo[height<=480]+bestaudio/best[height<=480]";
+                    SelectedFormatId = "480p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "360p":
-                    ClearRadioSelection();
                     SelectedQuality = "360p";
-                    SelectedFormatId = "bestvideo[height<=360]+bestaudio/best[height<=360]";
+                    SelectedFormatId = "360p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "mp3":
-                    RadioMP3.IsChecked = true;
                     SelectedQuality = "MP3";
                     SelectedFormatId = "bestaudio/best";
                     SetFormatExtension(".mp3", isAudio: true);
                     break;
                 case "m4a":
-                    RadioMP3.IsChecked = true;
                     SelectedQuality = "M4A";
                     SelectedFormatId = "bestaudio[ext=m4a]/bestaudio/best";
                     SetFormatExtension(".m4a", isAudio: true);
                     break;
                 case "flac":
-                    RadioMP3.IsChecked = true;
                     SelectedQuality = "FLAC";
                     SelectedFormatId = "bestaudio/best";
                     SetFormatExtension(".flac", isAudio: true);
                     break;
                 case "opus":
-                    RadioMP3.IsChecked = true;
                     SelectedQuality = "OPUS";
                     SelectedFormatId = "bestaudio[ext=opus]/bestaudio/best";
                     SetFormatExtension(".opus", isAudio: true);
                     break;
             }
+
+            UpdateEstimatedSize();
         }
         finally
         {
@@ -548,27 +483,21 @@ public partial class MediaDownloadPromptWindow : Window
         }
     }
 
-    private void SelectComboBoxByTag(string tag)
+    private void UpdateEstimatedSize()
     {
-        if (CmbFormats == null) return;
+        if (TxtEstimatedSize == null) return;
 
-        foreach (var item in CmbFormats.Items)
+        if (_lastMetadata != null)
         {
-            if (item is ComboBoxItem cbi && cbi.Tag is string itemTag &&
-                itemTag.Equals(tag, StringComparison.OrdinalIgnoreCase))
+            var bytes = _lastMetadata.GetEstimatedBytes(SelectedQuality, IsAudioOnly);
+            if (bytes > 0)
             {
-                CmbFormats.SelectedItem = cbi;
-                break;
+                TxtEstimatedSize.Text = $"~{DownloadTask.FormatBytes(bytes)}";
+                return;
             }
         }
-    }
 
-    private void ClearRadioSelection()
-    {
-        Radio4K.IsChecked = false;
-        Radio1080p.IsChecked = false;
-        Radio720p.IsChecked = false;
-        RadioMP3.IsChecked = false;
+        TxtEstimatedSize.Text = "-- MB";
     }
 
     private void SetFormatExtension(string ext, bool isAudio)

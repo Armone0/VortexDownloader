@@ -140,6 +140,55 @@ public class MediaTests
     }
 
     [Fact]
+    public void StreamProgressAccumulator_AccumulatesMultiStreamDownloads()
+    {
+        var accumulator = new StreamProgressAccumulator();
+
+        // 1. Video part starts
+        accumulator.ProcessLine("[download] Destination: video.f399.mp4");
+        var videoInfo = new MediaProgressInfo
+        {
+            Status = MediaDownloadStatus.Downloading,
+            TotalBytes = 5000000,
+            DownloadedBytes = 5000000,
+            Percentage = 100.0
+        };
+        var adj1 = accumulator.AdjustProgress(videoInfo);
+        Assert.Equal(5000000, adj1.TotalBytes);
+
+        // 2. Audio part starts (new destination)
+        accumulator.ProcessLine("[download] Destination: audio.f251.webm");
+        var audioInfo = new MediaProgressInfo
+        {
+            Status = MediaDownloadStatus.Downloading,
+            TotalBytes = 3000000,
+            DownloadedBytes = 1500000,
+            Percentage = 50.0
+        };
+        var adj2 = accumulator.AdjustProgress(audioInfo);
+
+        // Grand total must be 5000000 + 3000000 = 8000000
+        Assert.Equal(8000000, adj2.TotalBytes);
+        // Grand downloaded must be 5000000 + 1500000 = 6500000
+        Assert.Equal(6500000, adj2.DownloadedBytes);
+        // Percentage must be 6500000 / 8000000 * 100 = 81.25%
+        Assert.Equal(81.25, adj2.Percentage);
+    }
+
+    [Fact]
+    public void MediaMetadata_GetEstimatedBytes_CombinesVideoAndAudio()
+    {
+        var metadata = MediaMetadata.FromJson(SampleYtDlpJson);
+
+        var estimated1080p = metadata.GetEstimatedBytes("1080p", isAudioOnly: false);
+        // Video 1080p (48200000) + Audio 140 (3546820)
+        Assert.Equal(48200000L + 3546820L, estimated1080p);
+
+        var estimatedAudio = metadata.GetEstimatedBytes("mp3", isAudioOnly: true);
+        Assert.Equal(3546820L, estimatedAudio);
+    }
+
+    [Fact]
     public void MediaMetadata_FromJson_EmptyOrInvalidThrows()
     {
         Assert.Throws<ArgumentException>(() => MediaMetadata.FromJson(""));

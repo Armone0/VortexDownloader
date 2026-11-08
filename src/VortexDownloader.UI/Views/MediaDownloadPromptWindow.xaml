@@ -356,7 +356,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBox Grid.Column="0" x:Name="TxtMediaUrl" Style="{StaticResource ModernTextBoxStyle}" 
-                                 Text="https://www.youtube.com/watch?v=..." FontSize="12" Margin="0,0,8,0" 
+                                 Text="" FontSize="12" Margin="0,0,8,0" 
                                  TextChanged="TxtMediaUrl_TextChanged"/>
                         <Button Grid.Column="1" x:Name="BtnAnalyzeMedia" Content="⚡ Çözümle" 
                                 Style="{StaticResource SecondaryThemeButton}" Padding="16,0" Click="BtnAnalyzeMedia_Click"/>
@@ -440,82 +440,36 @@
                         </Grid>
                     </Border>
 
-                    <!-- 3. Kalite & Format Seçim Hapları (Seal Style Pills) -->
-                    <TextBlock Text="KALİTE &amp; FORMAT SEÇİMİ (SEAL DİNAMİK HAPLARI)" 
-                               FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                    <Grid Margin="-4,0,-4,12">
+                    <!-- 3. Kalite, Format & Boyut Seçimi -->
+                    <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- 🏆 4K / 2K Pill -->
-                        <RadioButton Grid.Column="0" x:Name="Radio4K" GroupName="QualityGroup" 
-                                     Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="🏆" FontSize="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="4K / 2K" FontSize="13" FontWeight="Bold"/>
-                                </StackPanel>
-                                <TextBlock Text="En Yüksek Kalite" FontSize="10" Opacity="0.85" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- 📺 1080p Pill (Default / Recommended) -->
-                        <RadioButton Grid.Column="1" x:Name="Radio1080p" GroupName="QualityGroup" IsChecked="True" 
-                                     Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="📺" FontSize="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="1080p" FontSize="13" FontWeight="Bold"/>
-                                </StackPanel>
-                                <TextBlock Text="Full HD MP4" FontSize="10" Opacity="0.85" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- 📱 720p Pill -->
-                        <RadioButton Grid.Column="2" x:Name="Radio720p" GroupName="QualityGroup" 
-                                     Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="📱" FontSize="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="720p" FontSize="13" FontWeight="Bold"/>
-                                </StackPanel>
-                                <TextBlock Text="Hızlı HD" FontSize="10" Opacity="0.85" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </RadioButton>
-
-                        <!-- 🎵 MP3 Pill (Audio Only) -->
-                        <RadioButton Grid.Column="3" x:Name="RadioMP3" GroupName="QualityGroup" 
-                                     Style="{StaticResource SealFormatPillStyle}" Checked="QualityRadio_Checked">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="🎵" FontSize="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="MP3" FontSize="13" FontWeight="Bold"/>
-                                </StackPanel>
-                                <TextBlock Text="Ses (320 kbps)" FontSize="10" Opacity="0.85" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </RadioButton>
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="İNDİRİLECEK KALİTE / FORMAT" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox x:Name="CmbFormats" Style="{StaticResource ModernComboBoxStyle}" SelectionChanged="CmbFormats_SelectionChanged">
+                                <ComboBoxItem Content="📺 1080p Full HD (MP4)" Tag="1080p" IsSelected="True"/>
+                                <ComboBoxItem Content="📱 720p HD (MP4)" Tag="720p"/>
+                                <ComboBoxItem Content="🏆 2160p 4K Ultra HD (MP4)" Tag="2160p"/>
+                                <ComboBoxItem Content="🌟 1440p 2K QHD (MP4)" Tag="1440p"/>
+                                <ComboBoxItem Content="🎞️ 480p SD Standart (MP4)" Tag="480p"/>
+                                <ComboBoxItem Content="💾 360p Düşük Veri Tasarrufu (MP4)" Tag="360p"/>
+                                <ComboBoxItem Content="🎵 Sadece Ses: MP3 (320 kbps)" Tag="mp3"/>
+                                <ComboBoxItem Content="🎧 Sadece Ses: M4A / AAC" Tag="m4a"/>
+                                <ComboBoxItem Content="🎼 Sadece Ses: FLAC (Kayıpsız)" Tag="flac"/>
+                                <ComboBoxItem Content="📻 Sadece Ses: OPUS" Tag="opus"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                            <TextBlock Text="TAHMİNİ TOPLAM BOYUT" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" 
+                                    BorderThickness="1" CornerRadius="8" Padding="14,8" MinWidth="110">
+                                <TextBlock x:Name="TxtEstimatedSize" Text="-- MB" FontSize="12" FontWeight="Bold" 
+                                           HorizontalAlignment="Center" Foreground="{DynamicResource AccentHighlightBrush}"/>
+                            </Border>
+                        </StackPanel>
                     </Grid>
-
-                    <!-- 4. Özel Formatlar Açılır Menüsü (ComboBox) -->
-                    <StackPanel Margin="0,0,0,14">
-                        <TextBlock Text="GELİŞMİŞ FORMAT &amp; KODLAMA SEÇENEKLERİ" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbFormats" Style="{StaticResource ModernComboBoxStyle}" SelectionChanged="CmbFormats_SelectionChanged">
-                            <ComboBoxItem Content="📺 1080p Full HD (MP4 - H.264 + AAC Ses)" Tag="1080p" IsSelected="True"/>
-                            <ComboBoxItem Content="🏆 2160p 4K Ultra HD (WebM / MP4 - 60fps)" Tag="2160p"/>
-                            <ComboBoxItem Content="🌟 1440p 2K QHD (WebM / MP4 - 60fps)" Tag="1440p"/>
-                            <ComboBoxItem Content="📱 720p HD (MP4 - Hızlı İndirme)" Tag="720p"/>
-                            <ComboBoxItem Content="🎞️ 480p SD Standart Çözünürlük (MP4)" Tag="480p"/>
-                            <ComboBoxItem Content="💾 360p Düşük Veri Tasarrufu (MP4)" Tag="360p"/>
-                            <ComboBoxItem Content="🎵 Sadece Ses: MP3 (320 kbps Yüksek Kalite)" Tag="mp3"/>
-                            <ComboBoxItem Content="🎧 Sadece Ses: M4A / AAC (Orijinal YouTube Akışı)" Tag="m4a"/>
-                            <ComboBoxItem Content="🎼 Sadece Ses: FLAC (Kayıpsız / Lossless Audio)" Tag="flac"/>
-                            <ComboBoxItem Content="📻 Sadece Ses: OPUS (Ultra Verimli / 160 kbps)" Tag="opus"/>
-                        </ComboBox>
-                    </StackPanel>
 
                     <!-- 5. Kaydedilecek Dosya Adı & Hedef Klasör -->
                     <Grid Margin="0,0,0,12">

@@ -252,14 +252,18 @@ public class YtDlpService
             Percentage = 0.0
         });
 
+        var accumulator = new StreamProgressAccumulator();
+
         var result = await _processRunner.RunAsync(
             ytDlpPath,
             arguments,
             onOutputLine: line =>
             {
+                accumulator.ProcessLine(line);
                 if (TryParseProgressLine(line, out var progressInfo))
                 {
-                    progress?.Report(progressInfo);
+                    var adjusted = accumulator.AdjustProgress(progressInfo);
+                    progress?.Report(adjusted);
                 }
             },
             onErrorLine: line =>
@@ -435,5 +439,68 @@ public class YtDlpService
             "TIB" => (long)(value * 1024L * 1024L * 1024L * 1024L),
             _ => (long)value
         };
+    }
+}
+
+public class StreamProgressAccumulator
+{
+    private static readonly Regex DestinationRegex = new(
+        @"\[download\]\s+Destination:\s+(?<dest>.+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private readonly Dictionary<string, long> _partTotals = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long> _partDownloaded = new(StringComparer.OrdinalIgnoreCase);
+    private string _activeDestination = string.Empty;
+
+    public void ProcessLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return;
+
+        var match = DestinationRegex.Match(line);
+        if (match.Success)
+        {
+            _activeDestination = match.Groups["dest"].Value.Trim();
+            if (!_partTotals.ContainsKey(_activeDestination))
+            {
+                _partTotals[_activeDestination] = 0;
+                _partDownloaded[_activeDestination] = 0;
+            }
+        }
+    }
+
+    public MediaProgressInfo AdjustProgress(MediaProgressInfo info)
+    {
+        if (info.Status != MediaDownloadStatus.Downloading || info.TotalBytes <= 0)
+        {
+            return info;
+        }
+
+        if (!string.IsNullOrEmpty(_activeDestination))
+        {
+            _partTotals[_activeDestination] = info.TotalBytes;
+            _partDownloaded[_activeDestination] = info.DownloadedBytes;
+        }
+
+        long grandTotal = 0;
+        long grandDownloaded = 0;
+
+        foreach (var val in _partTotals.Values)
+        {
+            grandTotal += val;
+        }
+
+        foreach (var val in _partDownloaded.Values)
+        {
+            grandDownloaded += val;
+        }
+
+        if (grandTotal > 0 && _partTotals.Count > 1)
+        {
+            info.TotalBytes = grandTotal;
+            info.DownloadedBytes = grandDownloaded;
+            info.Percentage = Math.Clamp((double)grandDownloaded / grandTotal * 100.0, 0.0, 100.0);
+        }
+
+        return info;
     }
 }

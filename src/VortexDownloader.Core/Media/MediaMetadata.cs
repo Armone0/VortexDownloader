@@ -80,6 +80,58 @@ public class MediaMetadata
         return metadata;
     }
 
+    public long GetEstimatedBytes(string quality, bool isAudioOnly)
+    {
+        if (AvailableFormats == null || AvailableFormats.Count == 0) return 0;
+
+        long bestAudioSize = 0;
+        var audioStreams = AvailableFormats
+            .Where(f => f.IsAudioOnly && f.FilesizeApprox.HasValue && f.FilesizeApprox.Value > 0)
+            .OrderByDescending(f => f.FilesizeApprox!.Value)
+            .ToList();
+
+        if (audioStreams.Count > 0)
+        {
+            bestAudioSize = audioStreams[0].FilesizeApprox!.Value;
+        }
+
+        if (isAudioOnly)
+        {
+            return bestAudioSize;
+        }
+
+        int targetHeight = quality switch
+        {
+            "4K" or "2160p" => 2160,
+            "2K" or "1440p" => 1440,
+            "1080p" => 1080,
+            "720p" => 720,
+            "480p" => 480,
+            "360p" => 360,
+            _ => 1080
+        };
+
+        var videoStreams = AvailableFormats
+            .Where(f => f.IsVideoOnly && f.FilesizeApprox.HasValue && f.FilesizeApprox.Value > 0 &&
+                        (f.Note == null || !f.Note.Contains("Premium", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        var match = videoStreams
+            .Where(f => f.Resolution.Contains(targetHeight.ToString()))
+            .OrderByDescending(f => f.FilesizeApprox!.Value)
+            .FirstOrDefault();
+
+        if (match == null)
+        {
+            match = videoStreams
+                .OrderByDescending(f => f.FilesizeApprox!.Value)
+                .FirstOrDefault();
+        }
+
+        long videoSize = match?.FilesizeApprox ?? 0;
+        return videoSize > 0 ? videoSize + bestAudioSize : 0;
+    }
+
     private static string GetString(JsonElement element, params string[] propertyNames)
     {
         foreach (var prop in propertyNames)

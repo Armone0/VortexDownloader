@@ -345,15 +345,13 @@
         </Style>
     </Window.Resources>
 
-    <!-- MAIN THREE-COLUMN APPLICATION LAYOUT -->
+    <!-- MAIN APPLICATION LAYOUT -->
     <Grid>
         <Grid.ColumnDefinitions>
             <!-- Left Sidebar Navigation -->
             <ColumnDefinition Width="220"/>
             <!-- Center Main Work Area -->
             <ColumnDefinition Width="*"/>
-            <!-- Right Media & YouTube Download Side Tab (Opens Sideways) -->
-            <ColumnDefinition x:Name="ColMediaSidePanel" Width="Auto"/>
         </Grid.ColumnDefinitions>
 
         <!-- ==================== LEFT SIDEBAR ==================== -->
@@ -863,15 +861,5 @@
                 </ScrollViewer>
             </Grid>
         </Grid>
-
-        <!-- ==================== RIGHT SIDE TAB: YOUTUBE & MEDYA İNDİR ==================== -->
-        <Border Grid.Column="2" x:Name="MediaSidePanelBorder" 
-                Width="460"
-                Visibility="Collapsed"
-                Background="{DynamicResource WindowBackgroundBrush}" 
-                BorderBrush="{DynamicResource CardBorderBrush}" 
-                BorderThickness="1,0,0,0">
-            <views:MediaDownloadSidePanel x:Name="MediaSidePanelControl"/>
-        </Border>
     </Grid>
 </Window>
