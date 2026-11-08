@@ -38,7 +38,6 @@ public class VortexTrayIcon : IDisposable
     private readonly Action _onStartAll;
     private readonly Action _onPauseAll;
 
-    private readonly IntPtr[] _animatedIcons = new IntPtr[ANIM_FRAME_COUNT];
     private readonly List<ImageSource> _taskbarFrames = new(ANIM_FRAME_COUNT);
     private IntPtr _defaultIcon = IntPtr.Zero;
     private int _currentAnimFrame = 0;
@@ -222,25 +221,7 @@ public class VortexTrayIcon : IDisposable
             {
                 float angle = i * step;
 
-                // 1. System Tray Icon (16x16)
-                using (var trayBmp = new System.Drawing.Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
-                {
-                    using (var g = System.Drawing.Graphics.FromImage(trayBmp))
-                    {
-                        g.SmoothingMode = SmoothingMode.AntiAlias;
-                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        g.Clear(System.Drawing.Color.Transparent);
-
-                        g.TranslateTransform(8f, 8f);
-                        g.RotateTransform(angle);
-                        g.TranslateTransform(-8f, -8f);
-                        g.DrawImage(baseBitmap, 0, 0, 16, 16);
-                    }
-                    _animatedIcons[i] = trayBmp.GetHicon();
-                }
-
-                // 2. Taskbar Icon (32x32)
+                // Taskbar Icon (32x32)
                 using (var taskbarBmp = new System.Drawing.Bitmap(32, 32, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
                 {
                     using (var g = System.Drawing.Graphics.FromImage(taskbarBmp))
@@ -288,14 +269,6 @@ public class VortexTrayIcon : IDisposable
         if (!_isCreated || !_isAnimating) return;
 
         _currentAnimFrame = (_currentAnimFrame + 1) % ANIM_FRAME_COUNT;
-        IntPtr hFrame = _animatedIcons[_currentAnimFrame];
-        if (hFrame != IntPtr.Zero)
-        {
-            _nid.hIcon = hFrame;
-            _nid.uFlags = NIF_ICON;
-            Shell_NotifyIcon(NIM_MODIFY, ref _nid);
-        }
-
         FrameChanged?.Invoke(_currentAnimFrame);
     }
 
@@ -318,26 +291,26 @@ public class VortexTrayIcon : IDisposable
         {
             _currentAnimFrame = 0;
             _animTimer.Start();
-            if (_isCreated && _animatedIcons[0] != IntPtr.Zero)
+            if (_isCreated)
             {
-                _nid.hIcon = _animatedIcons[0];
-                _nid.uFlags = NIF_ICON | NIF_TIP;
-                _nid.szTip = !string.IsNullOrEmpty(speedText)
+                var data = _nid;
+                data.uFlags = NIF_TIP;
+                data.szTip = !string.IsNullOrEmpty(speedText)
                     ? $"VortexDownloader - İndiriliyor ({speedText})"
                     : "VortexDownloader - İndiriliyor...";
-                Shell_NotifyIcon(NIM_MODIFY, ref _nid);
+                Shell_NotifyIcon(NIM_MODIFY, ref data);
             }
             FrameChanged?.Invoke(0);
         }
         else
         {
             _animTimer.Stop();
-            if (_isCreated && _defaultIcon != IntPtr.Zero)
+            if (_isCreated)
             {
-                _nid.hIcon = _defaultIcon;
-                _nid.uFlags = NIF_ICON | NIF_TIP;
-                _nid.szTip = "VortexDownloader - Yüksek Hızlı İndirme Yöneticisi";
-                Shell_NotifyIcon(NIM_MODIFY, ref _nid);
+                var data = _nid;
+                data.uFlags = NIF_TIP;
+                data.szTip = "VortexDownloader - Yüksek Hızlı İndirme Yöneticisi";
+                Shell_NotifyIcon(NIM_MODIFY, ref data);
             }
             FrameChanged?.Invoke(-1);
         }
@@ -420,15 +393,6 @@ public class VortexTrayIcon : IDisposable
     public void Dispose()
     {
         _animTimer.Stop();
-
-        for (int i = 0; i < ANIM_FRAME_COUNT; i++)
-        {
-            if (_animatedIcons[i] != IntPtr.Zero)
-            {
-                DestroyIcon(_animatedIcons[i]);
-                _animatedIcons[i] = IntPtr.Zero;
-            }
-        }
 
         if (_hwndSource != null)
         {

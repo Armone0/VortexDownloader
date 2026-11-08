@@ -357,7 +357,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource Str_BrandTitle}" FontSize="15" FontWeight="Black" Foreground="{DynamicResource AccentHighlightBrush}"/>
                             <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.6" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock Text="v1.6.1" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="DOWNLOAD MANAGER" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,1,0,0"/>

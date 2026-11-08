@@ -56,6 +56,20 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.6.1] - 2026-11-08 — Tepsi Simgesi Kararlılığı & Windows Görev Çubuğu ve Arayüz Animasyon Optimizasyonu
+
+### 🛡️ Sistem Tepsisi (System Tray) Statik Simge Kararlılığı
+- **Sabit Tepsi Simgesi:** Sistem tepsisindeki (`Shell_NotifyIcon`) simgenin dönmesi ve HICON kaynak tüketimi kaldırıldı; tepsi simgesi her zaman sabit ve net orijinal simge (`_defaultIcon`) olarak tutulur.
+- **Dinamik Tooltip Koruması:** İndirme devam ederken anlık hız bilgisi ve indirme durumu tepsi ipucunda (`NIF_TIP`) canlı güncellenmeye devam eder.
+
+### 🌀 Windows Görev Çubuğu & Uygulama İçi Animasyonların Korunması
+- **Dönen Görev Çubuğu Simgesi (Taskbar):** Windows görev çubuğundaki pencere simgesi indirme sırasında canlı dönmeye (`_taskbarFrames`) kesintisiz devam eder.
+- **Yeşil İlerleme Çubuğu (`TaskbarItemInfo`):** Windows 11 görev çubuğu butonundaki yerel ilerleme çubuğu ve durum göstergeleri (Normal, Paused, Indeterminate) tam uyumlulukla korunur.
+- **Uygulama İçi Sol Üst Girdap Animasyonu:** MainWindow sol üst marka logosunun donanım hızlandırmalı dönme `Storyboard` animasyonu korunur.
+- **Sürüm Güncellemesi:** Uygulama rozetleri ve yerel köprü protokolü v1.6.1 olarak etiketlendi.
+
+---
+
 ## [1.6.0] - 2026-11-08 — Canlı Girdap (Vortex) Dönen Logo Animasyonları (3 Kritik Nokta) & Windows 11 Görev Çubuğu İlerlemesi
 
 ### 🌀 1. Uygulama İçi (MainWindow Sol Üst Marka Logosu)
