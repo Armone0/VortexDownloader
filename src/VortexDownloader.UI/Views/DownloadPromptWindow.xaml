@@ -312,7 +312,7 @@
     </Window.Resources>
 
     <!-- Outer Container with Shadow & Soft Loft Theme Palette -->
-    <Border Margin="14" CornerRadius="12" Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Effect="{StaticResource WindowShadow}">
+    <Border Margin="14" CornerRadius="12" Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Effect="{StaticResource WindowShadow}" MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
         <Grid Margin="22">
             <Grid.RowDefinitions>
                 <!-- Header with Drag and Logo -->
@@ -324,7 +324,7 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <Grid Grid.Row="0" Margin="0,0,0,14" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Margin="0,0,0,14" Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -433,7 +433,46 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                    <TextBlock Text="Dinamik Bağlantı Kanalı (Parça Sayısı)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Dinamik Bağlantı Kanalı (Parça Sayısı)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Border Width="16" Height="16" CornerRadius="8"
+                                                Background="{DynamicResource InputBackgroundBrush}"
+                                                BorderBrush="{DynamicResource CardBorderBrush}"
+                                                BorderThickness="1"
+                                                Margin="6,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Cursor="Help"
+                                                ToolTipService.InitialShowDelay="200">
+                                            <Border.ToolTip>
+                                                <ToolTip Background="Transparent" BorderThickness="0" Padding="0" HasDropShadow="True">
+                                                    <Border Background="{DynamicResource CardBackgroundBrush}"
+                                                            BorderBrush="{DynamicResource CardBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8"
+                                                            Padding="12,10"
+                                                            MaxWidth="320">
+                                                        <StackPanel>
+                                                            <TextBlock Text="💡 Dinamik Parça Sayısı (Çoklu Bağlantı / Dynamic Chunks)"
+                                                                       FontSize="12"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="{DynamicResource AccentHighlightBrush}"
+                                                                       TextWrapping="Wrap"
+                                                                       Margin="0,0,0,6"/>
+                                                            <TextBlock Text="Dosyayı aynı anda paralel HTTP soketleriyle indirir. Sunucuların bağlantı başına koyduğu hız limitlerini aşarak internet bant genişliğinizi maksimum kapasitede doyurur. Standart indirmeler için 8, yüksek hızlı sunucular için 16 veya 32 kanal önerilir."
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                       TextWrapping="Wrap"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </ToolTip>
+                                            </Border.ToolTip>
+                                            <TextBlock Text="ℹ" FontSize="10" FontWeight="Bold"
+                                                       Foreground="{DynamicResource AccentHighlightBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,-1,0,0"/>
+                                        </Border>
+                                    </StackPanel>
                                     <TextBlock Text="Bant genişliğini doyurmak için çoklu soket açılır" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
                                 </StackPanel>
 

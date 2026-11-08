@@ -428,7 +428,6 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        RestoreFromTray();
                         await PromptNewDownloadFromBrowserAsync(
                             nextItem.Url,
                             nextItem.FileName,
@@ -519,11 +518,6 @@ public partial class MainWindow : Window
             Topmost = true,
             WindowStartupLocation = WindowStartupLocation.CenterScreen
         };
-
-        if (IsVisible && WindowState != WindowState.Minimized)
-        {
-            try { prompt.Owner = this; } catch { }
-        }
 
         prompt.ContentRendered += (_, _) =>
         {

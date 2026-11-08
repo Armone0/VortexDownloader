@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using VortexDownloader.Core.Engine;
@@ -135,8 +136,84 @@ public partial class DownloadPromptWindow : Window
     {
         if (e.ButtonState == MouseButtonState.Pressed)
         {
-            DragMove();
+            try
+            {
+                DragMove();
+                e.Handled = true;
+            }
+            catch
+            {
+            }
         }
+    }
+
+    private void CardBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.Handled) return;
+
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            if (e.OriginalSource is DependencyObject depObj && IsInteractiveControl(depObj))
+            {
+                return;
+            }
+
+            try
+            {
+                DragMove();
+                e.Handled = true;
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static bool IsInteractiveControl(DependencyObject? source)
+    {
+        if (source == null) return false;
+
+        return FindVisualParent<ButtonBase>(source) != null
+            || FindVisualParent<TextBox>(source) != null
+            || FindVisualParent<PasswordBox>(source) != null
+            || FindVisualParent<ComboBox>(source) != null
+            || FindVisualParent<Slider>(source) != null
+            || FindVisualParent<CheckBox>(source) != null
+            || FindVisualParent<ScrollBar>(source) != null
+            || FindVisualParent<Thumb>(source) != null;
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject? child) where T : DependencyObject
+    {
+        while (child != null)
+        {
+            if (child is T parent)
+            {
+                return parent;
+            }
+
+            try
+            {
+                if (child is Visual || child is System.Windows.Media.Media3D.Visual3D)
+                {
+                    child = VisualTreeHelper.GetParent(child);
+                }
+                else if (child is FrameworkContentElement fce)
+                {
+                    child = fce.Parent;
+                }
+                else
+                {
+                    child = LogicalTreeHelper.GetParent(child);
+                }
+            }
+            catch
+            {
+                break;
+            }
+        }
+
+        return null;
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)
