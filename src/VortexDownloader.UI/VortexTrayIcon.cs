@@ -1,13 +1,17 @@
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace VortexDownloader.UI;
 
 /// <summary>
 /// Native Windows 11 Shell_NotifyIcon implementation for System Tray.
-/// Eliminates the need for Windows Forms dependencies and prevents namespace collisions.
+/// Eliminates the need for Windows Forms dependencies and supports animated vortex spinner.
 /// </summary>
 public class VortexTrayIcon : IDisposable
 {
@@ -26,15 +30,27 @@ public class VortexTrayIcon : IDisposable
     private const uint NIF_INFO = 0x00000010;
     private const uint NIIF_INFO = 0x00000001;
 
+    private const int ANIM_FRAME_COUNT = 12;
+
     private readonly Window _window;
     private readonly Action _onRestore;
     private readonly Action _onExit;
     private readonly Action _onStartAll;
     private readonly Action _onPauseAll;
 
+    private readonly IntPtr[] _animatedIcons = new IntPtr[ANIM_FRAME_COUNT];
+    private readonly List<ImageSource> _taskbarFrames = new(ANIM_FRAME_COUNT);
+    private IntPtr _defaultIcon = IntPtr.Zero;
+    private int _currentAnimFrame = 0;
+    private bool _isAnimating = false;
+    private readonly DispatcherTimer _animTimer;
+
     private NOTIFYICONDATA _nid;
     private bool _isCreated;
     private HwndSource? _hwndSource;
+
+    public event Action<int>? FrameChanged;
+    public IReadOnlyList<ImageSource> TaskbarFrames => _taskbarFrames;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATA
@@ -103,6 +119,12 @@ public class VortexTrayIcon : IDisposable
         _onPauseAll = onPauseAll;
         _onExit = onExit;
 
+        _animTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _animTimer.Tick += OnAnimTimerTick;
+
         _window.SourceInitialized += (_, _) => InitializeTray();
     }
 
@@ -112,7 +134,6 @@ public class VortexTrayIcon : IDisposable
         _hwndSource = HwndSource.FromHwnd(hwnd);
         _hwndSource?.AddHook(WndProc);
 
-        IntPtr hIcon = IntPtr.Zero;
         try
         {
             var streamUri = new Uri("pack://application:,,,/Assets/vortex_tray.ico", UriKind.Absolute);
@@ -120,7 +141,7 @@ public class VortexTrayIcon : IDisposable
             if (sri?.Stream != null)
             {
                 using var icon = new System.Drawing.Icon(sri.Stream, 16, 16);
-                hIcon = CopyIcon(icon.Handle);
+                _defaultIcon = CopyIcon(icon.Handle);
             }
         }
         catch
@@ -130,7 +151,7 @@ public class VortexTrayIcon : IDisposable
                 string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "vortex_tray.ico");
                 if (File.Exists(iconPath))
                 {
-                    hIcon = LoadImage(IntPtr.Zero, iconPath, 1 /*IMAGE_ICON*/, 16, 16, 0x00000010 /*LR_LOADFROMFILE*/);
+                    _defaultIcon = LoadImage(IntPtr.Zero, iconPath, 1 /*IMAGE_ICON*/, 16, 16, 0x00000010 /*LR_LOADFROMFILE*/);
                 }
             }
             catch
@@ -139,6 +160,8 @@ public class VortexTrayIcon : IDisposable
             }
         }
 
+        GenerateRotatingFrames();
+
         _nid = new NOTIFYICONDATA
         {
             cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
@@ -146,11 +169,178 @@ public class VortexTrayIcon : IDisposable
             uID = 1001,
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
             uCallbackMessage = WM_TRAYICON,
-            hIcon = hIcon,
+            hIcon = _defaultIcon,
             szTip = "VortexDownloader - Yüksek Hızlı İndirme Yöneticisi"
         };
 
         _isCreated = Shell_NotifyIcon(NIM_ADD, ref _nid);
+    }
+
+    private void GenerateRotatingFrames()
+    {
+        System.Drawing.Bitmap? baseBitmap = null;
+        try
+        {
+            var logoUri = new Uri("pack://application:,,,/Assets/vortex_logo.png", UriKind.Absolute);
+            var sri = Application.GetResourceStream(logoUri);
+            if (sri?.Stream != null)
+            {
+                baseBitmap = new System.Drawing.Bitmap(sri.Stream);
+            }
+        }
+        catch { }
+
+        if (baseBitmap == null)
+        {
+            try
+            {
+                string pngPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "vortex_logo.png");
+                if (File.Exists(pngPath))
+                {
+                    baseBitmap = new System.Drawing.Bitmap(pngPath);
+                }
+            }
+            catch { }
+        }
+
+        if (baseBitmap == null && _defaultIcon != IntPtr.Zero)
+        {
+            try
+            {
+                using var defaultIconObj = System.Drawing.Icon.FromHandle(_defaultIcon);
+                baseBitmap = defaultIconObj.ToBitmap();
+            }
+            catch { }
+        }
+
+        if (baseBitmap == null) return;
+
+        try
+        {
+            float step = 360f / ANIM_FRAME_COUNT;
+            for (int i = 0; i < ANIM_FRAME_COUNT; i++)
+            {
+                float angle = i * step;
+
+                // 1. System Tray Icon (16x16)
+                using (var trayBmp = new System.Drawing.Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                {
+                    using (var g = System.Drawing.Graphics.FromImage(trayBmp))
+                    {
+                        g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.Clear(System.Drawing.Color.Transparent);
+
+                        g.TranslateTransform(8f, 8f);
+                        g.RotateTransform(angle);
+                        g.TranslateTransform(-8f, -8f);
+                        g.DrawImage(baseBitmap, 0, 0, 16, 16);
+                    }
+                    _animatedIcons[i] = trayBmp.GetHicon();
+                }
+
+                // 2. Taskbar Icon (32x32)
+                using (var taskbarBmp = new System.Drawing.Bitmap(32, 32, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                {
+                    using (var g = System.Drawing.Graphics.FromImage(taskbarBmp))
+                    {
+                        g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.Clear(System.Drawing.Color.Transparent);
+
+                        g.TranslateTransform(16f, 16f);
+                        g.RotateTransform(angle);
+                        g.TranslateTransform(-16f, -16f);
+                        g.DrawImage(baseBitmap, 0, 0, 32, 32);
+                    }
+
+                    IntPtr hTaskbarIcon = taskbarBmp.GetHicon();
+                    try
+                    {
+                        var bs = Imaging.CreateBitmapSourceFromHIcon(
+                            hTaskbarIcon,
+                            Int32Rect.Empty,
+                            System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                        bs.Freeze();
+                        _taskbarFrames.Add(bs);
+                    }
+                    finally
+                    {
+                        DestroyIcon(hTaskbarIcon);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Graceful fallback to static icon
+        }
+        finally
+        {
+            baseBitmap.Dispose();
+        }
+    }
+
+    private void OnAnimTimerTick(object? sender, EventArgs e)
+    {
+        if (!_isCreated || !_isAnimating) return;
+
+        _currentAnimFrame = (_currentAnimFrame + 1) % ANIM_FRAME_COUNT;
+        IntPtr hFrame = _animatedIcons[_currentAnimFrame];
+        if (hFrame != IntPtr.Zero)
+        {
+            _nid.hIcon = hFrame;
+            _nid.uFlags = NIF_ICON;
+            Shell_NotifyIcon(NIM_MODIFY, ref _nid);
+        }
+
+        FrameChanged?.Invoke(_currentAnimFrame);
+    }
+
+    public void SetIsDownloading(bool isDownloading, string? speedText = null)
+    {
+        if (_isAnimating == isDownloading)
+        {
+            if (isDownloading && !string.IsNullOrEmpty(speedText) && _isCreated)
+            {
+                var data = _nid;
+                data.uFlags = NIF_TIP;
+                data.szTip = $"VortexDownloader - İndiriliyor ({speedText})";
+                Shell_NotifyIcon(NIM_MODIFY, ref data);
+            }
+            return;
+        }
+
+        _isAnimating = isDownloading;
+        if (isDownloading)
+        {
+            _currentAnimFrame = 0;
+            _animTimer.Start();
+            if (_isCreated && _animatedIcons[0] != IntPtr.Zero)
+            {
+                _nid.hIcon = _animatedIcons[0];
+                _nid.uFlags = NIF_ICON | NIF_TIP;
+                _nid.szTip = !string.IsNullOrEmpty(speedText)
+                    ? $"VortexDownloader - İndiriliyor ({speedText})"
+                    : "VortexDownloader - İndiriliyor...";
+                Shell_NotifyIcon(NIM_MODIFY, ref _nid);
+            }
+            FrameChanged?.Invoke(0);
+        }
+        else
+        {
+            _animTimer.Stop();
+            if (_isCreated && _defaultIcon != IntPtr.Zero)
+            {
+                _nid.hIcon = _defaultIcon;
+                _nid.uFlags = NIF_ICON | NIF_TIP;
+                _nid.szTip = "VortexDownloader - Yüksek Hızlı İndirme Yöneticisi";
+                Shell_NotifyIcon(NIM_MODIFY, ref _nid);
+            }
+            FrameChanged?.Invoke(-1);
+        }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -229,6 +419,17 @@ public class VortexTrayIcon : IDisposable
 
     public void Dispose()
     {
+        _animTimer.Stop();
+
+        for (int i = 0; i < ANIM_FRAME_COUNT; i++)
+        {
+            if (_animatedIcons[i] != IntPtr.Zero)
+            {
+                DestroyIcon(_animatedIcons[i]);
+                _animatedIcons[i] = IntPtr.Zero;
+            }
+        }
+
         if (_hwndSource != null)
         {
             try
@@ -247,10 +448,10 @@ public class VortexTrayIcon : IDisposable
             _isCreated = false;
         }
 
-        if (_nid.hIcon != IntPtr.Zero)
+        if (_defaultIcon != IntPtr.Zero)
         {
-            DestroyIcon(_nid.hIcon);
-            _nid.hIcon = IntPtr.Zero;
+            DestroyIcon(_defaultIcon);
+            _defaultIcon = IntPtr.Zero;
         }
     }
 }

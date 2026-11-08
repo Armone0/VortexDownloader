@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     };
 
     private bool _isRealExit;
+    private System.Windows.Media.ImageSource? _defaultWindowIcon;
 
     private record BrowserPromptItem(
         string Url,
@@ -67,8 +68,74 @@ public partial class MainWindow : Window
             () => _ = _viewModel.Engine.PauseAllAsync(),
             RealExit);
 
+        _trayIcon.FrameChanged += OnTrayFrameChanged;
+        _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
         StartBrowserExtensionBridge();
         Log("MainWindow constructor end");
+    }
+
+    private void OnTrayFrameChanged(int frameIndex)
+    {
+        if (frameIndex >= 0 && _viewModel.HasActiveDownloads && _trayIcon != null && _trayIcon.TaskbarFrames.Count > frameIndex)
+        {
+            this.Icon = _trayIcon.TaskbarFrames[frameIndex];
+        }
+        else
+        {
+            if (_defaultWindowIcon != null)
+            {
+                this.Icon = _defaultWindowIcon;
+            }
+        }
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.HasActiveDownloads) ||
+            e.PropertyName == nameof(MainViewModel.TotalSpeedFormatted) ||
+            e.PropertyName == nameof(MainViewModel.TotalActiveProgressRatio) ||
+            e.PropertyName == nameof(MainViewModel.HasIndeterminateProgress) ||
+            e.PropertyName == nameof(MainViewModel.PausedDownloadsCount))
+        {
+            UpdateDownloadVisualIndicators();
+        }
+    }
+
+    private void UpdateDownloadVisualIndicators()
+    {
+        bool isActive = _viewModel.HasActiveDownloads;
+        _trayIcon?.SetIsDownloading(isActive, _viewModel.TotalSpeedFormatted);
+
+        if (AppTaskbarInfo != null)
+        {
+            if (isActive)
+            {
+                if (_viewModel.HasIndeterminateProgress)
+                {
+                    AppTaskbarInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Indeterminate;
+                }
+                else
+                {
+                    AppTaskbarInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Normal;
+                    AppTaskbarInfo.ProgressValue = _viewModel.TotalActiveProgressRatio;
+                }
+            }
+            else if (_viewModel.PausedDownloadsCount > 0 && _viewModel.TotalActiveProgressRatio > 0)
+            {
+                AppTaskbarInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Paused;
+                AppTaskbarInfo.ProgressValue = _viewModel.TotalActiveProgressRatio;
+            }
+            else
+            {
+                AppTaskbarInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.None;
+                AppTaskbarInfo.ProgressValue = 0.0;
+                if (_defaultWindowIcon != null)
+                {
+                    this.Icon = _defaultWindowIcon;
+                }
+            }
+        }
     }
 
     private static void Log(string msg)
@@ -131,6 +198,7 @@ public partial class MainWindow : Window
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Log("MainWindow_Loaded enter");
+        _defaultWindowIcon = this.Icon;
         var settings = AppSettings.Current;
         _viewModel.Engine.MaxConcurrentDownloads = settings.MaxConcurrentDownloads;
         _viewModel.ShutdownWhenCompleted = settings.ShutdownWhenCompleted;
@@ -284,7 +352,7 @@ public partial class MainWindow : Window
                 context.Response.ContentType = "application/json";
                 using (var pingWriter = new StreamWriter(context.Response.OutputStream))
                 {
-                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.5.0\"}");
+                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.6.0\"}");
                 }
                 return;
             }

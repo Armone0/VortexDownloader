@@ -56,6 +56,23 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.6.0] - 2026-11-08 — Canlı Girdap (Vortex) Dönen Logo Animasyonları (3 Kritik Nokta) & Windows 11 Görev Çubuğu İlerlemesi
+
+### 🌀 1. Uygulama İçi (MainWindow Sol Üst Marka Logosu)
+- **60 FPS Canlı Rotasyon:** İndirme aktif olduğunda (`HasActiveDownloads == true`), sol üstteki Vortex logosu WPF donanım hızlandırmalı `Storyboard` / `RotateTransform` ile 2.0 saniyelik pürüzsüz girdap döngüsüne girer.
+- **Yumuşak Durma:** İndirmeler bittiğinde veya duraklatıldığında storyboard sıfırlanarak orijinal açısına kilitlenir.
+- **Sürüm Rozeti:** Marka başlığı yanındaki rozet `v1.6` olarak güncellendi.
+
+### 🔔 2. Sistem Tepsisi & Gizli Simgeler (System Tray HICON Animasyonu)
+- **Önceden Hesaplanmış HICON Önbelleği:** 12 açılı (30° aralıklarla) 32-bit alfa kanallı HICON çerçeveleri uygulama başlangıcında üretilir; disk veya bellek tahsisatı (allocation) olmadan sıfır CPU yüküyle döner.
+- **Akıllı Durum Yönetimi:** İndirme devam ederken saat yanındaki tepsi simgesi canlı döner ve tooltip üzerinde anlık hız bilgisi (`VortexDownloader - İndiriliyor (X MB/s)`) gösterilir. İndirme bittiğinde statik simgeye döner ve zamanlayıcı tamamen durdurulur.
+
+### 📌 3. Windows Görev Çubuğu (Taskbar Icon & Yerel İlerleme Çubuğu)
+- **Dönen Görev Çubuğu Simgesi:** Windows görev çubuğundaki uygulama simgesi indirme boyunca tepsiyle eşzamanlı dönerek kullanıcının tek bakışta indirme durumunu görmesini sağlar.
+- **Windows 11 Yerel İlerleme Çubuğu (`TaskbarItemInfo`):** Görev çubuğu butonunun üzerinde yeşil indirme ilerleme çubuğu (`ProgressState = Normal`) ve toplam indirme yüzdesi (`ProgressValue`) anlık olarak gösterilir; duraklatıldığında sarı moda (`Paused`), bilinmeyen boyutlarda ise marquee moduna (`Indeterminate`) geçer.
+
+---
+
 ## [1.5.0] - 2026-11-08 — IDM Seviyesi Sıfır-Tık İndirme, Win32 Odaklanma, Canlı Tanı Konsolu ve Proaktif Bağlantı Yakalama
 
 ### ⚡ IDM Seviyesi Sıfır-Tık Otomatik Başlatma (Zero-Click Auto-Start)

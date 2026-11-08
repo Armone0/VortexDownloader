@@ -48,6 +48,47 @@ public class MainViewModel : ViewModelBase
 
     public bool HasActiveDownloads => _activeDownloadsCount > 0;
 
+    public bool HasIndeterminateProgress
+    {
+        get
+        {
+            var active = Downloads.Where(d => d.Status == DownloadStatus.Downloading).ToList();
+            return active.Count > 0 && active.All(d => d.TotalBytes <= 0);
+        }
+    }
+
+    public double TotalActiveProgressRatio
+    {
+        get
+        {
+            var active = Downloads.Where(d => d.Status == DownloadStatus.Downloading).ToList();
+            if (active.Count == 0)
+            {
+                var paused = Downloads.Where(d => d.Status == DownloadStatus.Paused).ToList();
+                if (paused.Count > 0)
+                {
+                    long pausedTotal = paused.Where(d => d.TotalBytes > 0).Sum(d => d.TotalBytes);
+                    if (pausedTotal > 0)
+                    {
+                        long pausedDownloaded = paused.Where(d => d.TotalBytes > 0).Sum(d => d.DownloadedBytes);
+                        return Math.Clamp((double)pausedDownloaded / pausedTotal, 0.0, 1.0);
+                    }
+                }
+                return 0.0;
+            }
+
+            long totalBytes = active.Where(d => d.TotalBytes > 0).Sum(d => d.TotalBytes);
+            if (totalBytes > 0)
+            {
+                long downloaded = active.Where(d => d.TotalBytes > 0).Sum(d => d.DownloadedBytes);
+                return Math.Clamp((double)downloaded / totalBytes, 0.0, 1.0);
+            }
+
+            double avg = active.Average(d => d.ProgressPercentage);
+            return Math.Clamp(avg / 100.0, 0.0, 1.0);
+        }
+    }
+
     public int TotalDownloadsCount => Downloads.Count;
     public bool HasNoDownloads => Downloads.Count == 0;
     public int PausedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Paused);
@@ -389,6 +430,8 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(FilteredDownloads));
         OnPropertyChanged(nameof(FilteredDownloadsCount));
         OnPropertyChanged(nameof(FreeDiskSpaceText));
+        OnPropertyChanged(nameof(TotalActiveProgressRatio));
+        OnPropertyChanged(nameof(HasIndeterminateProgress));
         CheckAutoShutdown();
     }
 
