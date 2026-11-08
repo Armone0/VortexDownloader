@@ -56,6 +56,36 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.5.0] - 2026-11-08 — IDM Seviyesi Sıfır-Tık İndirme, Win32 Odaklanma, Canlı Tanı Konsolu ve Proaktif Bağlantı Yakalama
+
+### ⚡ IDM Seviyesi Sıfır-Tık Otomatik Başlatma (Zero-Click Auto-Start)
+- **Onay Kutusuz Doğrudan İndirme:** Kullanıcı tercihi doğrultusunda (`AutoStartWithoutPrompt`), tarayıcıdan yakalanan indirmeler onay penceresi (`DownloadPromptWindow`) göstermeden doğrudan varsayılan dizine anında başlatılır.
+- **Güvenli Dosya Adı Çözümleme (`PathHelper`):** URL, Content-Disposition ve yerel dizin çakışmalarını otomatik yöneten akıllı ve sanitize edilmiş dosya adı çözümleme altyapısı entegre edildi.
+
+### 🪟 Win32 Zorunlu Ön Plan Aktivasyonu (Win32 Foreground Window Activation)
+- Windows 11/10 işletim sisteminin `SetForegroundWindow` kısıtlamalarını aşmak için `AttachThreadInput`, `BringWindowToTop`, `ShowWindowAsync` ve `SetWindowPos` P/Invoke zinciri (`WindowHelper`) entegre edildi.
+- İndirme yakalandığında onay penceresi veya ana pencere arka planda/görev çubuğunda yanıp sönmek yerine tarayıcının üzerinde zorunlu olarak en öne getirilir.
+
+### 🔌 HTTP Köprüsü Case-Insensitive JSON Serileştirme
+- Farklı tarayıcı eklentisi sürümlerinden veya isteklerden gelen `camelCase` / `PascalCase` JSON gövdeleri için `PropertyNameCaseInsensitive = true` desteği eklendi; `400 Bad Request` hataları kökten çözüldü.
+
+### 🎣 IDM Seviyesi Proaktif Bağlantı Yakalama & Çift Kanca (Double-Hook Fallback)
+- Web sayfalarında tıklanan doğrudan dosya indirme bağlantıları (zip, exe, iso, tar, 7z, mp4 vb.) DOM seviyesinde proaktif olarak algılanır.
+- Tarayıcı indirmesi başarısız olursa veya iptal edilirse indirmeyi güvenceye alan çift kanca mekanizması (`double-hook`) eklendi.
+
+### 📊 Canlı Tanı & Log Konsolu (Live Diagnostic Console & Tracing)
+- Eklenti popup arayüzünde son indirme olaylarını ve köprü durumunu gösteren interaktif tanı konsolu (`Live Diagnostics`) eklendi.
+- Masaüstü HTTP köprüsü için anlık tracing, hata bildirimleri ve masaüstü bağlantı takibi güçlendirildi.
+
+### 🚦 Sıralı Tarayıcı İstek Kuyruğu & Mükerrer URL Engelleme (Prompt Queue)
+- Tarayıcıdan peş peşe gelen çoklu indirme isteklerinin birbirini ezmesini önlemek için sıralı işleme kuyruğu (`_promptQueue`) eklendi.
+- Aynı URL için 2 saniye içinde mükerrer indirme tetiklenmesi engellendi.
+
+### 📥 Sistem Tepsisine Küçültme (Close-to-Tray Settings)
+- Pencere kapatıldığında uygulamanın tamamen sonlanması yerine arka planda sistem tepsisinde çalışmaya devam etmesi seçeneği eklendi.
+
+---
+
 ## [1.4.0] - 2026-11-07 — İndirme Kilitlenmesi Çözümü, Çerez/Referrer İletimi ve Güvenlik Sıkılaştırması
 
 ### 🚀 Kesintisiz İndirme Yakalama (Download Interception Overhaul)

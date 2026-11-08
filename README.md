@@ -13,7 +13,7 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://microsoft.com/windows)
 [![Release](https://img.shields.io/github/v/release/Armone0/VortexDownloader?color=brightgreen)](https://github.com/Armone0/VortexDownloader/releases)
-[![Tests](https://img.shields.io/badge/Tests-46%2F46%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-47%2F47%20Passing-success.svg)](tests/)
 [![Implementation](https://img.shields.io/badge/Implementation-Clean--Room%20Independent-blue.svg)](DISCLAIMER.md)
 
 [Features](#-key-features) • [Installation & Setup](#-installation--setup-guide) • [Browser Extension](#-browser-extension-setup) • [Architecture](#-architecture) • [Comparison](#-feature-comparison) • [Security](#-security--integrity) • [Legal Notice](#-legal-notice)
@@ -111,8 +111,8 @@ flowchart TD
 
 ### Option 1: Download Ready-to-Run Portable Package (Recommended)
 
-1. Navigate to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases/tag/v1.4.0) page.
-2. Download **`VortexDownloader-v1.4.0-win-x64.zip`**.
+1. Navigate to the [**Releases**](https://github.com/Armone0/VortexDownloader/releases/tag/v1.5.0) page.
+2. Download **`VortexDownloader-v1.5.0-win-x64.zip`**.
 3. Extract the ZIP archive to your preferred location.
 4. Run **`VortexDownloader.exe`**.
    * Completely **self-contained portable executable** (no external .NET runtime installation required).
