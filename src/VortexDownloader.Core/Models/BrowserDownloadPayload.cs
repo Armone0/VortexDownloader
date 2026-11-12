@@ -9,7 +9,8 @@ public record BrowserDownloadPayload(
     [property: JsonPropertyName("cookies")] string? Cookies = null,
     [property: JsonPropertyName("referrer")] string? Referrer = null,
     [property: JsonPropertyName("referer")] string? Referer = null,
-    [property: JsonPropertyName("userAgent")] string? UserAgent = null)
+    [property: JsonPropertyName("userAgent")] string? UserAgent = null,
+    [property: JsonPropertyName("pageUrl")] string? PageUrl = null)
 {
     public string? EffectiveReferrer => !string.IsNullOrEmpty(Referrer) ? Referrer : Referer;
 }

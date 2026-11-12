@@ -356,6 +356,7 @@ public class MainViewModel : ViewModelBase
     public ICommand ResumeTaskCommand { get; }
     public ICommand DeleteTaskCommand { get; }
     public ICommand OpenFolderCommand { get; }
+    public ICommand RefreshLinkCommand { get; }
 
     public MainViewModel(DownloadEngine? engine = null)
     {
@@ -430,6 +431,14 @@ public class MainViewModel : ViewModelBase
             {
                 OpenInExplorer(item.DestinationPath);
             }
+        });
+
+        // Opens the page the download came from; the browser extension then sends a fresh link that resumes this task.
+        RefreshLinkCommand = new RelayCommand<DownloadItemViewModel>(item =>
+        {
+            if (item?.CanRefreshLink != true) return; // CanRefreshLink only allows absolute http/https URLs
+            try { Process.Start(new ProcessStartInfo(item.SourcePageUrl!) { UseShellExecute = true }); }
+            catch (Exception ex) { MessageBox.Show($"Sayfa açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
         });
 
         SetFilterCommand = new RelayCommand<string>(filter =>

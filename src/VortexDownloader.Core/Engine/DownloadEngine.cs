@@ -101,7 +101,8 @@ public class DownloadEngine : IAsyncDisposable
         UrlMetadata? preloadedMetadata = null,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        string? sourcePageUrl = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -137,7 +138,8 @@ public class DownloadEngine : IAsyncDisposable
             CreatedAt = DateTime.UtcNow,
             Cookies = cookies,
             Referrer = referrer,
-            UserAgent = userAgent
+            UserAgent = userAgent,
+            SourcePageUrl = sourcePageUrl ?? referrer
         };
 
         // Initialize initial chunks
@@ -211,6 +213,7 @@ public class DownloadEngine : IAsyncDisposable
             _runningTokens[taskId] = cts;
             task.Status = DownloadStatus.Downloading;
             task.ErrorMessage = null;
+            task.LinkExpired = false;
             TaskUpdated?.Invoke(task);
 
             var runTask = Task.Run(() => ExecuteDownloadAsync(task, cts.Token));
@@ -280,6 +283,54 @@ public class DownloadEngine : IAsyncDisposable
             }
         }
         await Task.CompletedTask;
+    }
+
+    public const string LinkExpiredMessage = "Bağlantının süresi dolmuş olabilir. Sayfadan dosyayı yeniden indir; Vortex kaldığı yerden devam eder.";
+
+    private static bool IsLinkExpiredError(Exception ex) => ex is HttpRequestException
+    {
+        StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden
+            or System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone
+    };
+
+    /// <summary>
+    /// Points an unfinished task at a fresh link for the same file and resumes it, keeping downloaded chunks.
+    /// Returns null on success, otherwise a user-facing reason (the task is left untouched).
+    /// </summary>
+    public async Task<string?> RefreshTaskUrlAsync(
+        Guid taskId,
+        string newUrl,
+        string? cookies = null,
+        string? referrer = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_tasks.TryGetValue(taskId, out var task)) return "İndirme bulunamadı.";
+        if (task.Status is DownloadStatus.Downloading or DownloadStatus.Assembling or DownloadStatus.Completed)
+            return "Bu indirme şu an yenilenemez (aktif ya da tamamlanmış).";
+
+        var meta = await InspectUrlAsync(newUrl, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
+        if (!meta.SupportsRange)
+            return "Yeni bağlantı kaldığı yerden devam etmeyi (Range) desteklemiyor ya da erişilemiyor.";
+        if (task.TotalBytes <= 0 || meta.ContentLength != task.TotalBytes)
+            return $"Dosya boyutu eşleşmiyor (beklenen {DownloadTask.FormatBytes(task.TotalBytes)}, yeni bağlantı {DownloadTask.FormatBytes(meta.ContentLength)}).";
+        if ((!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(meta.ETag) && task.ETag != meta.ETag) ||
+            (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(meta.LastModified) && task.LastModified != meta.LastModified))
+            return "Sunucudaki dosya değişmiş (ETag/Last-Modified farklı); kaldığı yerden devam etmek bozuk dosya üretir.";
+
+        task.Url = newUrl;
+        task.Cookies = cookies;
+        task.Referrer = referrer;
+        task.UserAgent = userAgent ?? task.UserAgent;
+        task.ETag ??= meta.ETag;
+        task.LastModified ??= meta.LastModified;
+        task.SupportsRange = true;
+        task.LinkExpired = false;
+        task.ErrorMessage = null;
+        TaskUpdated?.Invoke(task);
+        await SaveStateAsync().ConfigureAwait(false);
+        await ResumeTaskAsync(taskId).ConfigureAwait(false);
+        return null;
     }
 
     public async Task CancelTaskAsync(Guid taskId)
@@ -403,6 +454,13 @@ public class DownloadEngine : IAsyncDisposable
                     var freshMeta = await UrlMetadataInspector.InspectAsync(
                         _httpClient, task.Url, cancellationToken,
                         task.Cookies, task.Referrer, task.UserAgent).ConfigureAwait(false);
+
+                    // A different size usually means the signed link now serves an error page: keep the chunks, ask for a fresh link.
+                    if (task.TotalBytes > 0 && freshMeta.ContentLength > 0 && task.TotalBytes != freshMeta.ContentLength)
+                    {
+                        throw new HttpRequestException("Content-Length changed", null, System.Net.HttpStatusCode.Gone);
+                    }
+
                     bool resourceChanged = false;
 
                     if (!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(freshMeta.ETag) &&
@@ -412,10 +470,6 @@ public class DownloadEngine : IAsyncDisposable
                     }
                     else if (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(freshMeta.LastModified) &&
                              !string.Equals(task.LastModified, freshMeta.LastModified, StringComparison.Ordinal))
-                    {
-                        resourceChanged = true;
-                    }
-                    else if (task.TotalBytes > 0 && freshMeta.ContentLength > 0 && task.TotalBytes != freshMeta.ContentLength)
                     {
                         resourceChanged = true;
                     }
@@ -453,7 +507,7 @@ public class DownloadEngine : IAsyncDisposable
                 {
                     throw;
                 }
-                catch
+                catch (Exception ex) when (!IsLinkExpiredError(ex))
                 {
                     // Fail-safe: transient network issues during pre-flight resume inspection do not abort ongoing retry
                 }
@@ -542,7 +596,8 @@ public class DownloadEngine : IAsyncDisposable
             }
 
             task.Status = DownloadStatus.Failed;
-            task.ErrorMessage = ex.Message;
+            task.LinkExpired = IsLinkExpiredError(ex);
+            task.ErrorMessage = task.LinkExpired ? LinkExpiredMessage : ex.Message;
             task.SpeedBytesPerSec = 0;
             await SaveStateAsync().ConfigureAwait(false);
             TaskFailed?.Invoke(task, ex.Message);
@@ -784,7 +839,9 @@ public class DownloadEngine : IAsyncDisposable
                         Referrer = t.Referrer,
                         UserAgent = t.UserAgent,
                         Sha256 = t.Sha256,
-                        ScanStatus = t.ScanStatus
+                        ScanStatus = t.ScanStatus,
+                        SourcePageUrl = t.SourcePageUrl,
+                        LinkExpired = t.LinkExpired
                     };
                 }
             }).ToList();
