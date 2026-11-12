@@ -15,6 +15,14 @@ public interface IProcessRunner
         Action<string>? onOutputLine = null,
         Action<string>? onErrorLine = null,
         CancellationToken ct = default);
+
+    // Argument-list form: each item is passed as-is (no shell, no command-line concatenation).
+    Task<ProcessExecutionResult> RunAsync(
+        string fileName,
+        IEnumerable<string> argumentList,
+        Action<string>? onOutputLine = null,
+        Action<string>? onErrorLine = null,
+        CancellationToken ct = default);
 }
 
 public class DefaultProcessRunner : IProcessRunner

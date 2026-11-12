@@ -864,6 +864,116 @@
                                                     <Border Background="{Binding StatusBgColor}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" ToolTip="{Binding ErrorMessage}">
                                                         <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="10" FontWeight="Bold"/>
                                                     </Border>
+                                                    <!-- Security scan badge (Windows Defender); hidden when no result / scan unavailable -->
+                                                    <Border CornerRadius="10" Padding="8,1" Margin="6,0,0,0" VerticalAlignment="Center" BorderThickness="1"
+                                                            Visibility="{Binding HasScanBadge, Converter={StaticResource BoolToVis}}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                                                                <Setter Property="ToolTip" Value="Windows Defender ile taranıyor"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ScanStatus}" Value="Clean">
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource StatusCompletedBrush}"/>
+                                                                        <Setter Property="ToolTip" Value="Windows Defender: tehdit bulunmadı"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ScanStatus}" Value="Threat">
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource StatusErrorBrush}"/>
+                                                                        <Setter Property="ToolTip" Value="Windows Defender bu dosyada tehdit buldu. Dosyayı açmayın; silmeniz önerilir."/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding ScanBadgeText}" FontSize="10" FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding ScanStatus}" Value="Clean">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource StatusCompletedBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding ScanStatus}" Value="Threat">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource StatusErrorBrush}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                    <!-- SHA-256 chip: opens a small popup to copy the hash and compare with an expected one -->
+                                                    <Grid Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding HasSha256, Converter={StaticResource BoolToVis}}">
+                                                        <ToggleButton x:Name="HashToggle" Content="SHA-256" ToolTip="{Binding HashTooltip}" Cursor="Hand"
+                                                                      FontSize="10" FontWeight="SemiBold" Padding="8,1" FocusVisualStyle="{x:Null}"
+                                                                      Foreground="{DynamicResource TextSecondaryBrush}">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border x:Name="chip" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                                                            BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="chip" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="chip" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                        </ToggleButton>
+                                                        <Popup IsOpen="{Binding IsChecked, ElementName=HashToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=HashToggle}"
+                                                               Placement="Bottom" VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                                            <!-- No Effect here: shadows blur text. Plain bordered card instead. -->
+                                                            <Border Width="400" Padding="14,12" CornerRadius="8" BorderThickness="1"
+                                                                    Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                                                    TextOptions.TextFormattingMode="Display">
+                                                                <StackPanel>
+                                                                    <StackPanel.Resources>
+                                                                        <Style TargetType="TextBox">
+                                                                            <Setter Property="FontFamily" Value="Consolas"/>
+                                                                            <Setter Property="FontSize" Value="11.5"/>
+                                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                            <Setter Property="Template">
+                                                                                <Setter.Value>
+                                                                                    <ControlTemplate TargetType="TextBox">
+                                                                                        <Border x:Name="box" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                                                                                BorderThickness="1" CornerRadius="6" Padding="7,5">
+                                                                                            <ScrollViewer x:Name="PART_ContentHost"/>
+                                                                                        </Border>
+                                                                                        <ControlTemplate.Triggers>
+                                                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                                                                                            </Trigger>
+                                                                                        </ControlTemplate.Triggers>
+                                                                                    </ControlTemplate>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                        </Style>
+                                                                    </StackPanel.Resources>
+                                                                    <TextBlock Text="SHA-256" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                                    <Grid Margin="0,5,0,0">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBox Text="{Binding Sha256, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"/>
+                                                                        <Button Grid.Column="1" Content="Kopyala" Style="{StaticResource ItemActionButton}" Margin="8,0,0,0"
+                                                                                VerticalAlignment="Center" Command="{Binding CopyHashCommand}"/>
+                                                                    </Grid>
+                                                                    <TextBlock Text="Beklenen hash ile karşılaştır (yapıştırın)" Margin="0,12,0,0" FontSize="11" FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                                    <TextBox Text="{Binding ExpectedHash, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,0"/>
+                                                                    <TextBlock Text="✓ Hash eşleşiyor" Margin="0,8,0,0" FontSize="12" FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource StatusCompletedBrush}"
+                                                                               Visibility="{Binding IsHashMatch, Converter={StaticResource BoolToVis}}"/>
+                                                                    <TextBlock Text="✗ Hash eşleşmiyor — dosya değiştirilmiş veya farklı olabilir" Margin="0,8,0,0" FontSize="12" FontWeight="SemiBold"
+                                                                               TextWrapping="Wrap" Foreground="{DynamicResource StatusErrorBrush}"
+                                                                               Visibility="{Binding IsHashMismatch, Converter={StaticResource BoolToVis}}"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Popup>
+                                                    </Grid>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Url}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                                             </StackPanel>

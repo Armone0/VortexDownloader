@@ -24,6 +24,15 @@ public class DownloadEngine : IAsyncDisposable
     private const int StateSaveIntervalTicks = 10; // Save state at most once every 5 seconds (10 * 500ms) during active downloads
     private bool _isDisposed;
 
+    // Post-download integrity checks (SHA-256 + Defender), one file at a time.
+    private readonly DefenderScanner _scanner;
+    private readonly SemaphoreSlim _postCheckGate = new(1, 1);
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _postCheckTokens = new();
+    private readonly ConcurrentDictionary<Guid, Task> _postCheckTasks = new();
+
+    public bool ScanWithDefender { get; set; } = true;
+    public event Action<DownloadTask>? ThreatDetected;
+
     public event Action<DownloadTask>? TaskAdded;
     public event Action<DownloadTask>? TaskUpdated;
     public event Action<DownloadTask>? TaskCompleted;
@@ -46,9 +55,10 @@ public class DownloadEngine : IAsyncDisposable
         }
     }
 
-    public DownloadEngine(StateStore? stateStore = null, HttpClient? httpClient = null, long globalSpeedLimit = 0)
+    public DownloadEngine(StateStore? stateStore = null, HttpClient? httpClient = null, long globalSpeedLimit = 0, DefenderScanner? scanner = null)
     {
         _stateStore = stateStore ?? new StateStore();
+        _scanner = scanner ?? new DefenderScanner();
         _httpClient = httpClient ?? ChunkDownloader.CreateOptimizedHttpClient();
         _globalSpeedLimiter = new SpeedLimiter(globalSpeedLimit);
 
@@ -63,6 +73,12 @@ public class DownloadEngine : IAsyncDisposable
         {
             _tasks[task.Id] = task;
             TaskAdded?.Invoke(task);
+
+            // Check interrupted by app close: run it again.
+            if (task.Status == DownloadStatus.Completed && task.ScanStatus == ScanStatus.Scanning)
+            {
+                StartPostDownloadChecks(task);
+            }
         }
     }
 
@@ -282,6 +298,10 @@ public class DownloadEngine : IAsyncDisposable
     public async Task RemoveTaskAsync(Guid taskId)
     {
         await CancelTaskAsync(taskId).ConfigureAwait(false);
+        if (_postCheckTokens.TryGetValue(taskId, out var checkCts))
+        {
+            try { checkCts.Cancel(); } catch (ObjectDisposedException) { }
+        }
         if (_tasks.TryRemove(taskId, out var task))
         {
             _lastDownloadedBytes.TryRemove(taskId, out _);
@@ -496,6 +516,8 @@ public class DownloadEngine : IAsyncDisposable
             task.CompletedAt = DateTime.UtcNow;
             task.SpeedBytesPerSec = 0;
             task.RecalculateDownloadedBytes();
+            task.Sha256 = null;
+            StartPostDownloadChecks(task);
             await SaveStateAsync().ConfigureAwait(false);
             TaskCompleted?.Invoke(task);
             TaskUpdated?.Invoke(task);
@@ -536,6 +558,71 @@ public class DownloadEngine : IAsyncDisposable
             }
             _runningExecutionTasks.TryRemove(task.Id, out _);
             ProcessDownloadQueue();
+        }
+    }
+
+    private void StartPostDownloadChecks(DownloadTask task)
+    {
+        if (_isDisposed) return;
+        var cts = new CancellationTokenSource();
+        if (!_postCheckTokens.TryAdd(task.Id, cts))
+        {
+            cts.Dispose();
+            return;
+        }
+        task.ScanStatus = ScanStatus.Scanning;
+        var run = Task.Run(() => RunPostDownloadChecksAsync(task, cts));
+        _postCheckTasks[task.Id] = run;
+        // Registered after the add, so a run that finishes instantly cannot leave a stale entry behind.
+        _ = run.ContinueWith(t => _postCheckTasks.TryRemove(new KeyValuePair<Guid, Task>(task.Id, t)), TaskScheduler.Default);
+    }
+
+    private async Task RunPostDownloadChecksAsync(DownloadTask task, CancellationTokenSource cts)
+    {
+        var ct = cts.Token;
+        try
+        {
+            await _postCheckGate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                if (!File.Exists(task.DestinationPath))
+                {
+                    task.ScanStatus = ScanStatus.None;
+                }
+                else
+                {
+                    try
+                    {
+                        task.Sha256 = await FileHasher.ComputeSha256Async(task.DestinationPath, ct).ConfigureAwait(false);
+                        TaskUpdated?.Invoke(task);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        // File moved/locked: no hash, still try to scan below.
+                    }
+
+                    task.ScanStatus = ScanWithDefender
+                        ? await _scanner.ScanAsync(task.DestinationPath, ct).ConfigureAwait(false)
+                        : ScanStatus.None;
+                }
+            }
+            finally
+            {
+                _postCheckGate.Release();
+            }
+
+            if (task.ScanStatus == ScanStatus.Threat) ThreatDetected?.Invoke(task);
+            TaskUpdated?.Invoke(task);
+            await SaveStateAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Deleted or app closing: Scanning stays persisted so the check reruns on next start.
+        }
+        finally
+        {
+            _postCheckTokens.TryRemove(task.Id, out _);
+            cts.Dispose();
         }
     }
 
@@ -695,7 +782,9 @@ public class DownloadEngine : IAsyncDisposable
                         // Persisted in plain text in the local state file; required to resume authenticated downloads after restart.
                         Cookies = t.Cookies,
                         Referrer = t.Referrer,
-                        UserAgent = t.UserAgent
+                        UserAgent = t.UserAgent,
+                        Sha256 = t.Sha256,
+                        ScanStatus = t.ScanStatus
                     };
                 }
             }).ToList();
@@ -735,6 +824,13 @@ public class DownloadEngine : IAsyncDisposable
         }
         _runningTokens.Clear();
         _runningExecutionTasks.Clear();
+
+        // 4. Stop post-download checks (each run disposes its own CTS)
+        foreach (var cts in _postCheckTokens.Values)
+        {
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        }
+        try { await Task.WhenAll(_postCheckTasks.Values.ToArray()).ConfigureAwait(false); } catch { }
 
         await SaveStateAsync().ConfigureAwait(false);
         _httpClient.Dispose();

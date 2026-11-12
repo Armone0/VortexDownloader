@@ -441,8 +441,13 @@
 
                             <CheckBox x:Name="ChkShutdownWhenDone" Style="{StaticResource ModernCheckBox}" 
                                       Content="{DynamicResource Str_ShutdownWhenDone}" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Tüm görevler bittiğinde bilgisayarı otomatik olarak güvenle kapatır." 
-                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0"/>
+                            <TextBlock Text="Tüm görevler bittiğinde bilgisayarı otomatik olarak güvenle kapatır."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12"/>
+
+                            <CheckBox x:Name="ChkScanWithDefender" Style="{StaticResource ModernCheckBox}"
+                                      Content="İndirme bitince Windows Defender ile tara" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Biten dosya arka planda Windows Defender ile taranır. SHA-256 özeti her zaman hesaplanır."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

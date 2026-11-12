@@ -2,6 +2,7 @@ using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using SolidColorBrush = System.Windows.Media.SolidColorBrush;
+using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Models;
 
 namespace VortexDownloader.UI.ViewModels;
@@ -280,9 +281,78 @@ public class DownloadItemViewModel : ViewModelBase
         set => SetProperty(ref _errorMessage, value);
     }
 
+    // --- Post-download integrity (SHA-256 + Defender) ---
+    private string? _sha256;
+    private ScanStatus _scanStatus;
+    private string _expectedHash = string.Empty;
+
+    public string? Sha256
+    {
+        get => _sha256;
+        private set
+        {
+            if (SetProperty(ref _sha256, value))
+            {
+                OnPropertyChanged(nameof(HasSha256));
+                OnPropertyChanged(nameof(HashTooltip));
+                OnPropertyChanged(nameof(IsHashMatch));
+                OnPropertyChanged(nameof(IsHashMismatch));
+            }
+        }
+    }
+
+    public ScanStatus ScanStatus
+    {
+        get => _scanStatus;
+        private set
+        {
+            if (SetProperty(ref _scanStatus, value))
+            {
+                OnPropertyChanged(nameof(ScanBadgeText));
+                OnPropertyChanged(nameof(HasScanBadge));
+            }
+        }
+    }
+
+    public string ExpectedHash
+    {
+        get => _expectedHash;
+        set
+        {
+            if (SetProperty(ref _expectedHash, value))
+            {
+                OnPropertyChanged(nameof(IsHashMatch));
+                OnPropertyChanged(nameof(IsHashMismatch));
+            }
+        }
+    }
+
+    public bool HasSha256 => !string.IsNullOrEmpty(_sha256);
+    public string HashTooltip => $"SHA-256: {_sha256}";
+    public bool IsHashMatch => FileHasher.Matches(_sha256, _expectedHash);
+    public bool IsHashMismatch => HasSha256 && !string.IsNullOrWhiteSpace(_expectedHash) && !IsHashMatch;
+
+    public string ScanBadgeText => _scanStatus switch
+    {
+        ScanStatus.Scanning => "Taranıyor…",
+        ScanStatus.Clean => "✓ Temiz",
+        ScanStatus.Threat => "⚠ Tehdit bulundu",
+        _ => string.Empty
+    };
+    public bool HasScanBadge => ScanBadgeText.Length > 0;
+
+    private System.Windows.Input.ICommand? _copyHashCommand;
+    public System.Windows.Input.ICommand CopyHashCommand => _copyHashCommand ??= new RelayCommand(() =>
+    {
+        if (!HasSha256) return;
+        try { System.Windows.Clipboard.SetText(_sha256!); } catch { /* clipboard busy */ }
+    });
+
     public void UpdateFromTask(DownloadTask task)
     {
         Id = task.Id;
+        Sha256 = task.Sha256;
+        ScanStatus = task.ScanStatus;
         FileName = task.FileName;
         Url = task.Url;
         DestinationPath = task.DestinationPath;

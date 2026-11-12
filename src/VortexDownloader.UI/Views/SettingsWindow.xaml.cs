@@ -48,6 +48,7 @@ public partial class SettingsWindow : Window
 
         // Populate Shutdown
         ChkShutdownWhenDone.IsChecked = settings.ShutdownWhenCompleted;
+        ChkScanWithDefender.IsChecked = settings.ScanWithDefender;
 
         // Populate Theme
         SelectComboBoxItemByTag(CmbTheme, settings.Theme);
@@ -142,6 +143,7 @@ public partial class SettingsWindow : Window
         settings.AutoStartBrowserDownloads = ChkAutoStartBrowserDownloads.IsChecked == true;
         settings.CloseToTray = ChkCloseToTray.IsChecked == true;
         settings.ShutdownWhenCompleted = ChkShutdownWhenDone.IsChecked == true;
+        settings.ScanWithDefender = ChkScanWithDefender.IsChecked == true;
         settings.Save();
 
         DialogResult = true;

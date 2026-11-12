@@ -94,6 +94,14 @@ public class MediaTests
 
             return Task.FromResult(new ProcessExecutionResult(ExitCode, StandardOutput, StandardError));
         }
+
+        public Task<ProcessExecutionResult> RunAsync(
+            string fileName,
+            IEnumerable<string> argumentList,
+            Action<string>? onOutputLine = null,
+            Action<string>? onErrorLine = null,
+            CancellationToken ct = default) =>
+            RunAsync(fileName, string.Join(' ', argumentList), onOutputLine, onErrorLine, ct);
     }
 
     [Fact]

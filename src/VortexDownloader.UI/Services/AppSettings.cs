@@ -36,6 +36,7 @@ public class AppSettings
     public bool ShutdownWhenCompleted { get; set; } = false;
     public bool CloseToTray { get; set; } = true;
     public bool AutoStartBrowserDownloads { get; set; } = false;
+    public bool ScanWithDefender { get; set; } = true;
     public List<string> FavoritePlugins { get; set; } = [];
 
     // Browser bridge pairing: random per-install secret + the extension origins the user approved

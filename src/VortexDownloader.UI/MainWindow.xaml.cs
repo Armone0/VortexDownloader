@@ -159,6 +159,7 @@ public partial class MainWindow : Window
 
         _trayIcon.FrameChanged += OnTrayFrameChanged;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        _viewModel.Engine.ThreatDetected += OnThreatDetected;
 
         StartBrowserExtensionBridge();
         Log("MainWindow constructor end");
@@ -261,6 +262,14 @@ public partial class MainWindow : Window
         ThemeManager.ApplyDwmDarkMode(this, isDark);
     }
 
+    private void OnThreatDetected(DownloadTask task)
+    {
+        // Raised on a background thread by the engine's post-download scan.
+        Dispatcher.BeginInvoke(() => _trayIcon?.ShowNotification(
+            "⚠️ VortexDownloader — Tehdit bulundu",
+            $"Windows Defender \"{task.FileName}\" dosyasında tehdit buldu. Dosyayı açmayın."));
+    }
+
     private void MainWindow_StateChanged(object? sender, EventArgs e)
     {
         // Normal minimize behavior: Keep window visible on Windows Taskbar so user doesn't lose it
@@ -290,6 +299,7 @@ public partial class MainWindow : Window
         _defaultWindowIcon = this.Icon;
         var settings = AppSettings.Current;
         _viewModel.Engine.MaxConcurrentDownloads = settings.MaxConcurrentDownloads;
+        _viewModel.Engine.ScanWithDefender = settings.ScanWithDefender;
         _viewModel.ShutdownWhenCompleted = settings.ShutdownWhenCompleted;
         _viewModel.SelectedMaxConcurrent = settings.MaxConcurrentDownloads switch
         {
@@ -334,6 +344,7 @@ public partial class MainWindow : Window
         _bridgeCts?.Cancel();
         try { _extensionBridgeListener?.Close(); } catch { }
         _bridgeCts?.Dispose();
+        _viewModel.Engine.ThreatDetected -= OnThreatDetected;
         _trayIcon?.Dispose();
         await _viewModel.Engine.DisposeAsync();
     }
@@ -1091,6 +1102,7 @@ public partial class MainWindow : Window
         if (settingsWindow.ShowDialog() == true)
         {
             _viewModel.Engine.MaxConcurrentDownloads = AppSettings.Current.MaxConcurrentDownloads;
+            _viewModel.Engine.ScanWithDefender = AppSettings.Current.ScanWithDefender;
             _viewModel.ShutdownWhenCompleted = AppSettings.Current.ShutdownWhenCompleted;
             _viewModel.SelectedMaxConcurrent = AppSettings.Current.MaxConcurrentDownloads switch
             {
