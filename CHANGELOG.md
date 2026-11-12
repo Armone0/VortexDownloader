@@ -7,7 +7,7 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 ## [1.7.0] - 2026-11-12
 
 ### Yeni
-- **ZIP içinden tek dosya:** ZIP önizlemesinde bir dosya seçip yalnızca onu indir (HTTP Range ile sadece o dosyanın baytları; CRC doğrulaması, zip-slip koruması, üzerine yazmama).
+- **ZIP içinden dosya seçerek indirme:** ZIP önizlemesinde dosyaları onay kutularıyla işaretle (tümünü seç dahil), Yeni İndirme penceresine dön ve "Seçilenleri İndir" ile yalnızca onları hedef klasöre indir (HTTP Range ile sadece o dosyaların baytları; CRC doğrulaması, zip-slip koruması, üzerine yazmama).
 - **Süresi dolan linkte devam:** Link 401/403/404/410 verirse indirilen veri korunur, kartta "Bağlantıyı yenile" çıkar; sayfadan dosya yeniden indirilince Vortex aynı ad ve boyuttaki yarım indirmeyi tanır ve kaldığı yerden devam eder (boyut ve ETag/Last-Modified eşleşmesi şart).
 - **Güvenlik ve bütünlük kontrolü:** İndirme bitince SHA-256 hesaplanır ve Windows Defender ile taranır; kartta "✓ Temiz" / "⚠ Tehdit bulundu" rozeti, hash'i kopyalama ve beklenen hash'le karşılaştırma. Ayarlardan kapatılabilir.
 

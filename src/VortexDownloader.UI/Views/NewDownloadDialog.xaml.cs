@@ -3,8 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
+using VortexDownloader.Core.Network;
 using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
@@ -18,6 +20,11 @@ public partial class NewDownloadDialog : Window
     public int ResultChunkCount { get; private set; } = 8;
     public List<(string Url, string DestinationPath)> BatchItems { get; } = new();
     public bool IsBatchMode { get; private set; }
+
+    // Entries picked in the ZIP preview: when set, Start fetches only these into the target folder
+    private List<ZipEntryMetadata> _zipEntries = [];
+    private string? _zipUrl;
+    private CancellationTokenSource? _zipCts;
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -94,6 +101,7 @@ public partial class NewDownloadDialog : Window
 
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_zipUrl != null && UrlTextBox.Text.Trim() != _zipUrl) SetZipSelection(null, []);
         string rawText = UrlTextBox.Text;
         var urls = ParseUrls(rawText);
 
@@ -189,10 +197,16 @@ public partial class NewDownloadDialog : Window
 
         try
         {
-            var preview = new ZipPreviewWindow(targetUrl, FolderTextBox.Text.Trim()) { Owner = this };
-            if (preview.ShowDialog() == true && preview.StartDownloadRequested)
+            var preview = new ZipPreviewWindow(targetUrl, _zipUrl == targetUrl ? _zipEntries : null) { Owner = this };
+            if (preview.ShowDialog() != true) return;
+            if (preview.StartDownloadRequested)
             {
+                SetZipSelection(null, []);
                 StartButton_Click(sender, e);
+            }
+            else
+            {
+                SetZipSelection(targetUrl, preview.SelectedEntries);
             }
         }
         catch (Exception ex)
@@ -251,8 +265,121 @@ public partial class NewDownloadDialog : Window
         }
     }
 
+    private void SetZipSelection(string? url, List<ZipEntryMetadata> entries)
+    {
+        _zipUrl = entries.Count > 0 ? url : null;
+        _zipEntries = entries.Count > 0 ? entries : [];
+        bool active = _zipEntries.Count > 0;
+        FileNameTextBox.IsEnabled = !active;
+        StartButton.Content = active ? $"Seçilenleri İndir ({_zipEntries.Count})" : "İndirmeyi Başlat";
+        SizeInfoTextBlock.Foreground = (System.Windows.Media.Brush)FindResource(active ? "AccentHighlightBrush" : "TextSecondaryBrush");
+        SizeInfoTextBlock.ToolTip = active ? string.Join("\n", _zipEntries.Select(z => z.FileName)) : null;
+        SizeInfoTextBlock.Text = active
+            ? $"ZIP içinden {_zipEntries.Count} dosya seçildi · {DownloadTask.FormatBytes(_zipEntries.Sum(z => z.UncompressedSize))}"
+            : "Boyut: Bilinmiyor";
+        RangeInfoTextBlock.Text = active ? "Yalnızca seçilenler iner" : "Range: Kontrol edilmedi";
+    }
+
+    private async Task DownloadZipSelectionAsync()
+    {
+        string folder = FolderTextBox.Text.Trim();
+        try { Directory.CreateDirectory(folder); }
+        catch (Exception ex)
+        {
+            ShowZipStatus($"Hedef klasör kullanılamıyor: {ex.Message}", "StatusErrorBrush");
+            return;
+        }
+
+        var entries = _zipEntries;
+        string zipUrl = _zipUrl!;
+        _zipCts = new CancellationTokenSource();
+        SetBusy(true);
+        long grandTotal = Math.Max(1, entries.Sum(z => z.UncompressedSize)), doneBefore = 0;
+        var saved = new List<string>();
+        var failed = new List<string>();
+        bool cancelled = false;
+
+        using (var client = ChunkDownloader.CreateOptimizedHttpClient())
+        {
+            for (int n = 0; n < entries.Count; n++)
+            {
+                var entry = entries[n];
+                long before = doneBefore, total = entry.UncompressedSize;
+                string label = $"{n + 1}/{entries.Count} · {Path.GetFileName(entry.FileName)}";
+                ShowZipStatus($"İndiriliyor {label}", "TextSecondaryBrush");
+                var progress = new Progress<long>(written =>
+                {
+                    SizeInfoTextBlock.Text = $"İndiriliyor {label} — {DownloadTask.FormatBytes(written)} / {DownloadTask.FormatBytes(total)}";
+                    RangeInfoTextBlock.Text = $"%{(before + written) * 100 / grandTotal}";
+                });
+                try
+                {
+                    saved.Add(await ZipEntryExtractor.ExtractRemoteEntryAsync(client, zipUrl, entry, folder, progress, _zipCts.Token));
+                }
+                catch (OperationCanceledException) { cancelled = true; break; }
+                catch (Exception ex) { failed.Add($"{entry.FileName}: {ex.Message}"); }
+                doneBefore += total;
+            }
+        }
+
+        _zipCts.Dispose();
+        _zipCts = null;
+        SetBusy(false);
+
+        if (failed.Count > 0)
+        {
+            ShowZipStatus(saved.Count > 0 ? $"{saved.Count} dosya kaydedildi, {failed.Count} dosya indirilemedi (ayrıntı için üzerine gel)"
+                                          : $"İndirilemedi: {failed[0]}", "StatusErrorBrush", string.Join("\n", failed));
+        }
+        else if (cancelled)
+        {
+            ShowZipStatus(saved.Count > 0 ? $"İptal edildi; {saved.Count} dosya kaydedilmişti" : "İndirme iptal edildi", "TextSecondaryBrush");
+        }
+        else
+        {
+            ShowZipStatus($"{saved.Count} dosya \"{Path.GetFileName(folder.TrimEnd('\\', '/'))}\" klasörüne kaydedildi", "AccentHighlightBrush", string.Join("\n", saved));
+            RangeInfoTextBlock.Text = "Tamamlandı";
+            _zipEntries = [];
+            _zipUrl = null;
+            StartButton.Content = "Kapat";
+            _zipDone = true;
+        }
+    }
+
+    private bool _zipDone;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _zipCts?.Cancel(); // closing the dialog stops an extraction in progress (partial file is deleted by the extractor)
+        base.OnClosed(e);
+    }
+
+    private void ShowZipStatus(string text, string brushKey, string? tooltip = null)
+    {
+        SizeInfoTextBlock.Text = text;
+        SizeInfoTextBlock.Foreground = (System.Windows.Media.Brush)FindResource(brushKey);
+        SizeInfoTextBlock.ToolTip = tooltip;
+    }
+
+    private void SetBusy(bool busy)
+    {
+        UrlTextBox.IsEnabled = AnalyzeButton.IsEnabled = ZipPreviewButton.IsEnabled = StartButton.IsEnabled = !busy;
+        CancelButton.Content = busy ? "Durdur" : "İptal";
+    }
+
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_zipDone)
+        {
+            DialogResult = false;
+            return;
+        }
+        if (_zipEntries.Count > 0 && _zipUrl != null)
+        {
+            _ = DownloadZipSelectionAsync();
+            return;
+        }
+
         string rawText = UrlTextBox.Text;
         var urls = ParseUrls(rawText);
 
@@ -352,6 +479,11 @@ public partial class NewDownloadDialog : Window
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_zipCts != null)
+        {
+            _zipCts.Cancel(); // stop the running ZIP extraction, keep the dialog open
+            return;
+        }
         DialogResult = false;
         Close();
     }

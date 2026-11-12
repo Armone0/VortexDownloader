@@ -295,17 +295,11 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
-                <ProgressBar x:Name="ExtractProgressBar" Visibility="Collapsed" Height="4" Maximum="1"
-                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource ProgressBarForegroundBrush}"
-                             BorderThickness="0" Margin="0,0,0,5"/>
-                <TextBlock x:Name="ExtractStatusText" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextTrimming="CharacterEllipsis" Text="İşaretlediğin dosyalar iner, arşivin tamamı değil."/>
-            </StackPanel>
+            <TextBlock VerticalAlignment="Center" Margin="0,0,14,0" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextTrimming="CharacterEllipsis" Text="İşaretlediğin dosyalar iner, arşivin tamamı değil."/>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="CancelExtractButton" Content="İptal" Visibility="Collapsed" Margin="0,0,8,0" Click="CancelExtractButton_Click"/>
-                <Button x:Name="ExtractEntryButton" Content="Seçilenleri indir" IsEnabled="False" Margin="0,0,8,0"
-                        ToolTip="Arşivin tamamını indirmeden yalnızca işaretli dosyaları seçtiğin klasöre indirir"
+                <Button x:Name="ExtractEntryButton" Content="Seçilenleri ekle" IsEnabled="False" Margin="0,0,8,0"
+                        ToolTip="İşaretli dosyaları Yeni İndirme penceresine ekler; oradan hedef klasöre iner"
                         Click="ExtractEntryButton_Click"/>
                 <Button x:Name="CloseButton" Content="Kapat" Margin="0,0,8,0" Click="CloseButton_Click"/>
                 <Button x:Name="StartDownloadButton" Content="Tüm arşivi indir" Style="{StaticResource PrimaryButton}" IsEnabled="False" Click="StartDownloadButton_Click"/>
