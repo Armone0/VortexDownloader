@@ -406,11 +406,9 @@ public class MainViewModel : ViewModelBase
                 bool deleteFile = false;
                 if (item.Status == DownloadStatus.Completed && File.Exists(item.DestinationPath))
                 {
-                    var answer = MessageBox.Show(
-                        $"\"{item.FileName}\" listeden kaldırılsın.\n\nDosya diskten de kalıcı olarak silinsin mi?\n(Evet: dosyayı sil · Hayır: yalnızca listeden kaldır)",
-                        "İndirmeyi Sil", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-                    if (answer == MessageBoxResult.Cancel) return;
-                    deleteFile = answer == MessageBoxResult.Yes;
+                    var answer = Views.ConfirmDeleteDialog.Ask(Application.Current?.MainWindow, item.FileName, item.DestinationPath);
+                    if (answer == null) return;
+                    deleteFile = answer.Value;
                 }
 
                 await _engine.RemoveTaskAsync(item.Id);

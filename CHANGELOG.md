@@ -19,6 +19,15 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 - Sil: tamamlanan indirmede dosyayı diskten silme seçeneği.
 - Eklentiler sayfası: veri-tabanlı (kod içermeyen) indirilebilir eklentiler, favoriler sol menüde.
 - Sürüm bilgisi artık assembly'den okunuyor.
+- Onay pencereleri keskin çiziliyor (gölge efekti içeriği bitmap'e çevirip yazıları bulanıklaştırıyordu).
+- Bağlantı sayısı: kaydırma çubuğu yerine 1–32 arası tek satır düğme grubu; kartta "N Bağlantı" etiketi.
+- Parça haritası bağlantı başına sabit dilim gösteriyor (bölünen parçalar artık onlarca noktaya dönüşmüyor).
+- Silme onayı temalı pencere oldu; "dosyayı diskten de sil" seçeneği varsayılan kapalı.
+
+### Tarayıcı Eklentisi
+- `download` özellikli linklerde çökme düzeltildi (`updateBadge` tanımsızdı): dosya hem Vortex'e hem tarayıcıya gidiyor, "Vortex kapalı" uyarısı çıkıyordu.
+- "Tarayıcı ile İndir" seçilince artık hata bildirimi gösterilmiyor.
+- Popup okunabilirliği: daha büyük yazı, uygulamanın renk paleti, klavye odak çerçevesi.
 
 ---
 

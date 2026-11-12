@@ -7,11 +7,51 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
 
     <Window.Resources>
         <!-- Soft Deep Drop Shadow matching Main Window -->
         <DropShadowEffect x:Key="WindowShadow" BlurRadius="26" Color="#000000" Opacity="0.5" ShadowDepth="4"/>
+
+        <!-- Segmented choice for the connection count (selected = sage fill) -->
+        <Style x:Key="ChunkSegmentStyle" TargetType="RadioButton">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="seg" CornerRadius="8" BorderThickness="1"
+                                Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="seg" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
+                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="seg" Property="Background" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ButtonPrimaryFgBrush}"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Primary Action Button (Mat Adaçayı Yeşili / Sage Green) -->
         <Style x:Key="PrimaryThemeButton" TargetType="Button">
@@ -111,42 +151,6 @@
             </Setter>
         </Style>
 
-        <!-- Quick Select Chip Button -->
-        <Style x:Key="ChipButtonStyle" TargetType="Button">
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="8,3"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="chipBorder" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="chipBorder" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
-                                <Setter TargetName="chipBorder" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource AccentHighlightBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="chipBorder" Property="Background" Value="{DynamicResource AccentHighlightBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ButtonPrimaryFgBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <!-- Modern Dark TextBox -->
         <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
@@ -312,7 +316,10 @@
     </Window.Resources>
 
     <!-- Outer Container with Shadow & Soft Loft Theme Palette -->
-    <Border Margin="14" CornerRadius="12" Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Effect="{StaticResource WindowShadow}" MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
+    <!-- Shadow lives on a separate empty layer: an Effect on the card itself rasterizes all its text (blurry, no ClearType) -->
+    <Grid>
+    <Border Margin="14" CornerRadius="12" Background="{DynamicResource WindowBackgroundBrush}" Effect="{StaticResource WindowShadow}" IsHitTestVisible="False"/>
+    <Border Margin="14" CornerRadius="12" Background="{DynamicResource WindowBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
         <Grid Margin="22">
             <Grid.RowDefinitions>
                 <!-- Header with Drag and Logo -->
@@ -419,22 +426,22 @@
                         <Button Grid.Column="1" Content="Seç..." Style="{StaticResource SecondaryThemeButton}" Padding="16,0" Click="BtnBrowseFolder_Click"/>
                     </Grid>
 
-                    <!-- Dynamic Chunk Count Selection & Quick Select Badges -->
-                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,10">
+                    <!-- Connection count: one segmented row of choices -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,10">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <Grid Grid.Row="0" Margin="0,0,0,9">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="Dinamik Bağlantı Kanalı (Parça Sayısı)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Bağlantı Sayısı" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                         <Border Width="16" Height="16" CornerRadius="8"
                                                 Background="{DynamicResource InputBackgroundBrush}"
                                                 BorderBrush="{DynamicResource CardBorderBrush}"
@@ -473,30 +480,18 @@
                                                        Margin="0,-1,0,0"/>
                                         </Border>
                                     </StackPanel>
-                                    <TextBlock Text="Bant genişliğini doyurmak için çoklu soket açılır" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Hızlı:" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                    <Button Content="1" Style="{StaticResource ChipButtonStyle}" Tag="1" Click="BtnChipChunk_Click"/>
-                                    <Button Content="4" Style="{StaticResource ChipButtonStyle}" Tag="4" Click="BtnChipChunk_Click"/>
-                                    <Button Content="8" Style="{StaticResource ChipButtonStyle}" Tag="8" Click="BtnChipChunk_Click"/>
-                                    <Button Content="16" Style="{StaticResource ChipButtonStyle}" Tag="16" Click="BtnChipChunk_Click"/>
-                                    <Button Content="32" Style="{StaticResource ChipButtonStyle}" Tag="32" Click="BtnChipChunk_Click"/>
+                                    <TextBlock Text="Aynı anda açılacak bağlantı. Çoğu sunucu için 8 yeterlidir." FontSize="11.5" Margin="0,2,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </Grid>
 
-                            <Grid Grid.Row="1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider x:Name="SliderChunks" Grid.Column="0" Minimum="1" Maximum="32" Value="8" Margin="0,0,10,0" 
-                                        TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChunks_ValueChanged"/>
-                                <Border Grid.Column="1" Background="{DynamicResource ButtonPrimaryBgBrush}" CornerRadius="4" Padding="10,2" MinWidth="36" HorizontalAlignment="Center">
-                                    <TextBlock x:Name="TxtChunkCount" Text="8" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource ButtonPrimaryFgBrush}" HorizontalAlignment="Center"/>
-                                </Border>
-                            </Grid>
+                            <UniformGrid x:Name="ChunkChoices" Grid.Row="1" Rows="1" Margin="-3,0">
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="1"  Content="1"  ToolTip="Tek bağlantı" Checked="ChunkChoice_Checked"/>
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="2"  Content="2"  Checked="ChunkChoice_Checked"/>
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="4"  Content="4"  Checked="ChunkChoice_Checked"/>
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="8"  Content="8"  ToolTip="Önerilen" Checked="ChunkChoice_Checked"/>
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="16" Content="16" Checked="ChunkChoice_Checked"/>
+                                <RadioButton GroupName="Chunks" Style="{StaticResource ChunkSegmentStyle}" Tag="32" Content="32" ToolTip="En fazla: bazı sunucular bu kadar bağlantıyı sınırlayabilir" Checked="ChunkChoice_Checked"/>
+                            </UniformGrid>
                         </Grid>
                     </Border>
 
@@ -553,4 +548,5 @@
             </Grid>
         </Grid>
     </Border>
+    </Grid>
 </Window>

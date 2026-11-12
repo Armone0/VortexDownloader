@@ -173,6 +173,35 @@ public class DownloadItemViewModel : ViewModelBase
         private set => SetProperty(ref _chunkFractions, value);
     }
 
+    internal static IReadOnlyList<double> BuildChunkSlots(DownloadTask task)
+    {
+        long total = task.TotalBytes;
+        if (!task.SupportsRange || total <= 0 || task.Chunks.Count <= 1) return [];
+
+        int n = Math.Clamp(task.MaxChunks, 2, 16);
+        var filled = new double[n];
+        foreach (var c in task.Chunks)
+        {
+            // Each chunk is downloaded front-to-back, so its done bytes are [StartPos, StartPos + done)
+            long done = c.IsCompleted ? c.EndPos - c.StartPos + 1 : Math.Clamp(c.DownloadedBytes, 0, Math.Max(0, c.TotalBytes));
+            long a = c.StartPos, b = Math.Min(total, a + done);
+            if (b <= a) continue;
+            int first = (int)Math.Min(n - 1, a * n / total), last = (int)Math.Min(n - 1, (b - 1) * n / total);
+            for (int i = first; i <= last; i++)
+            {
+                long lo = i * total / n, hi = (i + 1) * total / n;
+                filled[i] += Math.Max(0, Math.Min(b, hi) - Math.Max(a, lo));
+            }
+        }
+        var slots = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            long size = (i + 1) * total / n - i * total / n;
+            slots[i] = size > 0 ? Math.Clamp(filled[i] / size, 0, 1) : 1;
+        }
+        return slots;
+    }
+
     public bool IsDone => Status == DownloadStatus.Completed;
     public bool HasChunkMap => _chunkFractions.Count > 1;
     public bool HasNoChunkMap => !HasChunkMap;
@@ -206,7 +235,14 @@ public class DownloadItemViewModel : ViewModelBase
     public string SpeedFormatted => FormattedSpeed;
     public int ChunksCount => _chunksCount;
 
+    // Chunks multiply as idle connections split the largest remaining piece, so the badge shows connections (the user's choice).
+    public int ConnectionCount => _connectionCount;
+    public string ConnectionTooltip => _chunksCount > _connectionCount
+        ? $"{_connectionCount} eşzamanlı bağlantı · dosya {_chunksCount} parçada indirildi (boşa çıkan bağlantılar kalan en büyük parçayı böldü)"
+        : $"{_connectionCount} eşzamanlı bağlantı";
+
     private int _chunksCount = 1;
+    private int _connectionCount = 1;
 
     public string FormattedSpeed
     {
@@ -259,12 +295,11 @@ public class DownloadItemViewModel : ViewModelBase
         FormattedProgress = task.FormattedProgress;
         ErrorMessage = task.ErrorMessage;
 
-        // Per-chunk fill (0..1) in file order, for the chunk map
+        // Chunk map: fixed byte-range slots (one per connection, max 16). Chunks keep splitting during a download,
+        // so drawing one bar per chunk turned into 40+ dots; slots stay stable and show where bytes are missing.
         lock (task.ChunksLock)
         {
-            ChunkFractions = task.Chunks.OrderBy(c => c.StartPos)
-                .Select(c => c.IsCompleted ? 1.0 : c.TotalBytes > 0 ? Math.Clamp((double)c.DownloadedBytes / c.TotalBytes, 0, 1) : 0)
-                .ToList();
+            ChunkFractions = BuildChunkSlots(task);
         }
         OnPropertyChanged(nameof(ExtensionLabel));
         OnPropertyChanged(nameof(EtaFormatted));
@@ -275,6 +310,7 @@ public class DownloadItemViewModel : ViewModelBase
         int totalChunks = task.Chunks.Count;
         int activeChunks = task.ActiveChunkCount;
         _chunksCount = totalChunks > 0 ? totalChunks : 1;
+        _connectionCount = task.SupportsRange ? Math.Max(1, task.MaxChunks) : 1;
         ChunkInfo = task.SupportsRange
             ? (activeChunks > 0 ? $"{activeChunks}/{totalChunks} Parça Dinamik" : $"{totalChunks} Parça Dinamik")
             : "Tek Parça (Range Yok)";
@@ -283,5 +319,7 @@ public class DownloadItemViewModel : ViewModelBase
         OnPropertyChanged(nameof(TotalBytesFormatted));
         OnPropertyChanged(nameof(SpeedFormatted));
         OnPropertyChanged(nameof(ChunksCount));
+        OnPropertyChanged(nameof(ConnectionCount));
+        OnPropertyChanged(nameof(ConnectionTooltip));
     }
 }

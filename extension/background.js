@@ -25,6 +25,23 @@ function syncInterceptionBadge(enabled) {
   }
 }
 
+// 'connected_active' flashes the green capture badge; anything else restores the on/off badge
+function updateBadge(state) {
+  if (!chrome.action || !chrome.action.setBadgeText) return;
+  if (state === 'connected_active') {
+    chrome.action.setBadgeText({ text: "⚡" });
+    if (chrome.action.setBadgeBackgroundColor) chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+    return;
+  }
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get({ interceptEnabled: true }, (res) => {
+      syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
+    });
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
+}
+
 // Persistent diagnostic event logger (retains last 50 events in chrome.storage.local)
 function addLog(level, message, details = null) {
   const time = new Date().toLocaleTimeString();
@@ -245,6 +262,10 @@ async function sendToVortex(payload) {
     if (response.ok) {
       addLog("success", `İndirme başarıyla Vortex'e aktarıldı! (HTTP ${response.status})`);
       return true;
+    } else if (response.status === 409) {
+      // User chose "Tarayıcı ile İndir" in the desktop prompt: let the browser download, no error popup
+      addLog("info", "Kullanıcı tarayıcıyla indirmeyi seçti (HTTP 409), tarayıcıya bırakıldı.");
+      return false;
     } else {
       const errText = await response.text().catch(() => "");
       const msg = `Masaüstü HTTP ${response.status} hatası döndü: ${errText || response.statusText}`;

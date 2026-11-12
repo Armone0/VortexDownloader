@@ -48,8 +48,7 @@ public partial class DownloadPromptWindow : Window
         _engine = engine;
         ResultUrl = url;
         ResultChunkCount = AppSettings.Current.DefaultChunkCount;
-        SliderChunks.Value = ResultChunkCount;
-        TxtChunkCount.Text = ResultChunkCount.ToString();
+        SelectChunkChoice(ResultChunkCount);
         Cookies = cookies;
         Referrer = referrer;
         UserAgent = userAgent;
@@ -247,22 +246,18 @@ public partial class DownloadPromptWindow : Window
         UpdateDestinationPath();
     }
 
-    private void SliderChunks_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void ChunkChoice_Checked(object sender, RoutedEventArgs e)
     {
-        if (TxtChunkCount != null)
-        {
-            int val = (int)e.NewValue;
-            TxtChunkCount.Text = val.ToString();
+        if (sender is RadioButton rb && rb.Tag is string tagStr && int.TryParse(tagStr, out int val))
             ResultChunkCount = val;
-        }
     }
 
-    private void BtnChipChunk_Click(object sender, RoutedEventArgs e)
+    // Selects the choice closest to the saved default (settings may hold a value not offered here)
+    private void SelectChunkChoice(int count)
     {
-        if (sender is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out int val))
-        {
-            SliderChunks.Value = val;
-        }
+        var choices = ChunkChoices.Children.OfType<RadioButton>().ToList();
+        var best = choices.MinBy(rb => Math.Abs(int.Parse((string)rb.Tag) - count));
+        if (best != null) best.IsChecked = true;
     }
 
     private void CmbCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)

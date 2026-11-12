@@ -298,9 +298,12 @@
     </Window.Resources>
 
     <!-- Outer Container with Shadow & Soft Loft Dark Theme Palette -->
-    <Border Margin="14" CornerRadius="14" Background="{DynamicResource WindowBackgroundBrush}" 
-            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" 
-            Effect="{StaticResource WindowShadow}" MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
+    <!-- Shadow lives on a separate empty layer: an Effect on the card itself rasterizes all its text (blurry, no ClearType) -->
+    <Grid>
+    <Border Margin="14" CornerRadius="14" Background="{DynamicResource WindowBackgroundBrush}" Effect="{StaticResource WindowShadow}" IsHitTestVisible="False"/>
+    <Border Margin="14" CornerRadius="14" Background="{DynamicResource WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+            MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
         <Grid Margin="22">
             <Grid.RowDefinitions>
                 <!-- Row 0: Header with Drag & Logo -->
@@ -620,4 +623,5 @@
             </Grid>
         </Grid>
     </Border>
+    </Grid>
 </Window>
