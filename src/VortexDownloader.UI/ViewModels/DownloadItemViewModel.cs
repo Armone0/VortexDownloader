@@ -213,7 +213,10 @@ public class DownloadItemViewModel : ViewModelBase
     public bool CanRefreshLink => LinkExpired && Status == DownloadStatus.Failed
         && Uri.TryCreate(SourcePageUrl, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
 
-    public bool CanPause => Status == DownloadStatus.Downloading;
+    public bool CanPause => SupportsPause && Status == DownloadStatus.Downloading;
+
+    /// <summary>False for cards the engine doesn't own (e.g. files fetched out of a ZIP), so no dead Pause button shows.</summary>
+    public bool SupportsPause { get; init; } = true;
     public bool CanResume => Status == DownloadStatus.Paused || Status == DownloadStatus.Failed || Status == DownloadStatus.Canceled;
     public bool IsActive => Status == DownloadStatus.Downloading || Status == DownloadStatus.Assembling;
 

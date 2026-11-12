@@ -10,7 +10,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Interop;
+using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
+using VortexDownloader.Core.Network;
 using VortexDownloader.Core.Media;
 using VortexDownloader.Core.Models;
 using VortexDownloader.Core.Plugins;
@@ -833,6 +835,75 @@ public partial class MainWindow : Window
         }
     }
 
+    // Files picked inside a remote ZIP: one card per file in the main list, fetched one after another with Range requests
+    private async Task DownloadZipEntriesAsync(string zipUrl, List<ZipEntryMetadata> entries, string folder)
+    {
+        // One token per card so deleting one file's card stops only that file
+        var tokens = entries.Select(_ => new CancellationTokenSource()).ToList();
+        var cards = entries.Select((entry, n) => new DownloadItemViewModel
+        {
+            Id = Guid.NewGuid(),
+            FileName = Path.GetFileName(entry.FileName.TrimEnd('/')),
+            Url = zipUrl,
+            DestinationPath = Path.Combine(folder, Path.GetFileName(entry.FileName.TrimEnd('/'))),
+            Status = DownloadStatus.Queued,
+            CustomStatusText = "Sırada (ZIP)",
+            ChunkInfo = "ZIP içinden",
+            SupportsPause = false,
+            TotalBytes = entry.UncompressedSize,
+            CancelAction = () => { try { tokens[n].Cancel(); } catch { } }
+        }).ToList();
+        foreach (var card in Enumerable.Reverse(cards)) _viewModel.Downloads.Insert(0, card);
+        _viewModel.UpdateAggregates();
+
+        using var client = ChunkDownloader.CreateOptimizedHttpClient();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            var (entry, card) = (entries[i], cards[i]);
+            var token = tokens[i].Token;
+            if (token.IsCancellationRequested || !_viewModel.Downloads.Contains(card)) continue; // deleted from the list meanwhile
+            card.Status = DownloadStatus.Downloading;
+            card.CustomStatusText = "İndiriliyor (ZIP)";
+            var clock = Stopwatch.StartNew();
+            var progress = new Progress<long>(written =>
+            {
+                card.DownloadedBytes = written;
+                card.ProgressPercentage = entry.UncompressedSize > 0 ? written * 100.0 / entry.UncompressedSize : 0;
+                double seconds = Math.Max(0.001, clock.Elapsed.TotalSeconds);
+                card.SpeedBytesPerSec = written / seconds;
+                card.FormattedSpeed = $"{DownloadTask.FormatBytes((long)(written / seconds))}/s";
+            });
+            try
+            {
+                string path = await ZipEntryExtractor.ExtractRemoteEntryAsync(client, zipUrl, entry, folder, progress, token);
+                card.DestinationPath = path; // may carry a " (1)" suffix
+                card.FileName = Path.GetFileName(path);
+                card.DownloadedBytes = card.TotalBytes;
+                card.ProgressPercentage = 100;
+                card.SpeedBytesPerSec = 0;
+                card.FormattedSpeed = "Tamamlandı";
+                card.CustomStatusText = "Tamamlandı";
+                card.Status = DownloadStatus.Completed;
+            }
+            catch (OperationCanceledException)
+            {
+                card.Status = DownloadStatus.Canceled;
+                card.CustomStatusText = "İptal edildi";
+                card.FormattedSpeed = "";
+            }
+            catch (Exception ex)
+            {
+                card.Status = DownloadStatus.Failed;
+                card.CustomStatusText = "Hata";
+                card.ErrorMessage = ex.Message;
+                card.FormattedSpeed = "";
+                Log($"ZIP entry download failed '{entry.FileName}': {ex.Message}");
+            }
+            _viewModel.UpdateAggregates();
+        }
+        tokens.ForEach(t => t.Dispose());
+    }
+
     private async void BtnNewDownload_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new NewDownloadDialog(_viewModel.Engine)
@@ -842,6 +913,11 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
+            if (dialog.ZipRequest is { } zip)
+            {
+                _ = DownloadZipEntriesAsync(zip.Url, zip.Entries, zip.Folder);
+                return;
+            }
             try
             {
                 if (dialog.BatchItems.Count > 1)
