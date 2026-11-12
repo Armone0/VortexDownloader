@@ -207,6 +207,11 @@ public class DownloadItemViewModel : ViewModelBase
     public bool HasNoChunkMap => !HasChunkMap;
     public bool HasError => Status == DownloadStatus.Failed && !string.IsNullOrWhiteSpace(ErrorMessage);
 
+    public string? SourcePageUrl { get; private set; }
+    public bool LinkExpired { get; private set; }
+    public bool CanRefreshLink => LinkExpired && Status == DownloadStatus.Failed
+        && Uri.TryCreate(SourcePageUrl, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
+
     public bool CanPause => Status == DownloadStatus.Downloading;
     public bool CanResume => Status == DownloadStatus.Paused || Status == DownloadStatus.Failed || Status == DownloadStatus.Canceled;
     public bool IsActive => Status == DownloadStatus.Downloading || Status == DownloadStatus.Assembling;
@@ -294,6 +299,9 @@ public class DownloadItemViewModel : ViewModelBase
         FormattedSpeed = task.FormattedSpeed;
         FormattedProgress = task.FormattedProgress;
         ErrorMessage = task.ErrorMessage;
+        SourcePageUrl = task.SourcePageUrl;
+        LinkExpired = task.LinkExpired;
+        OnPropertyChanged(nameof(CanRefreshLink));
 
         // Chunk map: fixed byte-range slots (one per connection, max 16). Chunks keep splitting during a download,
         // so drawing one bar per chunk turned into 40+ dots; slots stay stable and show where bytes are missing.

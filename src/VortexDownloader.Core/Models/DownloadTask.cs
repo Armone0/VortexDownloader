@@ -25,6 +25,10 @@ public class DownloadTask
     public string? Cookies { get; set; }
     public string? Referrer { get; set; }
     public string? UserAgent { get; set; }
+    /// <summary>Page the download was started from; opened again to get a fresh link when this one expires.</summary>
+    public string? SourcePageUrl { get; set; }
+    /// <summary>Server rejected the link (401/403/404/410 or size changed); downloaded chunks are kept for a refresh.</summary>
+    public bool LinkExpired { get; set; }
 
     private readonly object _chunksLock = new();
 

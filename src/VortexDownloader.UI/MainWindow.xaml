@@ -885,6 +885,14 @@
                                                         Command="{Binding DataContext.ResumeTaskCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}"/>
 
+                                                <!-- Refresh expired link: opens the source page so the browser hands Vortex a fresh link -->
+                                                <Button Style="{StaticResource ItemActionButton}" Content="🔗 Bağlantıyı yenile"
+                                                        Margin="0,0,6,0"
+                                                        ToolTip="Sayfadan dosyayı yeniden indir; Vortex kaldığı yerden devam eder"
+                                                        Visibility="{Binding CanRefreshLink, Converter={StaticResource BoolToVis}}"
+                                                        Command="{Binding DataContext.RefreshLinkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+
                                                 <!-- Open Folder Button -->
                                                 <Button Style="{StaticResource ItemActionButton}" Content="📁 Klasör" 
                                                         Margin="0,0,6,0"

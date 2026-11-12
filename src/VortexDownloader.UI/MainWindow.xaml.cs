@@ -48,7 +48,8 @@ public partial class MainWindow : Window
         long? Size,
         string? Cookies,
         string? Referrer,
-        string? UserAgent);
+        string? UserAgent,
+        string? PageUrl = null);
 
     private readonly Queue<BrowserPromptItem> _browserPromptQueue = new();
     private bool _isPromptShowing = false;
@@ -556,7 +557,8 @@ public partial class MainWindow : Window
                         data?.FileSize,
                         data?.Cookies,
                         referrer,
-                        data?.UserAgent));
+                        data?.UserAgent,
+                        data?.PageUrl));
 
                     return;
                 }
@@ -620,6 +622,11 @@ public partial class MainWindow : Window
                 _activePromptUrl = nextItem.Url;
                 try
                 {
+                    if (await TryContinueUnfinishedDownloadAsync(nextItem))
+                    {
+                        continue;
+                    }
+
                     if (AppSettings.Current.AutoStartBrowserDownloads)
                     {
                         await AutoStartDownloadFromBrowserAsync(nextItem);
@@ -632,7 +639,8 @@ public partial class MainWindow : Window
                             nextItem.Size,
                             nextItem.Cookies,
                             nextItem.Referrer,
-                            nextItem.UserAgent);
+                            nextItem.UserAgent,
+                            nextItem.PageUrl);
                     }
                 }
                 finally
@@ -646,6 +654,53 @@ public partial class MainWindow : Window
             _isPromptShowing = false;
             _activePromptUrl = null;
         }
+    }
+
+    /// <summary>
+    /// A fresh capture of a file that stopped half-way (e.g. its signed link expired) continues that task
+    /// instead of starting over. Returns true when the capture was fully handled here.
+    /// </summary>
+    private async Task<bool> TryContinueUnfinishedDownloadAsync(BrowserPromptItem item)
+    {
+        var match = ExpiredLinkMatcher.FindMatch(_viewModel.Engine.Tasks, item.FileName, item.Size);
+        if (match == null) return false;
+
+        match.RecalculateDownloadedBytes();
+        bool resume = ConfirmDialog.Ask(
+            IsVisible ? this : null,
+            "Yarım kalan indirme bulundu",
+            $"{match.FileName} %{match.ProgressPercentage:F0}'de kaldı. Yeni bağlantıyla kaldığı yerden devam edilsin mi?",
+            $"{DownloadTask.FormatBytes(match.DownloadedBytes)} / {DownloadTask.FormatBytes(match.TotalBytes)}",
+            "Kaldığı yerden devam et",
+            "");
+        if (!resume) return false;
+
+        string? reason;
+        try
+        {
+            reason = await _viewModel.Engine.RefreshTaskUrlAsync(match.Id, item.Url, item.Cookies, item.Referrer, item.UserAgent);
+        }
+        catch (Exception ex)
+        {
+            reason = ex.Message;
+        }
+
+        if (reason == null)
+        {
+            BridgeLog($"[Resume] Task {match.Id} continues with a fresh link: '{item.Url}'");
+            _trayIcon?.ShowNotification("⚡ VortexDownloader", $"Kaldığı yerden devam ediyor: {match.FileName}");
+            return true;
+        }
+
+        BridgeLog($"[Resume] Fresh link rejected for task {match.Id}: {reason}");
+        // Fall back to the normal flow; cancelling here drops the capture.
+        return !ConfirmDialog.Ask(
+            IsVisible ? this : null,
+            "Kaldığı yerden devam edilemedi",
+            reason,
+            match.FileName,
+            "Yeni indirme olarak ekle",
+            "");
     }
 
     private async Task AutoStartDownloadFromBrowserAsync(BrowserPromptItem item)
@@ -691,7 +746,8 @@ public partial class MainWindow : Window
                 autoStart: true,
                 cookies: item.Cookies,
                 referrer: item.Referrer,
-                userAgent: item.UserAgent);
+                userAgent: item.UserAgent,
+                sourcePageUrl: item.PageUrl);
 
             _trayIcon?.ShowNotification("⚡ VortexDownloader", $"İndirme Başlatıldı: {task.FileName}");
             BridgeLog($"[Auto-Start] Download started successfully: TaskId={task.Id}, File='{task.FileName}', Size={task.TotalBytes} bytes");
@@ -709,7 +765,8 @@ public partial class MainWindow : Window
         long? size,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        string? pageUrl = null)
     {
         var prompt = new DownloadPromptWindow(_viewModel.Engine, url, fileName, size, cookies, referrer, userAgent)
         {
@@ -753,7 +810,8 @@ public partial class MainWindow : Window
                     preloadedMetadata: prompt.CachedMetadata,
                     cookies: prompt.Cookies,
                     referrer: prompt.Referrer,
-                    userAgent: prompt.UserAgent);
+                    userAgent: prompt.UserAgent,
+                    sourcePageUrl: pageUrl);
 
                 _trayIcon?.ShowNotification("⚡ VortexDownloader", $"İndirme Başlatıldı: {task.FileName}");
             }
