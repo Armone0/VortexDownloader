@@ -17,6 +17,9 @@ public class ZipEntryMetadata
     public DateTime LastModified { get; set; }
     public int CompressionMethod { get; set; }
     public uint Crc32 { get; set; }
+    public int GeneralPurposeFlag { get; set; }
+    public long LocalHeaderOffset { get; set; }
+    public bool IsEncrypted => (GeneralPurposeFlag & 0x0001) != 0;
 }
 
 /// <summary>
@@ -282,6 +285,7 @@ public static class ZipInspector
             ushort extraFieldLength = BitConverter.ToUInt16(cdData, cursor + 30);
             ushort fileCommentLength = BitConverter.ToUInt16(cdData, cursor + 32);
             uint externalAttributes = BitConverter.ToUInt32(cdData, cursor + 38);
+            uint localHeaderOffset = BitConverter.ToUInt32(cdData, cursor + 42);
 
             int fileNameOffset = cursor + 46;
             if (fileNameOffset + fileNameLength > cdData.Length)
@@ -304,9 +308,10 @@ public static class ZipInspector
 
             long finalUncompSize = uncompSize;
             long finalCompSize = compSize;
+            long finalLocalHeaderOffset = localHeaderOffset;
 
-            // Zip64 size check if sizes exceed 4GB (0xFFFFFFFF)
-            if (extraFieldLength > 0 && (uncompSize == 0xFFFFFFFF || compSize == 0xFFFFFFFF))
+            // Zip64 size/offset check if values exceed 4GB (0xFFFFFFFF)
+            if (extraFieldLength > 0 && (uncompSize == 0xFFFFFFFF || compSize == 0xFFFFFFFF || localHeaderOffset == 0xFFFFFFFF))
             {
                 int extraOffset = fileNameOffset + fileNameLength;
                 int extraEnd = Math.Min(extraOffset + extraFieldLength, cdData.Length);
@@ -332,6 +337,11 @@ public static class ZipInspector
                             finalCompSize = BitConverter.ToInt64(cdData, currentPos);
                             currentPos += 8;
                         }
+                        if (localHeaderOffset == 0xFFFFFFFF && currentPos + 8 <= recordEnd)
+                        {
+                            finalLocalHeaderOffset = BitConverter.ToInt64(cdData, currentPos);
+                            currentPos += 8;
+                        }
                         break;
                     }
 
@@ -352,7 +362,9 @@ public static class ZipInspector
                 IsDirectory = isDirectory,
                 LastModified = lastModified,
                 CompressionMethod = compressionMethod,
-                Crc32 = crc32
+                Crc32 = crc32,
+                GeneralPurposeFlag = generalPurposeFlag,
+                LocalHeaderOffset = finalLocalHeaderOffset
             });
 
             cursor += 46 + fileNameLength + extraFieldLength + fileCommentLength;
@@ -361,7 +373,7 @@ public static class ZipInspector
         return entries;
     }
 
-    private static async Task<byte[]> FetchRangeBytesAsync(
+    internal static async Task<byte[]> FetchRangeBytesAsync(
         HttpClient httpClient,
         string url,
         long from,
@@ -375,7 +387,7 @@ public static class ZipInspector
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            throw new HttpRequestException("Server does not support Range requests (HTTP 200 OK returned).");
+            throw new NotSupportedException("Sunucu HTTP Range isteklerini desteklemiyor (HTTP 200 döndü).");
         }
 
         if (response.StatusCode != HttpStatusCode.PartialContent)

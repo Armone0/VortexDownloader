@@ -152,7 +152,10 @@
 
             <!-- DataGrid for ZIP entries -->
             <Border x:Name="DataGridContainer" Visibility="Collapsed" Background="#0B0F19" BorderBrush="#334155" BorderThickness="1" CornerRadius="8">
-                <DataGrid x:Name="ZipEntriesDataGrid" 
+                <DataGrid x:Name="ZipEntriesDataGrid"
+                          SelectionMode="Single"
+                          SelectionChanged="ZipEntriesDataGrid_SelectionChanged"
+                          MouseDoubleClick="ZipEntriesDataGrid_MouseDoubleClick"
                           AutoGenerateColumns="False" 
                           IsReadOnly="True"
                           HeadersVisibility="Column"
@@ -233,9 +236,32 @@
         </Border>
 
         <!-- Footer Actions -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Single entry extraction status -->
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                <ProgressBar x:Name="ExtractProgressBar" Visibility="Collapsed" Height="4" Maximum="1"
+                             Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource AccentHighlightBrush}"
+                             BorderThickness="0" Margin="0,0,0,4"/>
+                <TextBlock x:Name="ExtractStatusText" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" Text="Bir dosyayı seçip yalnızca onu indirebilirsiniz."/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+            <Button x:Name="CancelExtractButton" Content="İptal" Visibility="Collapsed"
+                    Background="{DynamicResource ButtonSecondaryBgBrush}" Foreground="{DynamicResource ButtonSecondaryFgBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,0,10,0" Click="CancelExtractButton_Click"/>
+            <Button x:Name="ExtractEntryButton" Content="Seçili dosyayı indir" IsEnabled="False"
+                    ToolTip="Arşivin tamamını indirmeden yalnızca seçili dosyayı indirir (çift tıklama da çalışır)"
+                    Background="{DynamicResource ButtonSecondaryBgBrush}" Foreground="{DynamicResource ButtonSecondaryFgBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Margin="0,0,10,0" Click="ExtractEntryButton_Click"/>
             <Button x:Name="CloseButton" Content="Tamam" Background="#334155" Foreground="#CBD5E1" BorderThickness="0" Margin="0,0,10,0" Click="CloseButton_Click"/>
             <Button x:Name="StartDownloadButton" Content="İndirmeye Başla" Background="#4F46E5" Foreground="#FFFFFF" BorderThickness="0" IsEnabled="False" Click="StartDownloadButton_Click"/>
-        </StackPanel>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

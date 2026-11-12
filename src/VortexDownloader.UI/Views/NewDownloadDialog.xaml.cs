@@ -189,7 +189,7 @@ public partial class NewDownloadDialog : Window
 
         try
         {
-            var preview = new ZipPreviewWindow(targetUrl) { Owner = this };
+            var preview = new ZipPreviewWindow(targetUrl, FolderTextBox.Text.Trim()) { Owner = this };
             if (preview.ShowDialog() == true && preview.StartDownloadRequested)
             {
                 StartButton_Click(sender, e);
