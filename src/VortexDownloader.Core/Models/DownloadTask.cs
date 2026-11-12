@@ -25,6 +25,8 @@ public class DownloadTask
     public string? Cookies { get; set; }
     public string? Referrer { get; set; }
     public string? UserAgent { get; set; }
+    public string? Sha256 { get; set; }
+    public ScanStatus ScanStatus { get; set; }
 
     private readonly object _chunksLock = new();
 
