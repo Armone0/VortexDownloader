@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,6 +11,7 @@ using System.Windows.Interop;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Media;
 using VortexDownloader.Core.Models;
+using VortexDownloader.Core.Plugins;
 using VortexDownloader.UI.Common;
 using VortexDownloader.UI.Services;
 using VortexDownloader.UI.ViewModels;
@@ -25,6 +27,8 @@ public partial class MainWindow : Window
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
     private readonly MainViewModel _viewModel;
+    private readonly PluginStore _pluginStore = new(PluginStore.DefaultRoot);
+    private PluginCatalog _pluginCatalog = new();
     private VortexTrayIcon? _trayIcon;
     private HttpListener? _extensionBridgeListener;
     private CancellationTokenSource? _bridgeCts;
@@ -55,6 +59,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
+        MediaPluginPanel.Initialize(_viewModel.Engine);
+        MediaPluginPanel.DownloadRequested += ExecuteMediaDownload;
+        try { _pluginStore.SeedDefaults(); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        ReloadPlugins();
 
         ThemeManager.ThemeChanged += OnThemeChanged;
 
@@ -65,7 +73,7 @@ public partial class MainWindow : Window
         _trayIcon = new VortexTrayIcon(
             this,
             RestoreFromTray,
-            () => _viewModel.Engine.StartAll(),
+            () => _viewModel.StartAllCommand.Execute(null),
             () => _ = _viewModel.Engine.PauseAllAsync(),
             RealExit);
 
@@ -299,24 +307,31 @@ public partial class MainWindow : Window
         try
         {
             // Security 1: Host header validation (Defend against DNS rebinding attacks)
-            if (string.IsNullOrEmpty(host) || (!host.StartsWith("127.0.0.1") && !host.StartsWith("localhost")))
+            string? hostName = host;
+            int colon = hostName?.LastIndexOf(':') ?? -1;
+            if (colon >= 0) hostName = hostName!.Substring(0, colon);
+            if (!string.Equals(hostName, "127.0.0.1", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(hostName, "localhost", StringComparison.OrdinalIgnoreCase))
             {
                 BridgeLog($"<-- 403 Forbidden: Invalid host header '{host}'");
                 context.Response.StatusCode = 403;
                 return;
             }
 
-            // Security 2: Origin validation & CORS setup
+            // Security 2: Origin validation & CORS setup (only browser extensions may call with an Origin)
             if (!string.IsNullOrEmpty(origin))
             {
                 bool isExtension = origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("edge-extension://", StringComparison.OrdinalIgnoreCase) ||
                                    origin.StartsWith("moz-extension://", StringComparison.OrdinalIgnoreCase);
-                context.Response.Headers.Add("Access-Control-Allow-Origin", isExtension ? origin : "*");
-            }
-            else
-            {
-                context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                if (!isExtension)
+                {
+                    BridgeLog($"<-- 403 Forbidden: Non-extension origin '{origin}'");
+                    context.Response.StatusCode = 403;
+                    return;
+                }
+                context.Response.Headers.Add("Access-Control-Allow-Origin", origin);
+                context.Response.Headers.Add("Vary", "Origin");
             }
 
             context.Response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
@@ -353,7 +368,7 @@ public partial class MainWindow : Window
                 context.Response.ContentType = "application/json";
                 using (var pingWriter = new StreamWriter(context.Response.OutputStream))
                 {
-                    await pingWriter.WriteAsync("{\"status\":\"online\",\"version\":\"1.6.1\"}");
+                    await pingWriter.WriteAsync($"{{\"status\":\"online\",\"version\":\"{VortexDownloader.UI.Services.AppInfo.Version}\"}}");
                 }
                 return;
             }
@@ -368,10 +383,34 @@ public partial class MainWindow : Window
 
             if (context.Request.HttpMethod == "POST")
             {
+                const int MaxBodyChars = 1024 * 1024;
+                if (context.Request.ContentLength64 > MaxBodyChars)
+                {
+                    BridgeLog("<-- 413 Payload Too Large (Content-Length)");
+                    context.Response.StatusCode = 413;
+                    return;
+                }
                 using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                string body = await reader.ReadToEndAsync();
+                var buffer = new char[MaxBodyChars + 1];
+                int total = 0, read;
+                while (total < buffer.Length && (read = await reader.ReadAsync(buffer, total, buffer.Length - total)) > 0)
+                    total += read;
+                if (total > MaxBodyChars)
+                {
+                    BridgeLog("<-- 413 Payload Too Large (body)");
+                    context.Response.StatusCode = 413;
+                    return;
+                }
+                string body = new string(buffer, 0, total);
                 BridgeLog($"--> [POST] Body ({body.Length} chars): {body}");
-                var data = JsonSerializer.Deserialize<BrowserDownloadPayload>(body, JsonOptions);
+                BrowserDownloadPayload? data;
+                try { data = JsonSerializer.Deserialize<BrowserDownloadPayload>(body, JsonOptions); }
+                catch (JsonException)
+                {
+                    BridgeLog("<-- 400 Bad Request: Invalid JSON");
+                    context.Response.StatusCode = 400;
+                    return;
+                }
 
                 string? effectiveUrl = data?.Url;
                 if (!string.IsNullOrWhiteSpace(effectiveUrl))
@@ -686,28 +725,69 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnMediaDownload_Click(object sender, RoutedEventArgs e)
+    private void ReloadPlugins()
     {
-        var prompt = new MediaDownloadPromptWindow(_viewModel.Engine)
-        {
-            Owner = this,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
+        _pluginCatalog = new PluginCatalog(_pluginStore.LoadAll());
+        var favorites = AppSettings.Current.FavoritePlugins;
+        _viewModel.PluginCards = _pluginCatalog.Plugins
+            .OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(p => new PluginCardViewModel(p, favorites.Contains(p.Id),
+                () => OpenPlugin(p), ToggleFavoritePlugin, RemovePlugin))
+            .ToList();
+    }
 
-        prompt.ContentRendered += (_, _) =>
-        {
-            try
-            {
-                WindowHelper.BringToFront(prompt);
-            }
-            catch { }
-        };
+    private void OpenPlugin(IVortexPlugin plugin)
+    {
+        if (plugin is not IMediaProviderPlugin media) return;
+        MediaPluginPanel.Initialize(_viewModel.Engine, media);
+        MediaPluginPanel.OpenWithAnimation();
+    }
 
-        if (prompt.ShowDialog() == true)
+    private void ToggleFavoritePlugin(PluginCardViewModel card)
+    {
+        card.IsFavorite = !card.IsFavorite;
+        var favorites = AppSettings.Current.FavoritePlugins;
+        favorites.Remove(card.Id);
+        if (card.IsFavorite) favorites.Add(card.Id);
+        AppSettings.Current.Save();
+        _viewModel.RefreshFavorites();
+    }
+
+    private void RemovePlugin(PluginCardViewModel card)
+    {
+        if (MessageBox.Show(this, $"\"{card.Name}\" eklentisi kaldırılsın mı?", "Eklentiyi Kaldır",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        try { _pluginStore.Remove(card.Id); }
+        catch (Exception ex) { MessageBox.Show(this, $"Eklenti kaldırılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); return; }
+        AppSettings.Current.FavoritePlugins.Remove(card.Id);
+        AppSettings.Current.Save();
+        ReloadPlugins();
+    }
+
+    private async void BtnInstallPlugin_Click(object sender, RoutedEventArgs e)
+    {
+        string text = TxtPluginUrl.Text.Trim();
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var url)) { MessageBox.Show(this, "Geçerli bir bağlantı girin.", "Eklenti Ekle", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        BtnInstallPlugin.IsEnabled = false;
+        try
         {
-            var options = prompt.ToDownloadOptions();
-            ExecuteMediaDownload(options, prompt.StartImmediately);
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            var manifest = await PluginStore.FetchAsync(http, url);
+            var existing = _pluginCatalog.Plugins.FirstOrDefault(p => p.Id == manifest.Id);
+            string action = existing is null ? "kurulsun" : $"v{existing.Version} yerine v{manifest.Version} sürümüne güncellensin";
+            var answer = MessageBox.Show(this,
+                $"\"{manifest.Name}\" v{manifest.Version} {action} mı?\n\nBu eklenti kod çalıştırmaz; yalnızca şu sitelerin bağlantılarını Vortex medya indiriciye yönlendirir:\n{string.Join(", ", manifest.Hosts)}",
+                "Eklenti Ekle", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+            _pluginStore.Install(manifest);
+            ReloadPlugins();
+            TxtPluginUrl.Clear();
         }
+        catch (Exception ex) when (ex is FormatException or HttpRequestException or TaskCanceledException or IOException)
+        {
+            MessageBox.Show(this, $"Eklenti eklenemedi: {ex.Message}", "Eklenti Ekle", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally { BtnInstallPlugin.IsEnabled = true; }
     }
 
     private void ExecuteMediaDownload(MediaDownloadOptions options, bool startImmediately)
@@ -716,6 +796,35 @@ public partial class MainWindow : Window
         {
             if (string.IsNullOrWhiteSpace(options.Url) || string.IsNullOrWhiteSpace(options.DestinationPath))
             {
+                return;
+            }
+
+            if (!startImmediately)
+            {
+                var queuedItem = new DownloadItemViewModel
+                {
+                    Id = Guid.NewGuid(),
+                    FileName = Path.GetFileName(options.DestinationPath),
+                    Url = options.Url,
+                    DestinationPath = options.DestinationPath,
+                    Status = DownloadStatus.Queued,
+                    CustomStatusText = "YouTube kuyruğunda",
+                    ChunkInfo = $"{options.ConcurrentFragments} Akış / Parça"
+                };
+                queuedItem.StartAction = () => Dispatcher.Invoke(() =>
+                {
+                    if (!_viewModel.Downloads.Contains(queuedItem)) return;
+                    _viewModel.Downloads.Remove(queuedItem);
+                    ExecuteMediaDownload(options, startImmediately: true);
+                    MediaPluginPanel.CloseWithAnimation();
+                });
+                queuedItem.CancelAction = () => Dispatcher.Invoke(() =>
+                {
+                    _viewModel.Downloads.Remove(queuedItem);
+                    _viewModel.UpdateAggregates();
+                });
+                _viewModel.Downloads.Insert(0, queuedItem);
+                _viewModel.UpdateAggregates();
                 return;
             }
 

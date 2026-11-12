@@ -12,7 +12,7 @@ public class ChunkDownloader
 {
     private const int BufferSize = 131072; // 128 KB buffer, perfectly aligned with ArrayPool 2^17 bucket
 
-    public static HttpClient CreateOptimizedHttpClient()
+    public static HttpClient CreateOptimizedHttpClient(bool allowInvalidCertificates = false)
     {
         var handler = new SocketsHttpHandler
         {
@@ -26,7 +26,10 @@ public class ChunkDownloader
             ActivityHeadersPropagator = null // Prevents AWS S3 & CloudFront 403 Forbidden SignatureDoesNotMatch
         };
 
-        handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, errors) => true;
+        if (allowInvalidCertificates)
+        {
+            handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, errors) => true;
+        }
 
         var client = new HttpClient(handler, disposeHandler: true)
         {
@@ -171,12 +174,18 @@ public class ChunkDownloader
             return;
         }
 
-        // If range was requested but server returned 200 OK (ignored range), reset to position 0
+        // Range was requested but server returned 200 OK (ignored range): body starts at byte 0 of the file.
         if (startByte > 0 && response.StatusCode == HttpStatusCode.OK)
         {
+            // Not an HttpRequestException/IOException, so the retry loop does not repeat it.
+            if (chunk.StartPos > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Server ignored the Range header (200 OK) for a segment starting at byte {chunk.StartPos}; cannot download this chunk safely.");
+            }
             fileStream.SetLength(0);
             fileStream.Seek(0, SeekOrigin.Begin);
-            chunk.CurrentPos = 0;
+            chunk.CurrentPos = chunk.StartPos;
         }
 
         response.EnsureSuccessStatusCode();

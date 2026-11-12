@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VortexDownloader – Ana Pencere</title>
+<style>
+/* Tokens = Themes/DarkTheme.xaml & LightTheme.xaml */
+:root, :root[data-theme="dark"]{
+  --bg-canvas:#1E2022; --bg-sidebar:#191B1C; --bg-card:#282B2F; --bg-input:#222528; --bg-selected:#363B40; --bg-badge:#2F3632;
+  --border:#383D42; --accent:#8EA191; --on-accent:#1E2022;
+  --t1:#F0ECE1; --t2:#9BA1A6; --t3:#6B7278;
+  --s-down:#8EA191; --s-done:#93AB8F; --s-pause:#E0B185; --s-err:#D68C85;
+}
+:root[data-theme="light"]{
+  --bg-canvas:#F8FAFC; --bg-sidebar:#F1F5F9; --bg-card:#FFFFFF; --bg-input:#FFFFFF; --bg-selected:#F1F5F9; --bg-badge:#E2E8F0;
+  --border:#E2E8F0; --accent:#059669; --on-accent:#FFFFFF;
+  --t1:#0F172A; --t2:#475569; --t3:#94A3B8;
+  --s-down:#0284C7; --s-done:#059669; --s-pause:#D97706; --s-err:#DC2626;
+}
+*{box-sizing:border-box;margin:0}
+body{background:#0c0d0e;font:13px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--t1);display:grid;place-items:center;min-height:100vh;padding:24px}
+.win{width:min(1280px,100%);height:800px;background:var(--bg-canvas);border:1px solid var(--border);border-radius:10px;display:grid;grid-template-columns:232px 1fr;overflow:hidden}
+aside{background:var(--bg-sidebar);border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 14px}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:900}
+.brand b{display:block;font-size:15px;font-weight:900;color:var(--accent);letter-spacing:.3px}
+.brand small{font-size:8px;font-weight:700;color:var(--t3);letter-spacing:1.2px}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);color:var(--on-accent);border-radius:8px;height:38px;font-weight:600;width:100%;margin-bottom:10px}
+.btn-primary:hover{filter:brightness(1.08)}
+.label{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;padding:12px 8px 6px}
+.nav{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:var(--t2);width:100%;text-align:left}
+.nav:hover{background:var(--bg-selected)}
+.nav.on{background:var(--bg-selected);color:var(--t1);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+.nav .n{margin-left:auto;font-size:10px;font-weight:700;color:var(--t2)}
+.nav .n.live{color:var(--s-done)}
+.pill{font-size:8px;font-weight:700;color:var(--accent);margin-left:auto}
+.spacer{flex:1}
+.speed{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0 6px}
+.speed small{color:var(--t2);font-size:11px}
+.speed strong{display:block;font-size:20px;margin:2px 0 8px}
+.spark{display:flex;align-items:flex-end;gap:2px;height:28px}
+.spark i{flex:1;background:var(--accent);opacity:.75;border-radius:2px 2px 0 0}
+main{display:flex;flex-direction:column;min-width:0}
+header{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--border)}
+header h1{font-size:15px}
+header .cnt{font-size:11px;font-weight:600;color:var(--t2)}
+header .grow{flex:1}
+.search{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:6px 12px;width:220px;color:var(--t1);font:inherit}
+.search::placeholder{color:var(--t3)}
+.tool{white-space:nowrap;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;color:var(--t1)}
+.tool:hover{background:var(--bg-selected)}
+.list{padding:16px 22px;display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:grid;gap:10px}
+.card:hover{border-color:var(--accent)}
+.row{display:flex;align-items:center;gap:12px}
+.ico{width:38px;height:38px;border-radius:9px;background:var(--bg-badge);color:var(--accent);display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+.meta{min-width:0;flex:1}
+.name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.url{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--bg-badge);flex:none}
+.acts{display:flex;gap:2px;opacity:.55}
+.card:hover .acts,.card:focus-within .acts{opacity:1}
+.acts button{padding:5px 9px;border-radius:6px;font-size:11px;color:var(--t2)}
+.acts button:hover{background:var(--bg-selected);color:var(--t1)}
+/* Chunk map: her segment bir parça (yeni öneri) */
+.chunks{display:flex;gap:3px;height:8px}
+.chunks i{flex:1;border-radius:3px;background:var(--bg-input);border:1px solid var(--border);overflow:hidden;position:relative}
+.chunks i b{position:absolute;inset:0 auto 0 0;background:var(--c,var(--accent))}
+.stats{display:flex;gap:18px;font-size:11px;color:var(--t2)}
+.stats b{color:var(--t1);font-weight:600}
+.stats .r{margin-left:auto;color:var(--t3)}
+.err .badge{color:var(--s-err)} .dl .badge{color:var(--s-down)} .ps .badge{color:var(--s-pause)} .ok .badge{color:var(--s-done)}
+.toggle{position:fixed;right:20px;bottom:20px;background:var(--accent);color:var(--on-accent);padding:8px 14px;border-radius:99px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="win">
+  <aside>
+    <div class="brand"><div class="logo">V</div><div><b>VORTEX</b><small>DOWNLOAD MANAGER</small></div></div>
+    <button class="btn-primary">＋ Yeni İndirme</button>
+    <div class="label">EKLENTİLER</div>
+    <button class="nav"><span>▶</span>YouTube<span class="pill">AÇIK</span></button>
+    <div class="label">KATEGORİLER</div>
+    <button class="nav on"><span>☰</span>Tümü<span class="n">12</span></button>
+    <button class="nav"><span>↓</span>İndiriliyor<span class="n live">3</span></button>
+    <button class="nav"><span>⏸</span>Duraklatıldı<span class="n">2</span></button>
+    <button class="nav"><span>✓</span>Tamamlandı<span class="n">7</span></button>
+    <div class="label">DOSYA TÜRLERİ</div>
+    <button class="nav"><span>▤</span>Sıkıştırılmış<span class="n">3</span></button>
+    <button class="nav"><span>▦</span>Belgeler<span class="n">2</span></button>
+    <button class="nav"><span>♪</span>Müzik<span class="n">1</span></button>
+    <button class="nav"><span>◆</span>Programlar<span class="n">4</span></button>
+    <button class="nav"><span>▶</span>Video<span class="n">2</span></button>
+    <div class="spacer"></div>
+    <div class="speed"><small>İndirme hızı</small><strong>48,2 MB/s</strong>
+      <div class="spark"><i style="height:30%"></i><i style="height:45%"></i><i style="height:40%"></i><i style="height:70%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:90%"></i><i style="height:75%"></i><i style="height:100%"></i><i style="height:80%"></i></div></div>
+    <button class="nav"><span>⚙</span>Ayarlar</button>
+  </aside>
+  <main>
+    <header>
+      <h1>Tümü</h1><span class="cnt">12 Görev</span>
+      <div class="grow"></div>
+      <input class="search" placeholder="Ara…" aria-label="Ara">
+      <button class="tool">▶ Tümünü Başlat</button>
+      <button class="tool">⏸ Tümünü Duraklat</button>
+      <button class="tool">🧹 Tamamlananları Temizle</button>
+    </header>
+    <div class="list">
+      <article class="card dl">
+        <div class="row"><div class="ico">ISO</div>
+          <div class="meta"><div class="name">ubuntu-24.04.1-desktop-amd64.iso</div><div class="url">https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso</div></div>
+          <span class="badge">İNDİRİLİYOR</span>
+          <div class="acts"><button>⏸ Duraklat</button><button>📁 Klasör</button><button>🗑 Sil</button></div></div>
+        <div class="chunks" aria-label="8 parça">
+          <i><b style="width:100%"></b></i><i><b style="width:100%"></b></i><i><b style="width:84%"></b></i><i><b style="width:62%"></b></i>
+          <i><b style="width:71%"></b></i><i><b style="width:45%"></b></i><i><b style="width:30%"></b></i><i><b style="width:12%"></b></i></div>
+        <div class="stats"><span><b>%63,4</b></span><span><b>31,8 MB/s</b></span><span>2,6 / 4,1 GB</span><span>Kalan <b>00:00:49</b></span><span class="r">8 Parça · Range ✓</span></div>
+      </article>
+
+      <article class="card dl">
+        <div class="row"><div class="ico">MP4</div>
+          <div class="meta"><div class="name">Conference-Talk-2026-1080p.mp4</div><div class="url">https://cdn.example.com/video/conference-talk-2026-1080p.mp4</div></div>
+          <span class="badge">İNDİRİLİYOR</span>
+          <div class="acts"><button>⏸ Duraklat</button><button>📁 Klasör</button><button>🗑 Sil</button></div></div>
+        <div class="chunks"><i><b style="width:100%"></b></i><i><b style="width:58%"></b></i><i><b style="width:40%"></b></i><i><b style="width:22%"></b></i></div>
+        <div class="stats"><span><b>%55,0</b></span><span><b>16,4 MB/s</b></span><span>412 / 750 MB</span><span>Kalan <b>00:00:21</b></span><span class="r">4 Parça · Range ✓</span></div>
+      </article>
+
+      <article class="card ps">
+        <div class="row"><div class="ico">ZIP</div>
+          <div class="meta"><div class="name">dataset-train-part1.zip</div><div class="url">https://data.example.org/dataset-train-part1.zip</div></div>
+          <span class="badge">DURAKLATILDI</span>
+          <div class="acts"><button>▶ Devam Et</button><button>📁 Klasör</button><button>🗑 Sil</button></div></div>
+        <div class="chunks"><i><b style="width:100%;--c:var(--s-pause)"></b></i><i><b style="width:73%;--c:var(--s-pause)"></b></i><i><b style="width:73%;--c:var(--s-pause)"></b></i><i><b style="width:41%;--c:var(--s-pause)"></b></i></div>
+        <div class="stats"><span><b>%71,9</b></span><span>—</span><span>1,4 / 2,0 GB</span><span class="r">4 Parça · devam edilebilir</span></div>
+      </article>
+
+      <article class="card err">
+        <div class="row"><div class="ico">EXE</div>
+          <div class="meta"><div class="name">installer-setup-x64.exe</div><div class="url">Sunucu Range isteğini yok saydı; tek akışla yeniden dene</div></div>
+          <span class="badge">HATA</span>
+          <div class="acts"><button>↻ Yeniden Dene</button><button>🗑 Sil</button></div></div>
+        <div class="stats"><span style="color:var(--s-err)">403 Forbidden · oturum çerezi süresi dolmuş olabilir</span><span class="r">Tarayıcıdan yeniden yakala</span></div>
+      </article>
+
+      <article class="card ok">
+        <div class="row"><div class="ico">PDF</div>
+          <div class="meta"><div class="name">annual-report-2025.pdf</div><div class="url">https://example.com/reports/annual-report-2025.pdf</div></div>
+          <span class="badge">TAMAMLANDI</span>
+          <div class="acts"><button>📂 Aç</button><button>📁 Klasör</button><button>🗑 Sil</button></div></div>
+        <div class="stats"><span><b>%100</b></span><span>18,2 MB</span><span class="r">Bugün 14:32 · SHA-256 ✓</span></div>
+      </article>
+    </div>
+  </main>
+</div>
+<button class="toggle" onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme==='light'?'dark':'light'">Dark / Light</button>
+</body>
+</html>

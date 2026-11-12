@@ -1,21 +1,30 @@
-/* VortexDownloader Floating Video Grabber Styles */
+/* VortexDownloader Smart Video Grabber Styles */
+/* ============================================================================
+   CONTAINER — Video element's parent gets this for hover detection
+   ============================================================================ */
+.vortex-video-container {
+  position: relative !important;
+}
+
+/* Legacy support */
 .vortex-video-container-anchor {
   position: relative !important;
 }
 
+/* ============================================================================
+   PILL BASE — Hidden by default, shown on hover or play
+   ============================================================================ */
 .vortex-video-grabber-pill {
   position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
   z-index: 2147483647 !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   padding: 6px 10px 6px 12px !important;
-  background: rgba(13, 19, 31, 0.92) !important;
-  background: linear-gradient(135deg, rgba(13, 19, 31, 0.95) 0%, rgba(20, 27, 45, 0.90) 100%) !important;
+  background: rgba(13, 19, 31, 0.95) !important;
+  background: linear-gradient(135deg, rgba(13, 19, 31, 0.96) 0%, rgba(20, 27, 45, 0.92) 100%) !important;
   border: 1px solid rgba(99, 102, 241, 0.55) !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(99, 102, 241, 0.28) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
@@ -27,24 +36,51 @@
   letter-spacing: 0.2px !important;
   user-select: none !important;
   -webkit-user-select: none !important;
-  pointer-events: auto !important;
-  opacity: 0.92 !important;
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transform: translateY(8px) !important;
+  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
   box-sizing: border-box !important;
   margin: 0 !important;
   max-width: 90% !important;
   overflow: hidden !important;
 }
 
-.vortex-video-grabber-pill * {
-  box-sizing: border-box !important;
-}
+/* ============================================================================
+   PILL POSITION VARIANTS — Set via JS based on site config
+   ============================================================================ */
+.vortex-pill-top-right { top: 8px !important; right: 8px !important; }
+.vortex-pill-top-left { top: 8px !important; left: 8px !important; }
+.vortex-pill-bottom-right { bottom: 8px !important; right: 8px !important; }
+.vortex-pill-bottom-left { bottom: 8px !important; left: 8px !important; }
 
+/* ============================================================================
+   HOVER ACTIVATION — Container hover reveals pill
+   ============================================================================ */
+.vortex-video-container:hover .vortex-video-grabber-pill,
 .vortex-video-grabber-pill:hover {
   opacity: 1 !important;
-  transform: translateY(-1px) scale(1.02) !important;
-  border-color: rgba(99, 102, 241, 0.95) !important;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(99, 102, 241, 0.5) !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+
+/* ============================================================================
+   AUTO-VISIBLE ON PLAY — Brief reveal when video starts playing
+   ============================================================================ */
+.vortex-video-grabber-pill.vortex-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  animation: vortex-pill-fadeout 3s ease forwards !important;
+}
+
+@keyframes vortex-pill-fadeout {
+  0%, 70% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(8px); pointer-events: none; }
+}
+
+.vortex-video-grabber-pill * {
+  box-sizing: border-box !important;
 }
 
 .vortex-grabber-btn {

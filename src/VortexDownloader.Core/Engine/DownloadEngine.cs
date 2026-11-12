@@ -380,7 +380,9 @@ public class DownloadEngine : IAsyncDisposable
             {
                 try
                 {
-                    var freshMeta = await UrlMetadataInspector.InspectAsync(_httpClient, task.Url, cancellationToken).ConfigureAwait(false);
+                    var freshMeta = await UrlMetadataInspector.InspectAsync(
+                        _httpClient, task.Url, cancellationToken,
+                        task.Cookies, task.Referrer, task.UserAgent).ConfigureAwait(false);
                     bool resourceChanged = false;
 
                     if (!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(freshMeta.ETag) &&
@@ -539,7 +541,6 @@ public class DownloadEngine : IAsyncDisposable
 
     private async Task RunDynamicChunkWorkersAsync(DownloadTask task, CancellationToken cancellationToken)
     {
-        using var activeWorkersSemaphore = new SemaphoreSlim(task.MaxChunks, task.MaxChunks);
         List<Task> activeWorkerTasks = [];
         object chunkListLock = task.ChunksLock;
 
@@ -575,21 +576,19 @@ public class DownloadEngine : IAsyncDisposable
                 // If this worker finished its chunk, check if another active chunk has enough un-downloaded bytes to split!
                 lock (chunkListLock)
                 {
-                    if (task.Chunks.Count < task.MaxChunks)
+                    // No Count cap: concurrency is bounded by the worker count; min split size is enforced by ChunksManager.
+                    var maxFreeChunk = ChunksManager.FindMaxFreeChunk(task.Chunks);
+                    if (maxFreeChunk != null)
                     {
-                        var maxFreeChunk = ChunksManager.FindMaxFreeChunk(task.Chunks);
-                        if (maxFreeChunk != null)
+                        int newId = task.Chunks.Count; // chunks are append-only, so ids stay unique
+                        string newTempFile = Path.Combine(task.TempDirectory, $"{task.Id}_part_{newId}.bin");
+                        var splitResult = ChunksManager.SplitChunk(maxFreeChunk, newId, newTempFile);
+                        if (splitResult.HasValue)
                         {
-                            int newId = task.Chunks.Count;
-                            string newTempFile = Path.Combine(task.TempDirectory, $"{task.Id}_part_{newId}.bin");
-                            var splitResult = ChunksManager.SplitChunk(maxFreeChunk, newId, newTempFile);
-                            if (splitResult.HasValue)
-                            {
-                                var newChunk = splitResult.Value.NewChunk;
-                                newChunk.IsActive = true;
-                                task.Chunks.Add(newChunk);
-                                currentChunk = newChunk;
-                            }
+                            var newChunk = splitResult.Value.NewChunk;
+                            newChunk.IsActive = true;
+                            task.Chunks.Add(newChunk);
+                            currentChunk = newChunk;
                         }
                     }
 
@@ -692,7 +691,11 @@ public class DownloadEngine : IAsyncDisposable
                         ErrorMessage = t.ErrorMessage,
                         CreatedAt = t.CreatedAt,
                         CompletedAt = t.CompletedAt,
-                        TempDirectory = t.TempDirectory
+                        TempDirectory = t.TempDirectory,
+                        // Persisted in plain text in the local state file; required to resume authenticated downloads after restart.
+                        Cookies = t.Cookies,
+                        Referrer = t.Referrer,
+                        UserAgent = t.UserAgent
                     };
                 }
             }).ToList();

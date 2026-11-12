@@ -61,6 +61,7 @@ public class DownloadItemViewModel : ViewModelBase
     }
 
     public Action? CancelAction { get; set; }
+    public Action? StartAction { get; set; }
 
     public long TotalBytes
     {
@@ -105,6 +106,7 @@ public class DownloadItemViewModel : ViewModelBase
                 OnPropertyChanged(nameof(CanPause));
                 OnPropertyChanged(nameof(CanResume));
                 OnPropertyChanged(nameof(IsActive));
+                OnPropertyChanged(nameof(IsDone));
             }
         }
     }
@@ -163,9 +165,41 @@ public class DownloadItemViewModel : ViewModelBase
         _ => SlateBgBrush
     };
 
+    private IReadOnlyList<double> _chunkFractions = [];
+
+    public IReadOnlyList<double> ChunkFractions
+    {
+        get => _chunkFractions;
+        private set => SetProperty(ref _chunkFractions, value);
+    }
+
+    public bool IsDone => Status == DownloadStatus.Completed;
+    public bool HasChunkMap => _chunkFractions.Count > 1;
+    public bool HasNoChunkMap => !HasChunkMap;
+    public bool HasError => Status == DownloadStatus.Failed && !string.IsNullOrWhiteSpace(ErrorMessage);
+
     public bool CanPause => Status == DownloadStatus.Downloading;
     public bool CanResume => Status == DownloadStatus.Paused || Status == DownloadStatus.Failed || Status == DownloadStatus.Canceled;
     public bool IsActive => Status == DownloadStatus.Downloading || Status == DownloadStatus.Assembling;
+
+    public string ExtensionLabel
+    {
+        get
+        {
+            string ext = System.IO.Path.GetExtension(FileName).TrimStart('.').ToUpperInvariant();
+            return ext.Length is > 0 and <= 4 ? ext : "FILE";
+        }
+    }
+
+    public string EtaFormatted
+    {
+        get
+        {
+            if (Status != DownloadStatus.Downloading || SpeedBytesPerSec < 1 || TotalBytes <= 0) return string.Empty;
+            var t = TimeSpan.FromSeconds((TotalBytes - DownloadedBytes) / SpeedBytesPerSec);
+            return $"Kalan {(int)t.TotalHours:00}:{t.Minutes:00}:{t.Seconds:00}";
+        }
+    }
 
     public string DownloadedBytesFormatted => DownloadTask.FormatBytes(DownloadedBytes);
     public string TotalBytesFormatted => TotalBytes > 0 ? DownloadTask.FormatBytes(TotalBytes) : "Bilinmiyor";
@@ -224,6 +258,19 @@ public class DownloadItemViewModel : ViewModelBase
         FormattedSpeed = task.FormattedSpeed;
         FormattedProgress = task.FormattedProgress;
         ErrorMessage = task.ErrorMessage;
+
+        // Per-chunk fill (0..1) in file order, for the chunk map
+        lock (task.ChunksLock)
+        {
+            ChunkFractions = task.Chunks.OrderBy(c => c.StartPos)
+                .Select(c => c.IsCompleted ? 1.0 : c.TotalBytes > 0 ? Math.Clamp((double)c.DownloadedBytes / c.TotalBytes, 0, 1) : 0)
+                .ToList();
+        }
+        OnPropertyChanged(nameof(ExtensionLabel));
+        OnPropertyChanged(nameof(EtaFormatted));
+        OnPropertyChanged(nameof(HasChunkMap));
+        OnPropertyChanged(nameof(HasNoChunkMap));
+        OnPropertyChanged(nameof(HasError));
 
         int totalChunks = task.Chunks.Count;
         int activeChunks = task.ActiveChunkCount;

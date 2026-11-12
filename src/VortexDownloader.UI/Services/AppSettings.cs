@@ -36,6 +36,7 @@ public class AppSettings
     public bool ShutdownWhenCompleted { get; set; } = false;
     public bool CloseToTray { get; set; } = true;
     public bool AutoStartBrowserDownloads { get; set; } = false;
+    public List<string> FavoritePlugins { get; set; } = [];
 
     public static string GetDefaultDownloadPath()
     {

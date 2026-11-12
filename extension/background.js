@@ -112,6 +112,41 @@ function parseUrl(urlStr) {
   }
 }
 
+// ============================================================================
+// SITE PERMISSIONS & AUTO-INTERCEPT CONFIG
+// ============================================================================
+const AUTO_INTERCEPT_EXTS = [
+  '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso',
+  '.exe', '.msi', '.apk', '.dmg', '.pkg', '.deb', '.rpm', '.bin', '.img',
+  '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
+  '.mp3', '.flac', '.wav', '.aac', '.ogg',
+  '.pdf', '.docx', '.xlsx', '.pptx', '.epub', '.torrent'
+];
+
+function isAutoInterceptCandidate(url) {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    return AUTO_INTERCEPT_EXTS.some(ext => pathname.endsWith(ext));
+  } catch { return false; }
+}
+
+async function getSitePermission(url) {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    const result = await chrome.storage.sync.get({ sitePermissions: {} });
+    const perms = result.sitePermissions || {};
+
+    // Exact match -> subdomain match -> wildcard
+    if (perms[hostname] !== undefined) return perms[hostname];
+    for (const [domain, perm] of Object.entries(perms)) {
+      if (domain !== '*' && hostname.endsWith('.' + domain)) return perm;
+    }
+    return perms['*'] || 'links-only'; // default
+  } catch {
+    return 'links-only';
+  }
+}
+
 // Extract registrable domain (eTLD+1) supporting ccSLDs (.co.uk, .com.tr, etc.), IPs and localhost
 function getRootDomain(hostname) {
   if (!hostname || typeof hostname !== 'string') return '';
@@ -460,25 +495,50 @@ async function handleInterceptLink(message, sender) {
     return { success: false, error: "Geçersiz indirme bağlantısı" };
   }
 
-  // 1. Check if download interception is enabled in user settings
-  const isEnabled = await new Promise((resolve) => {
+  const isAuto = message.source === 'auto';
+  const source = message.source || 'manual';
+
+  // 1. Site permission check
+  const perm = await getSitePermission(url);
+  if (perm === 'none') {
+    addLog("warn", `Site izni 'none' - yakalama engellendi: ${url}`);
+    return { success: false, error: "Bu site için yakalama kapalı" };
+  }
+  if (perm === 'video-only' && source !== 'video') {
+    addLog("warn", `Site izni 'video-only' - link yakalama engellendi: ${url}`);
+    return { success: false, error: "Bu site için sadece video yakalama aktif" };
+  }
+
+  // 2. Global interception setting
+  const globalSettings = await new Promise((resolve) => {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get({ interceptEnabled: true }, (items) => {
-        resolve(items ? items.interceptEnabled !== false : true);
+      chrome.storage.local.get({ interceptEnabled: true, autoInterceptEnabled: false }, (items) => {
+        resolve(items || { interceptEnabled: true, autoInterceptEnabled: false });
       });
     } else {
-      resolve(true);
+      resolve({ interceptEnabled: true, autoInterceptEnabled: false });
     }
   });
 
-  if (!isEnabled) {
-    fallbackUrls.add(url);
-    setTimeout(() => fallbackUrls.delete(url), 10000);
-    addLog("warn", "Link tıklaması yakalandı fakat ayarlarda indirme yakalama KAPALI.", url);
+  if (!globalSettings.interceptEnabled) {
+    addLog("warn", "Genel yakalama ayarı KAPALI.", url);
     return { success: false, disabled: true };
   }
 
-  // 2. Extract cookies for url
+  // 3. Auto-intercept (Layer 3) - only for 'full' permission + autoInterceptEnabled + whitelist ext
+  if (isAuto) {
+    if (!globalSettings.autoInterceptEnabled) {
+      return { success: false, disabled: true, reason: 'auto-intercept-disabled' };
+    }
+    if (perm !== 'full') {
+      return { success: false, error: "Bu site için otomatik yakalama izni yok (full gerekli)" };
+    }
+    if (!isAutoInterceptCandidate(url)) {
+      return { success: false, error: "Bu dosya türü otomatik yakalama listesinde değil" };
+    }
+  }
+
+  // 4. Extract cookies for url
   const cookieString = await getCookiesForUrl(url);
 
   const referrer = message.referrer || (sender && sender.tab ? sender.tab.url : "");
@@ -497,34 +557,36 @@ async function handleInterceptLink(message, sender) {
     userAgent: userAgent
   };
 
-  // 3. Dispatch to Vortex desktop engine
+  // 5. Dispatch to Vortex desktop engine
   const captured = await sendToVortex(payload);
 
   if (captured) {
-    if (typeof chrome !== 'undefined' && chrome.action) {
-      chrome.action.setBadgeText({ text: "⚡" });
-      if (chrome.action.setBadgeBackgroundColor) {
-        chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-      }
-      setTimeout(() => {
-        if (chrome.storage && chrome.storage.local) {
-          chrome.storage.local.get({ interceptEnabled: true }, (res) => {
-            syncInterceptionBadge(res ? res.interceptEnabled !== false : true);
-          });
-        } else {
-          chrome.action.setBadgeText({ text: "" });
-        }
-      }, 3000);
-    }
+    updateBadge('connected_active');
+    setTimeout(() => updateBadge('connected_idle'), 3000);
 
-    addLog("success", `Link indirmesi Vortex'e başarıyla iletildi: "${fileName}"`, url);
+    addLog("success", `Link indirmesi Vortex'e iletildi (${source}): "${fileName}"`, url);
     return { success: true, fileName: fileName };
   }
 
-  fallbackUrls.add(url);
-  setTimeout(() => fallbackUrls.delete(url), 10000);
-  addLog("warn", `Link indirmesi Vortex'e aktarılamadı (masaüstü kapalı olabilir): "${fileName}"`, url);
-  return { success: false, error: "VortexDownloader masaüstü köprüsüne bağlanılamadı" };
+  // Fallback to browser download
+  try {
+    fallbackUrls.add(url);
+    setTimeout(() => fallbackUrls.delete(url), 10000);
+    await chrome.downloads.download({ url: url });
+
+    try {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "VortexDownloader (Tarayıcı İndirmesi)",
+        message: "Masaüstü uygulaması çevrimdışı. İndirme tarayıcı üzerinden devam ediyor."
+      });
+    } catch (_) {}
+
+    return { success: true, bridge: false, fallback: true };
+  } catch (downloadErr) {
+    return { success: false, error: downloadErr.message || "İndirme başlatılamadı" };
+  }
 }
 
 // 3. Right-Click Context Menu ("⚡ Vortex ile İndir")

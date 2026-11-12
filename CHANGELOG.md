@@ -4,6 +4,24 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.6.2] - 2026-11-12
+
+### Güvenlik
+- TLS sertifika doğrulaması varsayılan olarak açık; köprüde tam Host eşleşmesi, uzantı olmayan Origin'e 403, 1 MB gövde sınırı.
+- Range'i yok sayan sunucuda sessiz veri bozulması yerine hata.
+
+### Motor
+- Dinamik parça bölme artık gerçekten çalışıyor; çerez/referer/user-agent kaydediliyor ve resume kontrolüne geçiriliyor.
+
+### Arayüz
+- Parça haritası, kalan süre, dosya türü kutusu, arama kutusu, hız grafiği + boş disk alanı, tamamlanınca birleşme animasyonu.
+- Yeni İndirme penceresi ve YouTube paneli temaya bağlandı (Dark/Light).
+- Sil: tamamlanan indirmede dosyayı diskten silme seçeneği.
+- Eklentiler sayfası: veri-tabanlı (kod içermeyen) indirilebilir eklentiler, favoriler sol menüde.
+- Sürüm bilgisi artık assembly'den okunuyor.
+
+---
+
 ## [1.1.0] - 2026-11-07 — Mevcut Kararlı Sürüm (Stable Release)
 
 ### 🛡️ Güvenlik ve Bellek Sızıntısı Düzeltmeleri (Security & Memory Audit)
@@ -55,6 +73,19 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 - **Çoklu URL Girişi:** Yeni indirme penceresinde çok satırlı veya virgülle ayrılmış URL listeleri yapıştırıldığında tüm bağlantılar otomatik olarak kuyruğa ekleniyor.
 
 ---
+
+## [1.6.3] - 2026-11-11 — YouTube Kalite ve Önizleme İyileştirmeleri
+
+- Kaynakta bulunan en yüksek video çözünürlüğü metadata taramasından sonra gösterilir; 4K seçimi 2160p hedefi kullanır.
+- Video kapağı 16:9 önizleme kartında daha görünür sunulur.
+- YouTube paneli açılırken ve kapatılırken yumuşak kayma/opaklık animasyonu oynatır; indirme başlarken kapanır.
+
+## [1.6.2] - 2026-11-11 — Eklenti Altyapısı ve Yenilenen YouTube Çalışma Alanı
+
+- **Uygulama eklenti kataloğu:** Sürümlü eklenti kimliği ve medya sağlayıcı sözleşmesi eklendi; ilk yerleşik sağlayıcı YouTube.
+- **YouTube çalışma alanı:** Eski medya penceresi mevcut Vortex renk çizgisini koruyan sağ panel tasarımıyla yenilendi; kalite, format, kayıt yolu, altyazı ve paralel akış kontrolleri tek panelde.
+- **Daha güvenli bağlantı akışı:** Panel açılırken pano otomatik okunmaz; boş URL gönderilemez ve desteklenmeyen host reddedilir.
+- **Sürüm:** 1.6.2.
 
 ## [1.6.1] - 2026-11-08 — Tepsi Simgesi Kararlılığı & Windows Görev Çubuğu ve Arayüz Animasyon Optimizasyonu
 

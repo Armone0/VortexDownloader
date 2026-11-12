@@ -72,13 +72,20 @@ public class MediaMetadata
                     FilesizeApprox = filesize,
                     IsVideoOnly = isVideoOnly,
                     IsAudioOnly = isAudioOnly,
-                    Note = GetNullableString(f, "format_note")
+                    Note = GetNullableString(f, "format_note"),
+                    Protocol = GetString(f, "protocol")
                 });
             }
         }
 
         return metadata;
     }
+
+    public int GetMaximumVideoHeight() => AvailableFormats
+        .Where(f => f.IsVideoOnly && (f.Note == null || !f.Note.Contains("Premium", StringComparison.OrdinalIgnoreCase))
+            && !f.Protocol.Contains("m3u8", StringComparison.OrdinalIgnoreCase))
+        .Select(f => int.TryParse(new string(f.Resolution.TakeWhile(char.IsDigit).ToArray()), out var height) ? height : 0)
+        .DefaultIfEmpty(0).Max();
 
     public long GetEstimatedBytes(string quality, bool isAudioOnly)
     {

@@ -1,10 +1,13 @@
 using System.IO;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Animation;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Media;
+using VortexDownloader.Core.Plugins;
 using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
@@ -16,13 +19,15 @@ namespace VortexDownloader.UI.Views;
 public partial class MediaDownloadSidePanel : UserControl
 {
     private DownloadEngine? _engine;
+    private IMediaProviderPlugin? _provider;
     private string _currentDirectory;
     private bool _isInternalSelectionUpdating;
     private CancellationTokenSource? _thumbnailCts;
     private CancellationTokenSource? _analyzeCts;
+    private static readonly HttpClient ThumbnailClient = new() { Timeout = TimeSpan.FromSeconds(8) };
 
-    public event Action? CloseRequested;
     public event Action<MediaDownloadOptions, bool>? DownloadRequested;
+    private bool _isClosing;
 
     public string ResultUrl { get; private set; } = string.Empty;
     public string ResultDestinationPath { get; private set; } = string.Empty;
@@ -42,6 +47,8 @@ public partial class MediaDownloadSidePanel : UserControl
     public MediaDownloadSidePanel()
     {
         InitializeComponent();
+        RenderTransform = new System.Windows.Media.TranslateTransform(20, 0);
+        Opacity = 0;
 
         _currentDirectory = GetBaseDownloadDirectory();
         TxtDestPath.Text = _currentDirectory;
@@ -50,17 +57,15 @@ public partial class MediaDownloadSidePanel : UserControl
         SliderConcurrentFragments.Value = ConcurrentFragments;
         TxtFragmentCount.Text = ConcurrentFragments.ToString();
 
-        Loaded += MediaDownloadSidePanel_Loaded;
     }
 
-    public void Initialize(DownloadEngine engine)
+    public void OpenWithAnimation() { _isClosing = false; Visibility = Visibility.Visible; Opacity = 0; if (RenderTransform is System.Windows.Media.TranslateTransform t) { t.X = 22; t.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(240)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } }); } BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(190))); FocusUrlInput(); }
+    public async void CloseWithAnimation() { if (_isClosing || Visibility != Visibility.Visible) return; _isClosing = true; if (RenderTransform is System.Windows.Media.TranslateTransform t) t.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, new DoubleAnimation(24, TimeSpan.FromMilliseconds(180))); BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(180))); await Task.Delay(190); Visibility = Visibility.Collapsed; _isClosing = false; }
+
+    public void Initialize(DownloadEngine engine, IMediaProviderPlugin? provider = null)
     {
         _engine = engine;
-    }
-
-    private void MediaDownloadSidePanel_Loaded(object sender, RoutedEventArgs e)
-    {
-        CheckClipboardAndPopulate();
+        _provider = provider;
     }
 
     public void CheckClipboardAndPopulate()
@@ -87,12 +92,25 @@ public partial class MediaDownloadSidePanel : UserControl
         }
     }
 
+    public void FocusUrlInput()
+    {
+        TxtMediaUrl.Focus();
+        TxtMediaUrl.SelectAll();
+    }
+
     public void SetUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url)) return;
+        if (string.IsNullOrWhiteSpace(url) || !IsSupportedUrl(url)) return;
         TxtMediaUrl.Text = url;
         ResultUrl = url;
         AnalyzeMediaUrl(url);
+    }
+
+    private bool IsSupportedUrl(string? url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return false;
+        return _provider?.CanHandle(uri) ?? IsValidWebMediaUrl(url);
     }
 
     public static bool IsValidWebMediaUrl(string? url)
@@ -168,6 +186,8 @@ public partial class MediaDownloadSidePanel : UserControl
 
         DurationText = durationStr;
 
+        int maxHeight = meta.GetMaximumVideoHeight();
+        TxtQualityAvailability.Text = maxHeight >= 2160 ? "Bu kaynakta 4K (2160p) mevcut; 4K seçimi bunu hedefler." : maxHeight > 0 ? $"Bu kaynakta 4K yok; en yüksek kalite {maxHeight}p." : "Kaynak çözünürlüğü belirlenemedi.";
         SetMediaInfo(meta.Title, meta.Uploader, durationStr, meta.ThumbnailUrl,
             $"{meta.AvailableFormats.Count} akış/format tespit edildi. En iyi kalite eşleştirildi.");
     }
@@ -218,24 +238,20 @@ public partial class MediaDownloadSidePanel : UserControl
         {
             ThumbnailPlaceholder.Visibility = Visibility.Visible;
 
-            await Task.Run(() =>
+            var imageBytes = await ThumbnailClient.GetByteArrayAsync(url, token);
+            if (token.IsCancellationRequested) return;
+            var bitmap = new BitmapImage();
+            using (var stream = new MemoryStream(imageBytes))
             {
-                var bitmap = new BitmapImage();
                 bitmap.BeginInit();
-                bitmap.UriSource = new Uri(url, UriKind.Absolute);
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.DecodePixelWidth = 640;
+                bitmap.StreamSource = stream;
                 bitmap.EndInit();
                 bitmap.Freeze();
-
-                if (!token.IsCancellationRequested)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        ThumbnailImage.Source = bitmap;
-                        ThumbnailPlaceholder.Visibility = Visibility.Collapsed;
-                    });
-                }
-            }, token);
+            }
+            ThumbnailImage.Source = bitmap;
+            ThumbnailPlaceholder.Visibility = Visibility.Collapsed;
         }
         catch
         {
@@ -288,9 +304,9 @@ public partial class MediaDownloadSidePanel : UserControl
 
     private void BtnAnalyzeMedia_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(ResultUrl))
+        if (!IsSupportedUrl(ResultUrl))
         {
-            MessageBox.Show("Lütfen geçerli bir YouTube veya medya bağlantısı girin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Desteklenen bir YouTube bağlantısı girin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -307,21 +323,21 @@ public partial class MediaDownloadSidePanel : UserControl
             if (Radio4K.IsChecked == true)
             {
                 SelectedQuality = "4K";
-                SelectedFormatId = "bestvideo[height<=2160]+bestaudio/best[height<=2160]";
+                SelectedFormatId = "2160p";
                 SetFormatExtension(".mp4", isAudio: false);
                 SelectComboBoxByTag("2160p");
             }
             else if (Radio1080p.IsChecked == true)
             {
                 SelectedQuality = "1080p";
-                SelectedFormatId = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
+                SelectedFormatId = "1080p";
                 SetFormatExtension(".mp4", isAudio: false);
                 SelectComboBoxByTag("1080p");
             }
             else if (Radio720p.IsChecked == true)
             {
                 SelectedQuality = "720p";
-                SelectedFormatId = "bestvideo[height<=720]+bestaudio/best[height<=720]";
+                SelectedFormatId = "720p";
                 SetFormatExtension(".mp4", isAudio: false);
                 SelectComboBoxByTag("720p");
             }
@@ -354,37 +370,37 @@ public partial class MediaDownloadSidePanel : UserControl
                 case "2160p":
                     Radio4K.IsChecked = true;
                     SelectedQuality = "4K";
-                    SelectedFormatId = "bestvideo[height<=2160]+bestaudio/best[height<=2160]";
+                    SelectedFormatId = "2160p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "1440p":
                     Radio4K.IsChecked = true;
                     SelectedQuality = "2K";
-                    SelectedFormatId = "bestvideo[height<=1440]+bestaudio/best[height<=1440]";
+                    SelectedFormatId = "1440p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "1080p":
                     Radio1080p.IsChecked = true;
                     SelectedQuality = "1080p";
-                    SelectedFormatId = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
+                    SelectedFormatId = "1080p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "720p":
                     Radio720p.IsChecked = true;
                     SelectedQuality = "720p";
-                    SelectedFormatId = "bestvideo[height<=720]+bestaudio/best[height<=720]";
+                    SelectedFormatId = "720p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "480p":
                     ClearRadioSelection();
                     SelectedQuality = "480p";
-                    SelectedFormatId = "bestvideo[height<=480]+bestaudio/best[height<=480]";
+                    SelectedFormatId = "480p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "360p":
                     ClearRadioSelection();
                     SelectedQuality = "360p";
-                    SelectedFormatId = "bestvideo[height<=360]+bestaudio/best[height<=360]";
+                    SelectedFormatId = "360p";
                     SetFormatExtension(".mp4", isAudio: false);
                     break;
                 case "mp3":
@@ -500,7 +516,7 @@ public partial class MediaDownloadSidePanel : UserControl
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)
     {
-        CloseRequested?.Invoke();
+        CloseWithAnimation();
     }
 
     private void BtnQueue_Click(object sender, RoutedEventArgs e)
@@ -516,9 +532,9 @@ public partial class MediaDownloadSidePanel : UserControl
     private void ConfirmDownload(bool startImmediately)
     {
         ResultUrl = TxtMediaUrl.Text.Trim();
-        if (string.IsNullOrWhiteSpace(ResultUrl))
+        if (!IsSupportedUrl(ResultUrl))
         {
-            MessageBox.Show("Geçerli bir medya bağlantısı (URL) girilmelidir.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Desteklenen bir YouTube bağlantısı girin.", "Uyarı", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -565,6 +581,7 @@ public partial class MediaDownloadSidePanel : UserControl
         };
 
         DownloadRequested?.Invoke(options, startImmediately);
+        if (startImmediately) CloseWithAnimation();
     }
 
     private void UpdateDestinationPath()

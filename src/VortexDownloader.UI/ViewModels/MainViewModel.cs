@@ -28,6 +28,16 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _selectedDownload, value);
     }
 
+    private readonly Queue<double> _speedSamples = new();
+    private long _lastSpeedSampleTick;
+    private IReadOnlyList<double> _speedBars = [];
+
+    public IReadOnlyList<double> SpeedBars
+    {
+        get => _speedBars;
+        private set => SetProperty(ref _speedBars, value);
+    }
+
     public string TotalSpeedFormatted
     {
         get => _totalSpeedFormatted;
@@ -130,6 +140,7 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _currentFilter, value))
             {
                 OnPropertyChanged(nameof(FilterTitle));
+                OnPropertyChanged(nameof(IsPluginsView));
                 OnPropertyChanged(nameof(FilteredDownloads));
                 OnPropertyChanged(nameof(FilteredDownloadsCount));
                 OnPropertyChanged(nameof(IsAllFilter));
@@ -138,6 +149,27 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsCompletedFilter));
             }
         }
+    }
+
+    public bool IsPluginsView => _currentFilter == "Plugins";
+    private IReadOnlyList<PluginCardViewModel> _pluginCards = [];
+
+    public IReadOnlyList<PluginCardViewModel> PluginCards
+    {
+        get => _pluginCards;
+        set
+        {
+            if (SetProperty(ref _pluginCards, value)) RefreshFavorites();
+        }
+    }
+
+    public IEnumerable<PluginCardViewModel> FavoritePluginCards => _pluginCards.Where(p => p.IsFavorite);
+    public bool HasFavoritePlugins => _pluginCards.Any(p => p.IsFavorite);
+
+    public void RefreshFavorites()
+    {
+        OnPropertyChanged(nameof(FavoritePluginCards));
+        OnPropertyChanged(nameof(HasFavoritePlugins));
     }
 
     public bool IsAllFilter => _currentFilter == "All";
@@ -155,12 +187,33 @@ public class MainViewModel : ViewModelBase
         "Music" => "Müzik ve Ses",
         "Programs" => "Programlar ve Kurulumlar",
         "Video" => "Videolar",
+        "Plugins" => "Eklentiler",
         "Grabber" => "Yakalayıcı Projeleri",
         "Queues" => "İndirme Kuyrukları",
         _ => "Tüm İndirmeler"
     };
 
-    public IEnumerable<DownloadItemViewModel> FilteredDownloads => _currentFilter switch
+    private string _searchText = string.Empty;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+            {
+                OnPropertyChanged(nameof(FilteredDownloads));
+                OnPropertyChanged(nameof(FilteredDownloadsCount));
+            }
+        }
+    }
+
+    public IEnumerable<DownloadItemViewModel> FilteredDownloads => string.IsNullOrWhiteSpace(_searchText)
+        ? FilteredByCategory
+        : FilteredByCategory.Where(d =>
+            d.FileName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+            d.Url.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<DownloadItemViewModel> FilteredByCategory => _currentFilter switch
     {
         "Downloading" => Downloads.Where(d => d.Status == DownloadStatus.Downloading),
         "Paused" => Downloads.Where(d => d.Status == DownloadStatus.Paused),
@@ -314,7 +367,12 @@ public class MainViewModel : ViewModelBase
         _engine.TaskRemoved += OnEngineTaskRemoved;
         Downloads.CollectionChanged += (_, _) => UpdateAggregates();
 
-        StartAllCommand = new RelayCommand(() => _engine.StartAll());
+        StartAllCommand = new RelayCommand(() =>
+        {
+            _engine.StartAll();
+            foreach (var item in Downloads.Where(d => d.Status == DownloadStatus.Queued).ToArray())
+                item.StartAction?.Invoke();
+        });
         PauseAllCommand = new RelayCommand(async () => await _engine.PauseAllAsync());
         ClearCompletedCommand = new RelayCommand(async () =>
         {
@@ -344,7 +402,23 @@ public class MainViewModel : ViewModelBase
         {
             if (item != null)
             {
+                // Finished downloads leave a real file behind: ask before touching the disk.
+                bool deleteFile = false;
+                if (item.Status == DownloadStatus.Completed && File.Exists(item.DestinationPath))
+                {
+                    var answer = MessageBox.Show(
+                        $"\"{item.FileName}\" listeden kaldırılsın.\n\nDosya diskten de kalıcı olarak silinsin mi?\n(Evet: dosyayı sil · Hayır: yalnızca listeden kaldır)",
+                        "İndirmeyi Sil", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+                    if (answer == MessageBoxResult.Cancel) return;
+                    deleteFile = answer == MessageBoxResult.Yes;
+                }
+
                 await _engine.RemoveTaskAsync(item.Id);
+                if (deleteFile)
+                {
+                    try { File.Delete(item.DestinationPath); }
+                    catch (Exception ex) { MessageBox.Show($"Dosya silinemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+                }
                 item.CancelAction?.Invoke();
                 if (Downloads.Contains(item))
                 {
@@ -430,6 +504,16 @@ public class MainViewModel : ViewModelBase
     {
         double sumSpeed = Downloads.Where(d => d.Status == DownloadStatus.Downloading).Sum(d => d.SpeedBytesPerSec);
         TotalSpeedFormatted = DownloadTask.FormatBytesPerSec(sumSpeed);
+
+        // Sparkline: last 24 samples scaled to 2..28 px (floor 1 MB/s so idle noise stays flat)
+        if (Environment.TickCount64 - _lastSpeedSampleTick >= 500)
+        {
+            _lastSpeedSampleTick = Environment.TickCount64;
+            _speedSamples.Enqueue(sumSpeed);
+            while (_speedSamples.Count > 24) _speedSamples.Dequeue();
+            double peak = Math.Max(1024 * 1024, _speedSamples.Max());
+            SpeedBars = _speedSamples.Select(s => 2 + 12 * s / peak).ToList();
+        }
         ActiveDownloadsCount = Downloads.Count(d => d.Status == DownloadStatus.Downloading);
         if (ActiveDownloadsCount > 0)
         {

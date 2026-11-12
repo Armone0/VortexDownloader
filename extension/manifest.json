@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VortexDownloader Integration",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Otomatik indirme yakalama, video yakalayıcı (Video Sniffer) ve VortexDownloader hızlı aktarım eklentisi.",
   "permissions": [
     "downloads",

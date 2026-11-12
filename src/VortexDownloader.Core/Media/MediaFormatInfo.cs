@@ -11,4 +11,5 @@ public class MediaFormatInfo
     public bool IsVideoOnly { get; set; }
     public bool IsAudioOnly { get; set; }
     public string? Note { get; set; }
+    public string Protocol { get; set; } = string.Empty;
 }

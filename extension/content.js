@@ -1,4 +1,4 @@
-// VortexDownloader - Floating Video & Media Grabber (Video Sniffer)
+// VortexDownloader - Smart Video & Media Grabber (Video Sniffer)
 (() => {
   'use strict';
 
@@ -17,6 +17,80 @@
     'application/x-mpegurl', 'application/vnd.apple.mpegurl',
     'application/dash+xml'
   ];
+
+  // ============================================================================
+  // SITE CONFIGURATION — Site özel selector'lar ve ayarlar
+  // ============================================================================
+  const SITE_CONFIG = {
+    'youtube.com': {
+      videoSelector: '#movie_player video, .html5-video-player video',
+      containerSelector: '#movie_player, .html5-video-player',
+      ignoreSelectors: ['.ytp-ad-player-overlay', '.video-ads', '.ytp-chrome-bottom'],
+      pillPosition: 'top-right',
+    },
+    'youtu.be': {
+      videoSelector: '#movie_player video, .html5-video-player video',
+      containerSelector: '#movie_player, .html5-video-player',
+      ignoreSelectors: ['.ytp-ad-player-overlay', '.video-ads', '.ytp-chrome-bottom'],
+      pillPosition: 'top-right',
+    },
+    'twitch.tv': {
+      videoSelector: '[data-a-target="video-player"] video, .video-player__container video',
+      containerSelector: '[data-a-target="video-player"], .video-player__container',
+      pillPosition: 'bottom-right',
+    },
+    'netflix.com': {
+      videoSelector: '.watch-video video, video.nf-player-core',
+      containerSelector: '.watch-video, .player-wrapper',
+      pillPosition: 'top-right',
+    },
+    'vimeo.com': {
+      videoSelector: '.player video, #player video',
+      containerSelector: '.player, #player',
+      pillPosition: 'top-left',
+    },
+    'twitter.com': {
+      videoSelector: '[data-testid="videoPlayer"] video',
+      containerSelector: '[data-testid="videoPlayer"]',
+      pillPosition: 'top-right',
+    },
+    'x.com': {
+      videoSelector: '[data-testid="videoPlayer"] video',
+      containerSelector: '[data-testid="videoPlayer"]',
+      pillPosition: 'top-right',
+    },
+    'linkedin.com': {
+      videoSelector: '.feed-shared-video video, .video-player video',
+      containerSelector: '.feed-shared-video, .video-player',
+      pillPosition: 'top-right',
+    },
+    'facebook.com': {
+      videoSelector: '[data-pagelet="video_player"] video, .x1lliihq video',
+      containerSelector: '[data-pagelet="video_player"], .x1lliihq',
+      pillPosition: 'top-right',
+    },
+    'instagram.com': {
+      videoSelector: 'video[playsinline]',
+      containerSelector: 'video[playsinline]',
+      pillPosition: 'top-right',
+    },
+    '*': { // Default fallback
+      videoSelector: 'video',
+      containerSelector: null,
+      ignoreSelectors: [],
+      pillPosition: 'top-right',
+    }
+  };
+
+  function getSiteConfig() {
+    const hostname = window.location.hostname.replace(/^www\./, '');
+    for (const [domain, config] of Object.entries(SITE_CONFIG)) {
+      if (domain === '*' || hostname === domain || hostname.endsWith('.' + domain)) {
+        return config;
+      }
+    }
+    return SITE_CONFIG['*'];
+  }
 
   function sanitizeFileName(name) {
     if (!name || typeof name !== 'string') return 'vortex_video';
@@ -45,6 +119,70 @@
     // Fallback to page title with .mp4 extension
     const title = sanitizeFileName(document.title);
     return `${title}.mp4`;
+  }
+
+  // ============================================================================
+  // ELIGIBILITY CHECKS — Sadece gerçek, izlenebilir videolar
+  // ============================================================================
+  function isInAdFrame(element) {
+    const adFramePatterns = [
+      'googleads', 'doubleclick', 'googlesyndication', 'amazon-adsystem',
+      'adsystem', 'adnxs', 'rubiconproject', 'pubmatic', 'criteo',
+      'openx', 'indexexchange', 'sonobi', 'smartadserver',
+      'adsafeprotected', 'iasds', 'moatads', 'integralads'
+    ];
+    try {
+      let frame = element.ownerDocument.defaultView.frameElement;
+      while (frame) {
+        const src = (frame.src || '').toLowerCase();
+        if (adFramePatterns.some(p => src.includes(p))) return true;
+        frame = frame.ownerDocument?.defaultView?.frameElement;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function isHlsMasterOrSegment(url) {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    // Master playlist usually doesn't have direct media, segments are .ts/.m4s
+    return lower.includes('.ts?') || lower.includes('.m4s') || lower.endsWith('.ts') || lower.endsWith('.m4s');
+  }
+
+  function isEligibleVideo(video) {
+    // 1. Boyut kontrolü: minimum 320x180
+    const rect = video.getBoundingClientRect();
+    if (rect.width < 320 || rect.height < 180) return false;
+
+    // 2. Görünürlük
+    const style = window.getComputedStyle(video);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+    if (rect.width === 0 || rect.height === 0) return false;
+
+    // 3. Viewport içinde mi? (en az %50)
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const visibleW = Math.min(rect.right, vw) - Math.max(rect.left, 0);
+    const visibleH = Math.min(rect.bottom, vh) - Math.max(rect.top, 0);
+    if (visibleW * visibleH < rect.width * rect.height * 0.5) return false;
+
+    // 4. Ad/Tracking iframe
+    if (isInAdFrame(video)) return false;
+
+    // 5. Video metadata yüklendi mi?
+    if (video.readyState < 1) return false; // HAVE_METADATA
+
+    // 6. HLS master playlist / segment filtreleme
+    if (isHlsMasterOrSegment(video.currentSrc)) return false;
+
+    // 7. Site ignore selector'ları
+    const config = getSiteConfig();
+    if (config.ignoreSelectors?.length) {
+      for (const sel of config.ignoreSelectors) {
+        if (video.closest(sel)) return false;
+      }
+    }
+
+    return true;
   }
 
   function isEligibleMediaUrl(url, mimeType) {
@@ -126,26 +264,33 @@
     return null;
   }
 
-  function findAnchorContainer(video) {
-    let container = video.parentElement;
-    if (!container) return null;
-
-    // In some players, the immediate parent is a zero-height wrapper
-    const vRect = video.getBoundingClientRect();
-    let cRect = container.getBoundingClientRect();
-    if (vRect.height > 50 && cRect.height < 10 && container.parentElement && container.parentElement !== document.body) {
-      container = container.parentElement;
+  function findContainer(video, config) {
+    if (config.containerSelector) {
+      return video.closest(config.containerSelector) || video.parentElement;
     }
+    return video.parentElement;
+  }
 
-    // Ensure the container creates a positioning context
-    if (container !== document.body && container !== document.documentElement) {
-      const style = window.getComputedStyle(container);
-      if (style.position === 'static') {
-        container.classList.add('vortex-video-container-anchor');
-      }
-    }
+  // ============================================================================
+  // PERSISTENT DISMISS — Session storage per video URL
+  // ============================================================================
+  function getDismissedVideos() {
+    try {
+      return new Set(JSON.parse(sessionStorage.getItem('vortex_dismissed_videos') || '[]'));
+    } catch { return new Set(); }
+  }
 
-    return container;
+  function dismissVideo(video, mediaUrl) {
+    const key = mediaUrl + '|' + window.location.origin;
+    const dismissed = getDismissedVideos();
+    dismissed.add(key);
+    sessionStorage.setItem('vortex_dismissed_videos', JSON.stringify([...dismissed]));
+    video._vortexDismissed = true;
+  }
+
+  function isDismissed(mediaUrl) {
+    const key = mediaUrl + '|' + window.location.origin;
+    return getDismissedVideos().has(key);
   }
 
   function setPillStatus(pill, textSpan, message, statusClass, defaultText) {
@@ -164,19 +309,23 @@
   function injectPillForVideo(video, mediaUrl) {
     if (video._vortexDismissed) return;
 
-    // Validate size: Ignore tiny thumbnails, background tracks, or audio elements
-    const rect = video.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0 && (rect.width < 140 || rect.height < 90)) {
-      return;
-    }
+    // Eligibility check — sadece gerçek videolar
+    if (!isEligibleVideo(video)) return;
 
-    const container = findAnchorContainer(video);
+    // Dismissed check
+    if (isDismissed(mediaUrl)) return;
+
+    const config = getSiteConfig();
+    const container = findContainer(video, config);
     if (!container) return;
 
     const videoId = video.dataset.vortexId || ('vx_' + Math.random().toString(36).substring(2, 9));
     video.dataset.vortexId = videoId;
 
-    // Check if pill already exists in the container for this video
+    // Container'ı işaretle (CSS hover için)
+    container.classList.add('vortex-video-container');
+
+    // Check if pill already exists
     let pill = container.querySelector(`.vortex-video-grabber-pill[data-vortex-id="${videoId}"]`);
     if (pill) {
       pill.dataset.vortexUrl = mediaUrl;
@@ -187,7 +336,7 @@
 
     // Build the Floating Pill element
     pill = document.createElement('div');
-    pill.className = 'vortex-video-grabber-pill';
+    pill.className = `vortex-video-grabber-pill vortex-pill-${config.pillPosition}`;
     pill.dataset.vortexId = videoId;
     pill.dataset.vortexUrl = mediaUrl;
 
@@ -210,15 +359,15 @@
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'vortex-grabber-close';
-    closeBtn.title = 'Bu video için gizle';
+    closeBtn.title = 'Bu video için gizle (oturum boyunca)';
     closeBtn.setAttribute('aria-label', 'Gizle');
     closeBtn.innerHTML = '&times;';
 
-    // Dismiss handling
+    // Dismiss handling — persistent
     closeBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      video._vortexDismissed = true;
+      dismissVideo(video, mediaUrl);
       pill.remove();
     });
 
@@ -263,6 +412,13 @@
     pill.appendChild(downloadBtn);
     pill.appendChild(closeBtn);
 
+    // Video oynatıldığında kısa süre göster (auto-hide animation)
+    const showOnPlay = () => {
+      pill.classList.add('vortex-visible');
+      video.removeEventListener('play', showOnPlay);
+    };
+    video.addEventListener('play', showOnPlay, { once: true });
+
     container.appendChild(pill);
   }
 
@@ -275,101 +431,33 @@
     }
   }
 
-  function monitorVideo(video) {
-    if (!video || video._vortexMonitored) return;
-    video._vortexMonitored = true;
-
-    const handler = () => inspectAndAttach(video);
-
-    // Primary events as required: play and loadeddata
-    video.addEventListener('play', handler);
-    video.addEventListener('loadeddata', handler);
-    video.addEventListener('loadedmetadata', handler);
-    video.addEventListener('canplay', handler);
-
-    // Initial inspection
-    inspectAndAttach(video);
-  }
-
-  function scanAllVideos() {
-    const videos = document.querySelectorAll('video');
-    for (const v of videos) {
-      monitorVideo(v);
+  // ============================================================================
+  // OPTIMIZED OBSERVERS — IntersectionObserver + MutationObserver
+  // ============================================================================
+  const videoObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && entry.target.tagName === 'VIDEO') {
+        inspectAndAttach(entry.target);
+        videoObserver.unobserve(entry.target);
+      }
     }
-  }
+  }, { rootMargin: '200px', threshold: 0.01 });
 
-  // Observe dynamically created videos and players
-  const observer = new MutationObserver((mutations) => {
+  const mutationObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (node.nodeType !== Node.ELEMENT_NODE) continue;
         if (node.tagName === 'VIDEO') {
-          monitorVideo(node);
+          videoObserver.observe(node);
         } else if (node.querySelectorAll) {
           const vList = node.querySelectorAll('video');
           for (const v of vList) {
-            monitorVideo(v);
+            videoObserver.observe(v);
           }
         }
       }
     }
   });
-
-  // --- Proactive IDM-Style Link Click Interceptor ---
-  const DOWNLOADABLE_EXTENSIONS = [
-    '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso',
-    '.exe', '.msi', '.apk', '.dmg', '.pkg', '.deb', '.rpm', '.bin', '.img',
-    '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
-    '.mp3', '.flac', '.wav', '.aac', '.ogg',
-    '.pdf', '.docx', '.xlsx', '.pptx', '.epub', '.torrent'
-  ];
-
-  function isDownloadableLink(urlStr, linkElement) {
-    if (!urlStr || typeof urlStr !== 'string') return null;
-    const trimmed = urlStr.trim();
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) return null;
-
-    // Check link download attribute first
-    if (linkElement && linkElement.hasAttribute('download')) {
-      const dlAttr = (linkElement.getAttribute('download') || '').trim();
-      if (dlAttr) {
-        const lowerAttr = dlAttr.toLowerCase();
-        for (const ext of DOWNLOADABLE_EXTENSIONS) {
-          if (lowerAttr.endsWith(ext)) {
-            return sanitizeFileName(dlAttr);
-          }
-        }
-      }
-    }
-
-    try {
-      const parsed = new URL(trimmed, window.location.href);
-      const pathname = parsed.pathname.toLowerCase();
-      const lastSegment = pathname.split('/').filter(Boolean).pop();
-
-      if (lastSegment) {
-        const decoded = decodeURIComponent(lastSegment);
-        for (const ext of DOWNLOADABLE_EXTENSIONS) {
-          if (decoded.endsWith(ext)) {
-            return sanitizeFileName(decoded);
-          }
-        }
-      }
-
-      // Check query parameter values (e.g. ?file=setup.exe or ?download=archive.zip)
-      for (const [_, val] of parsed.searchParams.entries()) {
-        const lowerVal = val.toLowerCase();
-        for (const ext of DOWNLOADABLE_EXTENSIONS) {
-          if (lowerVal.endsWith(ext)) {
-            const decodedVal = decodeURIComponent(val.split(/[\\/]/).pop() || val);
-            return sanitizeFileName(decodedVal);
-          }
-        }
-      }
-    } catch (_) {}
-
-    return null;
-  }
 
   let activeToast = null;
   let toastTimer = null;
@@ -395,55 +483,49 @@
     }, duration);
   }
 
-  function onLinkClick(e) {
-    // IDM Standard Bypass: If Alt key is held down, allow native browser download
-    if (e.altKey) return;
-
-    const link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
-    if (!link || !link.href) return;
+  // ============================================================================
+  // LAYER 1: DOWNLOAD ATTRIBUTE — Her zaman yakala (passive, bubbling phase)
+  // ============================================================================
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest?.('a[href][download]');
+    if (!link) return;
 
     const href = link.href.trim();
     if (!href.startsWith('http://') && !href.startsWith('https://')) return;
 
-    const fileName = isDownloadableLink(href, link);
-    if (!fileName) return;
+    // IDM Standard Bypass: Alt key = native browser download
+    if (e.altKey) return;
 
-    // Prevent native browser download & stop propagation
+    const fileName = (link.getAttribute('download') || '').trim() || sanitizeFileName(href.split('/').pop() || 'dosya');
+
     e.preventDefault();
     e.stopPropagation();
 
-    // Show transmitting HUD toast
     showToast(`İletiliyor... ⚡ (${fileName})`, 'info', 3000);
 
     chrome.runtime.sendMessage({
       action: 'intercept_link',
       url: href,
       fileName: fileName,
-      referrer: window.location.href
+      referrer: window.location.href,
+      source: 'download-attr'
     }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.success) {
+      if (chrome.runtime.lastError || !response?.success) {
         showToast(`Vortex kapalı, tarayıcıda indiriliyor (${fileName})`, 'warning', 3500);
-        setTimeout(() => {
-          if (link && link.getAttribute && link.getAttribute('target') === '_blank') {
-            window.open(href, '_blank');
-          } else {
-            window.location.href = href;
-          }
-        }, 600);
+        setTimeout(() => window.location.href = href, 600);
       } else {
         showToast(`⚡ İndirme Başlatıldı (${fileName})`, 'success', 3500);
       }
     });
-  }
-
-  // Register capture-phase listener to intercept before page handlers or browser default
-  document.addEventListener('click', onLinkClick, true);
+  }, false); // bubbling phase, NOT capture
 
   function init() {
-    scanAllVideos();
+    // Initial videos — observe via IntersectionObserver
+    document.querySelectorAll('video').forEach(v => videoObserver.observe(v));
+
     const root = document.body || document.documentElement;
     if (root) {
-      observer.observe(root, { childList: true, subtree: true });
+      mutationObserver.observe(root, { childList: true, subtree: true });
     }
   }
 
