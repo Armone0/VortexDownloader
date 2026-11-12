@@ -77,7 +77,10 @@ public partial class ZipPreviewWindow : Window
                 Entry = entry
             }).ToList();
 
+            foreach (var item in displayList) item.PropertyChanged += (_, _) => UpdateSelectionUi();
+            _items = displayList;
             ZipEntriesDataGrid.ItemsSource = displayList;
+            UpdateSelectionUi();
 
             int fileCount = entries.Count(e => !e.IsDirectory);
             int dirCount = entries.Count(e => e.IsDirectory);
@@ -115,22 +118,46 @@ public partial class ZipPreviewWindow : Window
         Close();
     }
 
-    private ZipEntryDisplayItem? SelectedFileItem =>
-        ZipEntriesDataGrid.SelectedItem is ZipEntryDisplayItem { IsDirectory: false } item ? item : null;
+    private List<ZipEntryDisplayItem> _items = [];
 
-    private void ZipEntriesDataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private List<ZipEntryDisplayItem> CheckedItems => _items.Where(i => i.IsChecked && i.IsSelectable).ToList();
+
+    private void UpdateSelectionUi()
     {
-        ExtractEntryButton.IsEnabled = _extractCts == null && SelectedFileItem != null;
+        var picked = CheckedItems;
+        int selectable = _items.Count(i => i.IsSelectable);
+        ExtractEntryButton.Content = picked.Count > 0
+            ? $"Seçilenleri indir ({picked.Count}) · {DownloadTask.FormatBytes(picked.Sum(i => i.UncompressedSize))}"
+            : "Seçilenleri indir";
+        ExtractEntryButton.IsEnabled = _extractCts == null && picked.Count > 0;
+        SelectAllCheckBox.IsEnabled = selectable > 0 && _extractCts == null;
+        SelectAllCheckBox.IsChecked = picked.Count == 0 ? false : picked.Count == selectable ? true : null;
     }
 
-    private void ZipEntriesDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void SelectAllCheckBox_Click(object sender, RoutedEventArgs e)
     {
-        // Only react to double-clicks on a row, not on headers or the scrollbar.
-        if (e.OriginalSource is System.Windows.Media.Visual source &&
-            FindParent<System.Windows.Controls.DataGridRow>(source) != null &&
-            ExtractEntryButton.IsEnabled)
+        // Clicking from "all" clears; from none/partial selects everything
+        bool selectAll = CheckedItems.Count < _items.Count(i => i.IsSelectable);
+        foreach (var item in _items.Where(i => i.IsSelectable)) item.IsChecked = selectAll;
+        UpdateSelectionUi();
+    }
+
+    // Clicking anywhere on a file row toggles its box (the box itself handles its own clicks)
+    private void ZipEntriesDataGrid_RowClicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_extractCts != null || e.OriginalSource is not DependencyObject source) return;
+        if (FindParent<System.Windows.Controls.CheckBox>(source) != null) return;
+        if (FindParent<System.Windows.Controls.DataGridRow>(source)?.Item is ZipEntryDisplayItem { IsSelectable: true } item)
+            item.IsChecked = !item.IsChecked;
+    }
+
+    private void ZipEntriesDataGrid_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Space && _extractCts == null &&
+            ZipEntriesDataGrid.SelectedItem is ZipEntryDisplayItem { IsSelectable: true } item)
         {
-            ExtractEntryButton_Click(sender, e);
+            item.IsChecked = !item.IsChecked;
+            e.Handled = true;
         }
     }
 
@@ -143,58 +170,86 @@ public partial class ZipPreviewWindow : Window
 
     private async void ExtractEntryButton_Click(object sender, RoutedEventArgs e)
     {
-        if (SelectedFileItem is not { } item || _extractCts != null) return;
+        var picked = CheckedItems;
+        if (picked.Count == 0 || _extractCts != null) return;
 
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Title = "Dosyanın kaydedileceği klasörü seçin",
+            Title = picked.Count == 1 ? "Dosyanın kaydedileceği klasörü seçin" : $"{picked.Count} dosyanın kaydedileceği klasörü seçin",
             InitialDirectory = Directory.Exists(_targetFolder) ? _targetFolder : AppSettings.Current.DefaultDownloadDirectory
         };
         if (dialog.ShowDialog(this) != true) return;
         _targetFolder = dialog.FolderName;
 
         _extractCts = new CancellationTokenSource();
-        ExtractEntryButton.IsEnabled = false;
+        UpdateSelectionUi();
         CancelExtractButton.Visibility = Visibility.Visible;
         ExtractProgressBar.Visibility = Visibility.Visible;
         ExtractProgressBar.Value = 0;
         ExtractStatusText.Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush");
-        ExtractStatusText.Text = $"İndiriliyor: {item.FileName}";
+        ExtractStatusText.ToolTip = null;
 
-        long total = item.Entry.UncompressedSize;
-        var progress = new Progress<long>(written =>
-        {
-            ExtractProgressBar.Value = total > 0 ? (double)written / total : 1;
-            ExtractStatusText.Text = $"İndiriliyor: {item.FileName} — {DownloadTask.FormatBytes(written)} / {DownloadTask.FormatBytes(total)}";
-        });
+        // Overall progress is by bytes across all picked files; files run one after another
+        long grandTotal = Math.Max(1, picked.Sum(i => i.Entry.UncompressedSize));
+        long doneBefore = 0;
+        var saved = new List<string>();
+        var failed = new List<string>();
+        bool cancelled = false;
 
-        try
+        using var client = ChunkDownloader.CreateOptimizedHttpClient();
+        for (int n = 0; n < picked.Count; n++)
         {
-            using var client = ChunkDownloader.CreateOptimizedHttpClient();
-            string path = await ZipEntryExtractor.ExtractRemoteEntryAsync(client, _url, item.Entry, _targetFolder, progress, _extractCts.Token);
-            ExtractProgressBar.Value = 1;
-            ExtractStatusText.Foreground = (System.Windows.Media.Brush)FindResource("AccentHighlightBrush");
-            ExtractStatusText.Text = $"Kaydedildi: {path}";
-            ExtractStatusText.ToolTip = path;
+            var item = picked[n];
+            string prefix = picked.Count > 1 ? $"{n + 1}/{picked.Count} · " : "";
+            long total = item.Entry.UncompressedSize, before = doneBefore;
+            ExtractStatusText.Text = $"İndiriliyor: {prefix}{item.FileName}";
+            var progress = new Progress<long>(written =>
+            {
+                ExtractProgressBar.Value = (double)(before + written) / grandTotal;
+                ExtractStatusText.Text = $"İndiriliyor: {prefix}{item.FileName} — {DownloadTask.FormatBytes(written)} / {DownloadTask.FormatBytes(total)}";
+            });
+
+            try
+            {
+                saved.Add(await ZipEntryExtractor.ExtractRemoteEntryAsync(client, _url, item.Entry, _targetFolder, progress, _extractCts.Token));
+                item.IsChecked = false;
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                failed.Add($"{item.FileName}: {ex.Message}");
+            }
+            doneBefore += total;
         }
-        catch (OperationCanceledException)
-        {
-            ExtractStatusText.Text = "İndirme iptal edildi.";
-        }
-        catch (Exception ex)
+
+        if (failed.Count > 0)
         {
             ExtractStatusText.Foreground = (System.Windows.Media.Brush)FindResource("StatusErrorBrush");
-            ExtractStatusText.Text = $"İndirilemedi: {ex.Message}";
-            ExtractStatusText.ToolTip = ex.Message;
+            ExtractStatusText.Text = saved.Count > 0
+                ? $"{saved.Count} dosya kaydedildi, {failed.Count} dosya indirilemedi (ayrıntı için üzerine gel)."
+                : $"İndirilemedi: {failed[0]}";
+            ExtractStatusText.ToolTip = string.Join("\n", failed);
         }
-        finally
+        else if (cancelled)
         {
-            _extractCts.Dispose();
-            _extractCts = null;
-            CancelExtractButton.Visibility = Visibility.Collapsed;
-            ExtractProgressBar.Visibility = Visibility.Collapsed;
-            ExtractEntryButton.IsEnabled = SelectedFileItem != null;
+            ExtractStatusText.Text = saved.Count > 0 ? $"İptal edildi; {saved.Count} dosya kaydedilmişti." : "İndirme iptal edildi.";
         }
+        else
+        {
+            ExtractStatusText.Foreground = (System.Windows.Media.Brush)FindResource("AccentHighlightBrush");
+            ExtractStatusText.Text = saved.Count == 1 ? $"Kaydedildi: {saved[0]}" : $"{saved.Count} dosya kaydedildi: {_targetFolder}";
+            ExtractStatusText.ToolTip = string.Join("\n", saved);
+        }
+
+        _extractCts.Dispose();
+        _extractCts = null;
+        CancelExtractButton.Visibility = Visibility.Collapsed;
+        ExtractProgressBar.Visibility = Visibility.Collapsed;
+        UpdateSelectionUi();
     }
 
     private void CancelExtractButton_Click(object sender, RoutedEventArgs e)
@@ -209,8 +264,23 @@ public partial class ZipPreviewWindow : Window
     }
 }
 
-public class ZipEntryDisplayItem
+public class ZipEntryDisplayItem : System.ComponentModel.INotifyPropertyChanged
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+    private bool _isChecked;
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set
+        {
+            if (_isChecked == value) return;
+            _isChecked = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
+        }
+    }
+
+    public bool IsSelectable => !IsDirectory;
     public string DisplayIcon => IsDirectory ? "📁" : "📄";
     public string FileName { get; set; } = string.Empty;
     public long UncompressedSize { get; set; }

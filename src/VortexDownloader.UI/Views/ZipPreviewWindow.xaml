@@ -114,6 +114,46 @@
             </Setter>
         </Style>
 
+        <!-- Themed checkbox: rounded box, sage fill + tick when checked, dash when partially checked (header) -->
+        <Style x:Key="PickBox" TargetType="CheckBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="box" Width="18" Height="18" CornerRadius="5" BorderThickness="1.5"
+                                BorderBrush="{DynamicResource TextMutedBrush}" Background="Transparent">
+                            <TextBlock x:Name="mark" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"
+                                       Foreground="{DynamicResource ButtonPrimaryFgBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter TargetName="mark" Property="Text" Value="&#xE73E;"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="{x:Null}">
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
+                                <Setter TargetName="mark" Property="Text" Value="&#xE738;"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="box" Property="Opacity" Value="0.3"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="NumberCell" TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -181,8 +221,8 @@
                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="1">
                 <DataGrid x:Name="ZipEntriesDataGrid"
                           SelectionMode="Single"
-                          SelectionChanged="ZipEntriesDataGrid_SelectionChanged"
-                          MouseDoubleClick="ZipEntriesDataGrid_MouseDoubleClick"
+                          PreviewMouseLeftButtonUp="ZipEntriesDataGrid_RowClicked"
+                          PreviewKeyDown="ZipEntriesDataGrid_PreviewKeyDown"
                           AutoGenerateColumns="False" IsReadOnly="True"
                           HeadersVisibility="Column" GridLinesVisibility="None"
                           Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="Transparent"
@@ -192,6 +232,18 @@
                           RowStyle="{StaticResource Row}"
                           CanUserSortColumns="True" CanUserResizeColumns="True">
                     <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="46" CanUserResize="False" CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <CheckBox x:Name="SelectAllCheckBox" Style="{StaticResource PickBox}" IsThreeState="True"
+                                          ToolTip="Tüm dosyaları seç / bırak" Click="SelectAllCheckBox_Click"/>
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox Style="{StaticResource PickBox}" IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEnabled="{Binding IsSelectable}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Dosya" Width="*" MinWidth="220" SortMemberPath="FileName">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -248,12 +300,12 @@
                              Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource ProgressBarForegroundBrush}"
                              BorderThickness="0" Margin="0,0,0,5"/>
                 <TextBlock x:Name="ExtractStatusText" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextTrimming="CharacterEllipsis" Text="Bir dosya seçip yalnızca onu indirebilirsin."/>
+                           TextTrimming="CharacterEllipsis" Text="İşaretlediğin dosyalar iner, arşivin tamamı değil."/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button x:Name="CancelExtractButton" Content="İptal" Visibility="Collapsed" Margin="0,0,8,0" Click="CancelExtractButton_Click"/>
-                <Button x:Name="ExtractEntryButton" Content="Seçili dosyayı indir" IsEnabled="False" Margin="0,0,8,0"
-                        ToolTip="Arşivin tamamını indirmeden yalnızca seçili dosyayı indirir (çift tıklama da çalışır)"
+                <Button x:Name="ExtractEntryButton" Content="Seçilenleri indir" IsEnabled="False" Margin="0,0,8,0"
+                        ToolTip="Arşivin tamamını indirmeden yalnızca işaretli dosyaları seçtiğin klasöre indirir"
                         Click="ExtractEntryButton_Click"/>
                 <Button x:Name="CloseButton" Content="Kapat" Margin="0,0,8,0" Click="CloseButton_Click"/>
                 <Button x:Name="StartDownloadButton" Content="Tüm arşivi indir" Style="{StaticResource PrimaryButton}" IsEnabled="False" Click="StartDownloadButton_Click"/>
