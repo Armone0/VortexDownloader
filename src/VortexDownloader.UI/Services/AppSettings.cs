@@ -38,6 +38,10 @@ public class AppSettings
     public bool AutoStartBrowserDownloads { get; set; } = false;
     public List<string> FavoritePlugins { get; set; } = [];
 
+    // Browser bridge pairing: random per-install secret + the extension origins the user approved
+    public string BridgeToken { get; set; } = "";
+    public List<string> PairedExtensionOrigins { get; set; } = [];
+
     public static string GetDefaultDownloadPath()
     {
         string userDownloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");

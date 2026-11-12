@@ -1,6 +1,5 @@
 // VortexDownloader Extension Popup Controller
 const VORTEX_PING_URL = "http://127.0.0.1:19741/ping";
-const VORTEX_DOWNLOAD_URL = "http://127.0.0.1:19741/download/";
 
 // Extract cookies for authenticated quick downloads (symmetric to background.js)
 async function getCookiesForUrl(url) {
@@ -112,17 +111,17 @@ document.addEventListener("DOMContentLoaded", () => {
       interceptStatusDesc.textContent = enabled
         ? "Tarayıcı indirmelerini Vortex'e aktar"
         : "Devre dışı — İndirmeler tarayıcıda kalır";
-      interceptStatusDesc.style.color = enabled ? "#9CA3AF" : "#EF4444";
+      interceptStatusDesc.style.color = enabled ? "" : "var(--err)";
     }
     if (featureIconIntercept) {
       featureIconIntercept.textContent = enabled ? "✓" : "✕";
-      featureIconIntercept.style.color = enabled ? "#10B981" : "#EF4444";
+      featureIconIntercept.style.color = enabled ? "" : "var(--err)";
     }
     if (featureTextIntercept) {
       featureTextIntercept.textContent = enabled
         ? "Tarayıcı indirmelerini otomatik yakalama aktif"
         : "Tarayıcı indirmelerini otomatik yakalama duraklatıldı";
-      featureTextIntercept.style.color = enabled ? "#9CA3AF" : "#EF4444";
+      featureTextIntercept.style.color = enabled ? "" : "var(--err)";
     }
   }
 
@@ -147,26 +146,43 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  let needsPairing = false;
+
+  function setCheckButton(pairMode) {
+    needsPairing = pairMode;
+    btnCheck.textContent = pairMode ? "🔗 Uygulamayla Eşleştir" : "🔄 Bağlantıyı Sına";
+  }
+
   async function checkBridge() {
     statusBadge.className = "status-badge checking";
     statusText.textContent = "Bağlanıyor...";
     statusTip.textContent = "Masaüstü uygulaması ile yerel köprü test ediliyor...";
 
     try {
+      const stored = await chrome.storage.local.get({ bridgeToken: "" });
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 1800);
 
       const res = await fetch(VORTEX_PING_URL, {
         method: "GET",
+        headers: stored.bridgeToken ? { "X-Vortex-Auth": stored.bridgeToken } : {},
         signal: controller.signal
       });
       clearTimeout(timeout);
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (data.paired === false) {
+          statusBadge.className = "status-badge checking";
+          statusText.textContent = "EŞLEŞMEDİ";
+          statusTip.textContent = "Uygulama açık ama bu eklenti henüz bağlanmadı. \"Uygulamayla Eşleştir\"e bas, sonra uygulamadaki pencerede izin ver.";
+          setCheckButton(true);
+          return false;
+        }
         statusBadge.className = "status-badge online";
         statusText.textContent = "BAĞLI";
-        statusTip.textContent = `Vortex motoru aktif (${data.version || "v1.4.0"}). İndirmeler ve sağ tık menüsü hazır.`;
+        statusTip.textContent = `Vortex ${data.version || ""} aktif ve eşleştirildi. İndirmeler ve sağ tık menüsü hazır.`;
+        setCheckButton(false);
         return true;
       } else {
         statusBadge.className = "status-badge offline";
@@ -187,6 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   btnCheck.addEventListener("click", () => {
+    if (needsPairing) {
+      statusTip.textContent = "VortexDownloader penceresinde \"İzin ver\"e tıkla...";
+      btnCheck.disabled = true;
+      chrome.runtime.sendMessage({ action: "pair" }, () => {
+        btnCheck.disabled = false;
+        checkBridge();
+        loadLogs();
+      });
+      return;
+    }
     checkBridge();
     loadLogs();
   });
@@ -205,40 +231,31 @@ document.addEventListener("DOMContentLoaded", () => {
     // Extract cookies for the URL via unified helper
     const cookieString = await getCookiesForUrl(rawUrl);
 
-    try {
-      const res = await fetch(VORTEX_DOWNLOAD_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
-        },
-        body: JSON.stringify({
-          url: rawUrl,
-          fileName: null,
-          fileSize: null,
-          mime: null,
-          cookies: cookieString,
-          referer: "",
-          referrer: "",
-          userAgent: navigator.userAgent
-        })
-      });
-
-      if (res.ok) {
+    // The service worker owns the bridge token (and pairs first if needed)
+    chrome.runtime.sendMessage({
+      action: "quick_download",
+      payload: {
+        url: rawUrl,
+        fileName: null,
+        fileSize: null,
+        mime: null,
+        cookies: cookieString,
+        referer: "",
+        referrer: "",
+        userAgent: navigator.userAgent
+      }
+    }, (response) => {
+      if (!chrome.runtime.lastError && response && response.success) {
         sendFeedback.className = "feedback success";
         sendFeedback.textContent = "Vortex indirme penceresi açıldı! ⚡";
         txtUrl.value = "";
-        loadLogs();
       } else {
         sendFeedback.className = "feedback error";
-        sendFeedback.textContent = `Hata: Sunucu ${res.status} kodu döndü.`;
-        loadLogs();
+        sendFeedback.textContent = "Vortex'e iletilemedi. Uygulama açık ve eşleştirilmiş mi? (Günlüğe bak)";
       }
-    } catch (e) {
-      sendFeedback.className = "feedback error";
-      sendFeedback.textContent = `Ulaşılamadı: ${e.message || "Masaüstü uygulaması kapalı"}`;
       loadLogs();
-    }
+      checkBridge();
+    });
   });
 
   // Initial check and load on popup open

@@ -1,6 +1,50 @@
 // VortexDownloader Chrome / Edge Integration Service Worker
 const VORTEX_BRIDGE_URL = "http://127.0.0.1:19741/download/";
 const VORTEX_PING_URL = "http://127.0.0.1:19741/download/ping";
+const VORTEX_PAIR_URL = "http://127.0.0.1:19741/pair";
+const PAIR_TIMEOUT_MS = 90000; // the user approves pairing in a desktop dialog, give them time
+
+// Per-install bridge secret, handed out by the desktop app after the user approves this extension once
+async function getBridgeToken() {
+  try {
+    const res = await chrome.storage.local.get({ bridgeToken: "" });
+    return (res && res.bridgeToken) || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+let pairingInFlight = null;
+function pairWithVortex() {
+  // Collapse concurrent requests into one dialog on the desktop side
+  if (!pairingInFlight) {
+    pairingInFlight = requestPairing().finally(() => { pairingInFlight = null; });
+  }
+  return pairingInFlight;
+}
+
+async function requestPairing() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PAIR_TIMEOUT_MS);
+  try {
+    addLog("info", "Masaüstü uygulamasıyla eşleştirme isteniyor; uygulamadaki pencereden izin ver.");
+    showDesktopNotification("VortexDownloader", "Eklentiyi bağlamak için VortexDownloader penceresinde \"İzin ver\"e tıkla.");
+    const response = await fetch(VORTEX_PAIR_URL, { method: "POST", signal: controller.signal });
+    clearTimeout(timeout);
+    const data = response.ok ? await response.json().catch(() => ({})) : {};
+    if (response.ok && data && typeof data.token === "string" && data.token) {
+      await chrome.storage.local.set({ bridgeToken: data.token });
+      addLog("success", "Eklenti masaüstü uygulamasıyla eşleştirildi.");
+      return data.token;
+    }
+    addLog("error", `Eşleştirme reddedildi (HTTP ${response.status}).`);
+    return "";
+  } catch (err) {
+    clearTimeout(timeout);
+    addLog("error", `Eşleştirme yapılamadı: ${err && err.message ? err.message : String(err)}`);
+    return "";
+  }
+}
 
 // Track fallback downloads initiated when desktop bridge is offline to prevent intercept loops
 const fallbackUrls = new Set();
@@ -240,7 +284,16 @@ async function getCookiesForUrl(url) {
 }
 
 // Reusable function to dispatch download requests to the Vortex desktop engine
-async function sendToVortex(payload) {
+async function sendToVortex(payload, isRetry = false) {
+  let token = await getBridgeToken();
+  if (!token) {
+    token = await pairWithVortex();
+    if (!token) {
+      showDesktopNotification("VortexDownloader", "Eklenti uygulamayla eşleştirilmedi; indirme tarayıcıda devam ediyor.");
+      return false;
+    }
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
 
@@ -251,13 +304,20 @@ async function sendToVortex(payload) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Vortex-Auth": "vortex-bridge-extension-auth-token"
+        "X-Vortex-Auth": token
       },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
 
     clearTimeout(timeout);
+
+    if (response.status === 401 && !isRetry) {
+      // Token no longer valid (app reinstalled / settings reset): forget it and pair again once
+      addLog("warn", "Eşleştirme geçersiz, yeniden eşleştiriliyor.");
+      await chrome.storage.local.set({ bridgeToken: "" });
+      return sendToVortex(payload, true);
+    }
 
     if (response.ok) {
       addLog("success", `İndirme başarıyla Vortex'e aktarıldı! (HTTP ${response.status})`);
@@ -411,6 +471,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.action === "intercept_link") {
     handleInterceptLink(message, sender).then(sendResponse);
     return true; // Keep message channel open for async response
+  }
+  if (message && message.action === "quick_download" && message.payload) {
+    const url = message.payload.url;
+    if (typeof url !== "string" || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+      sendResponse({ success: false });
+      return false;
+    }
+    sendToVortex(message.payload).then((ok) => sendResponse({ success: ok }));
+    return true;
+  }
+  if (message && message.action === "pair") {
+    chrome.storage.local.set({ bridgeToken: "" }, () => {
+      pairWithVortex().then((token) => sendResponse({ success: Boolean(token) }));
+    });
+    return true;
   }
   if (message && message.action === "get_logs") {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {

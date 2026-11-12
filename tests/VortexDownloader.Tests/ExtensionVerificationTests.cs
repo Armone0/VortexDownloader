@@ -164,13 +164,15 @@ public class ExtensionVerificationTests
         string bgCode = File.ReadAllText(Path.Combine(inTreeDir, "background.js"));
         string popupCode = File.ReadAllText(Path.Combine(inTreeDir, "popup.js"));
 
-        const string expectedToken = "vortex-bridge-extension-auth-token";
+        // The shared secret is now per-install and handed out at pairing time, never shipped in the source
+        const string oldHardCodedToken = "vortex-bridge-extension-auth-token";
         const string expectedPort = "19741";
 
-        Assert.Contains(expectedToken, bgCode);
+        Assert.DoesNotContain(oldHardCodedToken, bgCode);
+        Assert.DoesNotContain(oldHardCodedToken, popupCode);
+        Assert.Contains("X-Vortex-Auth", bgCode);
+        Assert.Contains("/pair", bgCode);
         Assert.Contains(expectedPort, bgCode);
-
-        Assert.Contains(expectedToken, popupCode);
         Assert.Contains(expectedPort, popupCode);
     }
 

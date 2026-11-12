@@ -4,6 +4,8 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -52,6 +54,84 @@ public partial class MainWindow : Window
     private bool _isPromptShowing = false;
     private string? _activePromptUrl = null;
     private readonly ConcurrentDictionary<string, DateTime> _fallbackBrowserUrls = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _pairLock = new(1, 1);
+    private readonly ConcurrentDictionary<string, DateTime> _pairDeniedUntil = new(StringComparer.OrdinalIgnoreCase);
+
+    private static string EnsureBridgeToken()
+    {
+        var settings = AppSettings.Current;
+        if (string.IsNullOrEmpty(settings.BridgeToken))
+        {
+            settings.BridgeToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            settings.Save();
+        }
+        return settings.BridgeToken;
+    }
+
+    // A request is trusted only from an origin the user paired AND carrying this install's secret
+    private static bool IsPairedRequest(string? origin, string? token)
+    {
+        if (string.IsNullOrEmpty(origin) || string.IsNullOrEmpty(token)) return false;
+        if (!AppSettings.Current.PairedExtensionOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return false;
+        return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(token), Encoding.UTF8.GetBytes(EnsureBridgeToken()));
+    }
+
+    private async Task HandlePairRequestAsync(HttpListenerContext context, string origin)
+    {
+        var settings = AppSettings.Current;
+        bool approved = settings.PairedExtensionOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+        if (!approved)
+        {
+            if (_pairDeniedUntil.TryGetValue(origin, out var until) && DateTime.UtcNow < until)
+            {
+                BridgeLog($"<-- 403 Pair denied recently for '{origin}'");
+                await WriteJsonAsync(context, 403, "{\"status\":\"pair_denied\"}");
+                return;
+            }
+
+            await _pairLock.WaitAsync();
+            try
+            {
+                approved = settings.PairedExtensionOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+                if (!approved)
+                {
+                    approved = await Dispatcher.InvokeAsync(() => ConfirmDialog.Ask(
+                        IsVisible ? this : null,
+                        "Tarayıcı eklentisi bağlanmak istiyor",
+                        "Bu eklentiye izin verirsen tarayıcıdaki indirmeler Vortex'e aktarılır. Yalnızca kendi kurduğun VortexDownloader eklentisine izin ver.",
+                        $"Eklenti kimliği: {origin[(origin.IndexOf("://", StringComparison.Ordinal) + 3)..].TrimEnd('/')}",
+                        "İzin ver", ""));
+                    if (approved)
+                    {
+                        settings.PairedExtensionOrigins.Add(origin);
+                        settings.Save();
+                    }
+                    else
+                    {
+                        _pairDeniedUntil[origin] = DateTime.UtcNow.AddMinutes(2);
+                    }
+                }
+            }
+            finally { _pairLock.Release(); }
+        }
+
+        if (!approved)
+        {
+            BridgeLog($"<-- 403 Pair rejected by user for '{origin}'");
+            await WriteJsonAsync(context, 403, "{\"status\":\"pair_denied\"}");
+            return;
+        }
+        BridgeLog($"<-- 200 Paired extension '{origin}'");
+        await WriteJsonAsync(context, 200, JsonSerializer.Serialize(new { status = "paired", token = EnsureBridgeToken() }));
+    }
+
+    private static async Task WriteJsonAsync(HttpListenerContext context, int status, string json)
+    {
+        context.Response.StatusCode = status;
+        context.Response.ContentType = "application/json";
+        await using var writer = new StreamWriter(context.Response.OutputStream);
+        await writer.WriteAsync(json);
+    }
 
     public MainWindow()
     {
@@ -360,24 +440,34 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Ping / Health Check Endpoint for Extension Status
+            // Ping / Health Check Endpoint for Extension Status (tells the extension whether it is paired)
             if (context.Request.HttpMethod == "GET")
             {
                 BridgeLog("<-- 200 OK: Ping Health Check");
-                context.Response.StatusCode = 200;
-                context.Response.ContentType = "application/json";
-                using (var pingWriter = new StreamWriter(context.Response.OutputStream))
-                {
-                    await pingWriter.WriteAsync($"{{\"status\":\"online\",\"version\":\"{VortexDownloader.UI.Services.AppInfo.Version}\"}}");
-                }
+                bool paired = IsPairedRequest(origin, authToken);
+                await WriteJsonAsync(context, 200,
+                    $"{{\"status\":\"online\",\"version\":\"{AppInfo.Version}\",\"paired\":{(paired ? "true" : "false")}}}");
                 return;
             }
 
-            // Security: Shared auth token header verification between extension and desktop bridge
-            if (authToken != "vortex-bridge-extension-auth-token")
+            // Pairing: an extension asks for this install's token; the user approves it once in a dialog
+            if (context.Request.HttpMethod == "POST" && path.EndsWith("/pair", StringComparison.OrdinalIgnoreCase))
             {
-                BridgeLog($"<-- 403 Forbidden: Auth token mismatch (got '{authToken}')");
-                context.Response.StatusCode = 403;
+                if (string.IsNullOrEmpty(origin))
+                {
+                    BridgeLog("<-- 403 Pair without extension origin");
+                    context.Response.StatusCode = 403;
+                    return;
+                }
+                await HandlePairRequestAsync(context, origin);
+                return;
+            }
+
+            // Security: only a paired extension carrying this install's random token may enqueue downloads
+            if (!IsPairedRequest(origin, authToken))
+            {
+                BridgeLog("<-- 401 Not paired / token mismatch");
+                await WriteJsonAsync(context, 401, "{\"status\":\"pair_required\"}");
                 return;
             }
 
