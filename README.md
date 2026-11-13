@@ -11,7 +11,7 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 [![Downloads](https://img.shields.io/github/downloads/Armone0/VortexDownloader/total?color=8EA191)](https://github.com/Armone0/VortexDownloader/releases)
 [![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows)](#-quick-start)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/9.0)
-[![Tests](https://img.shields.io/badge/tests-307%20passing-2EA043)](tests/)
+[![CI](https://github.com/Armone0/VortexDownloader/actions/workflows/ci.yml/badge.svg)](https://github.com/Armone0/VortexDownloader/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 ### [⬇️ Download for Windows](https://github.com/Armone0/VortexDownloader/releases/latest)
