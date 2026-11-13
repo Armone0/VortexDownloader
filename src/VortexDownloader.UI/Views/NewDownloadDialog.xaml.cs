@@ -20,6 +20,8 @@ public partial class NewDownloadDialog : Window
     public int ResultChunkCount { get; private set; } = 8;
     public List<(string Url, string DestinationPath)> BatchItems { get; } = new();
     public bool IsBatchMode { get; private set; }
+    /// <summary>Extra URLs for the same file (single download only); the engine validates them.</summary>
+    public List<string> ResultMirrorUrls { get; private set; } = [];
 
     // Entries picked in the ZIP preview: when set, Start fetches only these into the target folder
     private List<ZipEntryMetadata> _zipEntries = [];
@@ -74,6 +76,7 @@ public partial class NewDownloadDialog : Window
     {
         bool isBatch = BatchModeCheckBox.IsChecked == true;
         IsBatchMode = isBatch;
+        UpdateMirrorBox();
 
         if (isBatch)
         {
@@ -96,6 +99,20 @@ public partial class NewDownloadDialog : Window
             SizeInfoTextBlock.Text = "Boyut: Bilinmiyor";
             RangeInfoTextBlock.Text = "Range: Kontrol edilmedi";
         }
+    }
+
+    private void MirrorCheckBox_CheckedChanged(object sender, RoutedEventArgs e) => UpdateMirrorBox();
+
+    private void UpdateMirrorBox()
+    {
+        bool isBatch = BatchModeCheckBox.IsChecked == true;
+        MirrorCheckBox.Visibility = isBatch ? Visibility.Collapsed : Visibility.Visible;
+
+        bool show = !isBatch && MirrorCheckBox.IsChecked == true;
+        if (show == (MirrorTextBox.Visibility == Visibility.Visible)) return;
+        MirrorTextBox.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        // Fixed-size window: make room for the box (height + bottom margin).
+        Height += show ? 78 : -78;
     }
 
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -387,6 +404,7 @@ public partial class NewDownloadDialog : Window
             fileName = MainWindow.SanitizeFileName(fileName);
 
             ResultUrl = urls[0];
+            ResultMirrorUrls = MirrorCheckBox.IsChecked == true ? ParseUrls(MirrorTextBox.Text) : [];
             ResultDestinationPath = Path.Combine(folder, fileName);
             BatchItems.Add((ResultUrl, ResultDestinationPath));
         }

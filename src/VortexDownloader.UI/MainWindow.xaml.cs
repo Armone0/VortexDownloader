@@ -962,7 +962,8 @@ public partial class MainWindow : Window
                         dialog.ResultUrl,
                         dialog.ResultDestinationPath,
                         dialog.ResultChunkCount,
-                        autoStart: true);
+                        autoStart: true,
+                        mirrorUrls: dialog.ResultMirrorUrls);
                 }
             }
             catch (Exception ex)

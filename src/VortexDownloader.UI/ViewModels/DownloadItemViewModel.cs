@@ -213,6 +213,25 @@ public class DownloadItemViewModel : ViewModelBase
     public bool CanRefreshLink => LinkExpired && Status == DownloadStatus.Failed
         && Uri.TryCreate(SourcePageUrl, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
 
+    // Multi-mirror chip: only shown when the task has mirrors.
+    private string _mirrorTooltip = string.Empty;
+    public bool HasMirrors => _mirrorTooltip.Length > 0;
+    public string MirrorChipText { get; private set; } = string.Empty;
+    public string MirrorTooltip
+    {
+        get => _mirrorTooltip;
+        private set
+        {
+            if (SetProperty(ref _mirrorTooltip, value))
+            {
+                OnPropertyChanged(nameof(HasMirrors));
+                OnPropertyChanged(nameof(MirrorChipText));
+            }
+        }
+    }
+
+    private static string HostOf(string url) => Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+
     public bool CanPause => SupportsPause && Status == DownloadStatus.Downloading;
 
     /// <summary>False for cards the engine doesn't own (e.g. files fetched out of a ZIP), so no dead Pause button shows.</summary>
@@ -375,6 +394,14 @@ public class DownloadItemViewModel : ViewModelBase
         SourcePageUrl = task.SourcePageUrl;
         LinkExpired = task.LinkExpired;
         OnPropertyChanged(nameof(CanRefreshLink));
+
+        if (task.MirrorUrls.Count > 0)
+        {
+            var dead = task.DeadSources;
+            MirrorChipText = $"⇄ {task.MirrorUrls.Count + 1} kaynak";
+            MirrorTooltip = string.Join("\n", new[] { task.Url }.Concat(task.MirrorUrls)
+                .Select(s => dead.Contains(s) ? $"✕ {HostOf(s)} (devre dışı)" : $"• {HostOf(s)}"));
+        }
 
         // Chunk map: fixed byte-range slots (one per connection, max 16). Chunks keep splitting during a download,
         // so drawing one bar per chunk turned into 40+ dots; slots stay stable and show where bytes are missing.

@@ -102,7 +102,8 @@ public class DownloadEngine : IAsyncDisposable
         string? cookies = null,
         string? referrer = null,
         string? userAgent = null,
-        string? sourcePageUrl = null)
+        string? sourcePageUrl = null,
+        IEnumerable<string>? mirrorUrls = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -145,6 +146,16 @@ public class DownloadEngine : IAsyncDisposable
         // Initialize initial chunks
         int initialChunks = metadata.SupportsRange ? task.MaxChunks : 1;
         task.Chunks = ChunksManager.InitializeChunks(task.Id, task.TotalBytes, initialChunks, tempDir);
+
+        if (metadata.SupportsRange)
+        {
+            task.MirrorUrls = NormalizeMirrorUrls(url, mirrorUrls);
+            foreach (var (mirror, reason) in await FindInvalidMirrorsAsync(task, CancellationToken.None).ConfigureAwait(false))
+            {
+                Trace.TraceWarning($"Mirror rejected: {mirror}: {reason}");
+                task.MirrorUrls.Remove(mirror);
+            }
+        }
 
         _tasks[task.Id] = task;
         await SaveStateAsync().ConfigureAwait(false);
@@ -310,13 +321,7 @@ public class DownloadEngine : IAsyncDisposable
             return "Bu indirme şu an yenilenemez (aktif ya da tamamlanmış).";
 
         var meta = await InspectUrlAsync(newUrl, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
-        if (!meta.SupportsRange)
-            return "Yeni bağlantı kaldığı yerden devam etmeyi (Range) desteklemiyor ya da erişilemiyor.";
-        if (task.TotalBytes <= 0 || meta.ContentLength != task.TotalBytes)
-            return $"Dosya boyutu eşleşmiyor (beklenen {DownloadTask.FormatBytes(task.TotalBytes)}, yeni bağlantı {DownloadTask.FormatBytes(meta.ContentLength)}).";
-        if ((!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(meta.ETag) && task.ETag != meta.ETag) ||
-            (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(meta.LastModified) && task.LastModified != meta.LastModified))
-            return "Sunucudaki dosya değişmiş (ETag/Last-Modified farklı); kaldığı yerden devam etmek bozuk dosya üretir.";
+        if (DescribeMismatch(task, meta) is { } mismatch) return mismatch;
 
         task.Url = newUrl;
         task.Cookies = cookies;
@@ -331,6 +336,66 @@ public class DownloadEngine : IAsyncDisposable
         await SaveStateAsync().ConfigureAwait(false);
         await ResumeTaskAsync(taskId).ConfigureAwait(false);
         return null;
+    }
+
+    /// <summary>Null when <paramref name="meta"/> can serve the same bytes as the task (Range, same size, same ETag/Last-Modified), otherwise the reason.</summary>
+    private static string? DescribeMismatch(DownloadTask task, UrlMetadata meta, bool checkValidators = true)
+    {
+        if (!meta.SupportsRange)
+            return "Yeni bağlantı kaldığı yerden devam etmeyi (Range) desteklemiyor ya da erişilemiyor.";
+        if (task.TotalBytes <= 0 || meta.ContentLength != task.TotalBytes)
+            return $"Dosya boyutu eşleşmiyor (beklenen {DownloadTask.FormatBytes(task.TotalBytes)}, yeni bağlantı {DownloadTask.FormatBytes(meta.ContentLength)}).";
+        if (checkValidators && (
+            (!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(meta.ETag) && task.ETag != meta.ETag) ||
+            (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(meta.LastModified) && task.LastModified != meta.LastModified)))
+            return "Sunucudaki dosya değişmiş (ETag/Last-Modified farklı); kaldığı yerden devam etmek bozuk dosya üretir.";
+        return null;
+    }
+
+    public const int MaxMirrors = 8;
+
+    /// <summary>Trimmed, de-duplicated http/https mirrors (primary excluded), at most <see cref="MaxMirrors"/>.</summary>
+    public static List<string> NormalizeMirrorUrls(string primaryUrl, IEnumerable<string>? mirrorUrls)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal) { primaryUrl.Trim() };
+        if (Uri.TryCreate(primaryUrl.Trim(), UriKind.Absolute, out var primary)) seen.Add(primary.AbsoluteUri);
+
+        var result = new List<string>();
+        foreach (string? raw in mirrorUrls ?? [])
+        {
+            if (result.Count >= MaxMirrors) break;
+            if (Uri.TryCreate(raw?.Trim(), UriKind.Absolute, out var uri) &&
+                (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+                seen.Add(uri.AbsoluteUri))
+            {
+                result.Add(uri.AbsoluteUri);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Probes every mirror; returns those that cannot serve the same file, with the reason.</summary>
+    private async Task<List<(string Url, string Reason)>> FindInvalidMirrorsAsync(DownloadTask task, CancellationToken cancellationToken)
+    {
+        // The primary's cookies/referrer belong to its host and are never sent to a mirror.
+        var metas = await Task.WhenAll(task.MirrorUrls.Select(m =>
+            InspectUrlAsync(m, cancellationToken, userAgent: task.UserAgent))).ConfigureAwait(false);
+        return metas
+            // Different servers emit different ETag/Last-Modified for the same file, so mirrors are matched by size only.
+            .Select(meta => (meta.Url, Reason: DescribeMismatch(task, meta, checkValidators: false)))
+            .Where(x => x.Reason != null)
+            .Select(x => (x.Url, x.Reason!))
+            .ToList();
+    }
+
+    private static void MarkSourceDead(DownloadTask task, string source, string reason)
+    {
+        lock (task.ChunksLock)
+        {
+            if (task.DeadSources.Contains(source)) return;
+            task.DeadSources = [.. task.DeadSources, source];
+        }
+        Trace.TraceWarning($"Download source disabled for this run: {source}: {reason}");
     }
 
     public async Task CancelTaskAsync(Guid taskId)
@@ -435,6 +500,9 @@ public class DownloadEngine : IAsyncDisposable
         SleepPreventer.StartPreventingSleep();
         try
         {
+            task.DeadSources = [];
+            Exception? primaryError = null;
+
             // Motrix Fix: Pre-flight disk space validation to prevent silent crash and freeze
             if (!HasEnoughDiskSpace(task.DestinationPath, task.TotalBytes, out long availableBytes))
             {
@@ -507,14 +575,28 @@ public class DownloadEngine : IAsyncDisposable
                 {
                     throw;
                 }
+                catch (Exception ex) when (IsLinkExpiredError(ex) && task.MirrorUrls.Count > 0)
+                {
+                    // Primary link is gone, but the mirrors may still serve the file.
+                    primaryError = ex;
+                    MarkSourceDead(task, task.Url, ex.Message);
+                }
                 catch (Exception ex) when (!IsLinkExpiredError(ex))
                 {
                     // Fail-safe: transient network issues during pre-flight resume inspection do not abort ongoing retry
                 }
+
+                if (task.MirrorUrls.Count > 0)
+                {
+                    // A mirror that fails here is only skipped for this run (it may be a transient outage).
+                    var invalid = await FindInvalidMirrorsAsync(task, cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    foreach (var (mirror, reason) in invalid) MarkSourceDead(task, mirror, reason);
+                }
             }
 
             // If Range is not supported or single chunk
-            if (!task.SupportsRange || task.Chunks.Count <= 1)
+            if (!task.SupportsRange || (task.Chunks.Count <= 1 && task.MirrorUrls.Count == 0))
             {
                 var singleChunk = task.Chunks[0];
                 singleChunk.IsActive = true;
@@ -540,7 +622,7 @@ public class DownloadEngine : IAsyncDisposable
             else
             {
                 // Multi-chunk dynamic worker orchestration
-                await RunDynamicChunkWorkersAsync(task, cancellationToken).ConfigureAwait(false);
+                await RunDynamicChunkWorkersAsync(task, primaryError, cancellationToken).ConfigureAwait(false);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -681,10 +763,32 @@ public class DownloadEngine : IAsyncDisposable
         }
     }
 
-    private async Task RunDynamicChunkWorkersAsync(DownloadTask task, CancellationToken cancellationToken)
+    private async Task RunDynamicChunkWorkersAsync(DownloadTask task, Exception? primaryError, CancellationToken cancellationToken)
     {
         List<Task> activeWorkerTasks = [];
         object chunkListLock = task.ChunksLock;
+
+        // Sources = primary + mirrors. Each connection goes to the live source with the fewest connections,
+        // which is round-robin at start and stays balanced as chunks finish and split.
+        string primaryUrl = task.Url;
+        var sourceLoad = new[] { primaryUrl }.Concat(task.MirrorUrls).Distinct().ToDictionary(s => s, _ => 0);
+
+        string TakeSource()
+        {
+            lock (chunkListLock)
+            {
+                var live = sourceLoad.Keys.Where(s => !task.DeadSources.Contains(s)).ToList();
+                if (live.Count == 0)
+                {
+                    // Every source failed: report the primary's error (it decides LinkExpired).
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(
+                        primaryError ?? new HttpRequestException("No live download source left."));
+                }
+                string source = live.MinBy(s => sourceLoad[s])!;
+                sourceLoad[source]++;
+                return source;
+            }
+        }
 
         async Task WorkerLoopAsync(DownloadChunk initialChunk)
         {
@@ -693,24 +797,51 @@ public class DownloadEngine : IAsyncDisposable
             while (currentChunk != null && !cancellationToken.IsCancellationRequested)
             {
                 currentChunk.IsActive = true;
+                bool failover = false;
+                string? source = null;
                 try
                 {
+                    source = TakeSource();
+                    bool isPrimary = source == primaryUrl;
                     await ChunkDownloader.DownloadChunkAsync(
                         _httpClient,
-                        task.Url,
+                        source,
                         currentChunk,
                         _globalSpeedLimiter,
                         onBytesReceived: null,
                         cancellationToken,
                         supportsRange: task.SupportsRange,
-                        cookies: task.Cookies,
-                        referrer: task.Referrer,
+                        // The primary's cookies/referrer belong to its host and are never sent to a mirror.
+                        cookies: isPrimary ? task.Cookies : null,
+                        referrer: isPrimary ? task.Referrer : null,
                         userAgent: task.UserAgent).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (source != null && !cancellationToken.IsCancellationRequested &&
+                    ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
+                {
+                    // ChunkDownloader already retried: give up on this source and move the rest of the chunk to another one.
+                    MarkSourceDead(task, source, ex.Message);
+                    lock (chunkListLock)
+                    {
+                        if (source == primaryUrl) primaryError ??= ex;
+                        if (sourceLoad.Keys.All(task.DeadSources.Contains))
+                        {
+                            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(primaryError ?? ex);
+                        }
+                    }
+                    failover = true;
                 }
                 finally
                 {
-                    currentChunk.IsActive = false;
+                    if (source != null)
+                    {
+                        lock (chunkListLock) { sourceLoad[source]--; }
+                    }
+                    // Stays active during failover so no other worker picks the same chunk up.
+                    if (!failover) currentChunk.IsActive = false;
                 }
+
+                if (failover) continue;
 
                 currentChunk = null;
 
@@ -841,7 +972,8 @@ public class DownloadEngine : IAsyncDisposable
                         Sha256 = t.Sha256,
                         ScanStatus = t.ScanStatus,
                         SourcePageUrl = t.SourcePageUrl,
-                        LinkExpired = t.LinkExpired
+                        LinkExpired = t.LinkExpired,
+                        MirrorUrls = [.. t.MirrorUrls]
                     };
                 }
             }).ToList();
