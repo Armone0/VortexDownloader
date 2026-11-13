@@ -4,7 +4,9 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
-## [Unreleased]
+## [1.8.0] - 2026-11-13
+
+> Tarayıcı eklentisi değişmedi (1.7.0 olarak kalır).
 
 ### Yeni
 - **Oyun / tam ekran modu:** Tam ekran bir uygulama (oyun, film, sunum) çalışırken indirmeler otomatik yavaşlar (256 KB/s, 512 KB/s veya 1 MB/s; varsayılan 512 KB/s), ping etkilenmez. Tam ekrandan çıkınca kendi hız sınırın geri gelir; hız sınırı kutusunun yanında "🎮 Oyun modu" rozeti görünür. Ayarlardan kapatılabilir.
