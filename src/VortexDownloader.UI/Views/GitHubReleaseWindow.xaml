@@ -190,7 +190,8 @@
                                     <ColumnDefinition Width="90"/>
                                     <ColumnDefinition Width="90"/>
                                 </Grid.ColumnDefinitions>
-                                <CheckBox Style="{StaticResource PickBox}" IsChecked="{Binding IsChecked, Mode=TwoWay}" Click="AssetCheck_Click"/>
+                                <CheckBox Style="{StaticResource PickBox}" IsChecked="{Binding IsChecked, Mode=TwoWay}" Checked="AssetCheck_Click" Unchecked="AssetCheck_Click"
+                                          AutomationProperties.Name="{Binding Asset.Name}"/>
                                 <TextBlock Grid.Column="1" Text="{Binding Asset.Name}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                            ToolTip="{Binding Asset.Name}"/>
                                 <TextBlock Grid.Column="2" Text="{Binding SizeText}" Style="{StaticResource Muted}" HorizontalAlignment="Right"/>

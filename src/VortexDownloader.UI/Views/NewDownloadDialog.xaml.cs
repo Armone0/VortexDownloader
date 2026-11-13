@@ -127,6 +127,8 @@ public partial class NewDownloadDialog : Window
         var urls = ParseUrls(rawText);
         GitHubButton.Visibility = urls.Count == 1 && GitHubReleaseClient.TryParseRepo(urls[0], out _, out _, out _)
             ? Visibility.Visible : Visibility.Collapsed;
+        // A repo page is never an archive; hiding the ZIP button keeps the URL box wide enough to read.
+        ZipPreviewButton.Visibility = GitHubButton.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
 
         if (urls.Count > 1 && BatchModeCheckBox.IsChecked != true)
         {

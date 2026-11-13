@@ -902,7 +902,8 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- File Name & URL (Dynamic Responsive) -->
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,12,0">
+                                            <!-- DockPanel (not a horizontal StackPanel) so the badge row gets a finite width and can wrap -->
+                                            <DockPanel Grid.Column="0" Margin="0,0,12,0">
                                             <!-- File type tile -->
                                             <Border Width="38" Height="38" CornerRadius="9" Margin="0,0,12,0" VerticalAlignment="Center"
                                                     Background="{DynamicResource BadgeBackgroundBrush}">
@@ -910,7 +911,7 @@
                                                            Foreground="{DynamicResource BadgeTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <StackPanel Orientation="Vertical">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding FileName}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0" TextTrimming="CharacterEllipsis" MaxWidth="380"/>
                                                     <!-- Status Badge -->
                                                     <Border Background="{Binding StatusBgColor}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" ToolTip="{Binding ErrorMessage}">
@@ -1046,10 +1047,10 @@
                                                             Visibility="{Binding IsHashMismatch, Converter={StaticResource BoolToVis}}">
                                                         <TextBlock Text="✗ Hash eşleşmiyor" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource StatusErrorBrush}"/>
                                                     </Border>
-                                                </StackPanel>
+                                                </WrapPanel>
                                                 <TextBlock Text="{Binding Url}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                                             </StackPanel>
-                                            </StackPanel>
+                                            </DockPanel>
 
                                             <!-- Item Action Buttons -->
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
