@@ -43,4 +43,8 @@
     <sys:String x:Key="Str_Programs">Programs</sys:String>
     <sys:String x:Key="Str_Video">Videos</sys:String>
     <sys:String x:Key="Str_DiskSpace">Free Space:</sys:String>
+    <sys:String x:Key="Str_GameMode">Game mode</sys:String>
+    <sys:String x:Key="Str_GameModeTooltip">A fullscreen app (game, movie, presentation) is running; downloads are slowed down so they don't hurt your ping. Your own speed limit returns when you leave fullscreen.</sys:String>
+    <sys:String x:Key="Str_GameModeSetting">Slow down downloads while a fullscreen app (game, movie) is running</sys:String>
+    <sys:String x:Key="Str_GameModeSettingDesc">While a fullscreen app is open, download speed drops to the selected limit; your own speed limit returns when it closes.</sys:String>
 </ResourceDictionary>

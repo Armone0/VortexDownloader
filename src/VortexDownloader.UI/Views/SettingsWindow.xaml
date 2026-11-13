@@ -447,7 +447,26 @@
                             <CheckBox x:Name="ChkScanWithDefender" Style="{StaticResource ModernCheckBox}"
                                       Content="İndirme bitince Windows Defender ile tara" FontWeight="SemiBold" Margin="0,0,0,4"/>
                             <TextBlock Text="Biten dosya arka planda Windows Defender ile taranır. SHA-256 özeti her zaman hesaplanır."
-                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0" TextWrapping="Wrap"/>
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12" TextWrapping="Wrap"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="140"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <CheckBox x:Name="ChkGameMode" Style="{StaticResource ModernCheckBox}"
+                                              Content="{DynamicResource Str_GameModeSetting}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{DynamicResource Str_GameModeSettingDesc}"
+                                               FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <ComboBox x:Name="CmbGameModeLimit" Grid.Column="1" Style="{StaticResource ModernComboBox}" VerticalAlignment="Center"
+                                          IsEnabled="{Binding IsChecked, ElementName=ChkGameMode}">
+                                    <ComboBoxItem Content="256 KB/s" Tag="256"/>
+                                    <ComboBoxItem Content="512 KB/s" Tag="512"/>
+                                    <ComboBoxItem Content="1 MB/s" Tag="1024"/>
+                                </ComboBox>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

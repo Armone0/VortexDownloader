@@ -164,6 +164,11 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         _viewModel.Engine.ThreatDetected += OnThreatDetected;
 
+        // Game mode: cheap shell query every 2 s; keeps running while hidden in the tray
+        _gameModeTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _gameModeTimer.Tick += OnGameModeTick;
+        _gameModeTimer.Start();
+
         StartBrowserExtensionBridge();
         Log("MainWindow constructor end");
     }
@@ -317,6 +322,11 @@ public partial class MainWindow : Window
         Log("MainWindow_Loaded exit");
     }
 
+    private readonly System.Windows.Threading.DispatcherTimer _gameModeTimer;
+
+    private void OnGameModeTick(object? sender, EventArgs e) =>
+        _viewModel.UpdateGameMode(FullscreenDetector.IsFullscreenAppRunning());
+
     private static bool _trayNotificationShown = false;
 
     private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -347,6 +357,8 @@ public partial class MainWindow : Window
         _bridgeCts?.Cancel();
         try { _extensionBridgeListener?.Close(); } catch { }
         _bridgeCts?.Dispose();
+        _gameModeTimer.Stop();
+        _gameModeTimer.Tick -= OnGameModeTick;
         _viewModel.Engine.ThreatDetected -= OnThreatDetected;
         _trayIcon?.Dispose();
         await _viewModel.Engine.DisposeAsync();

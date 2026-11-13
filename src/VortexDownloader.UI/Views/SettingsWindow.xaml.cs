@@ -50,6 +50,11 @@ public partial class SettingsWindow : Window
         ChkShutdownWhenDone.IsChecked = settings.ShutdownWhenCompleted;
         ChkScanWithDefender.IsChecked = settings.ScanWithDefender;
 
+        // Populate Game Mode (unknown saved value falls back to 512)
+        ChkGameMode.IsChecked = settings.GameModeEnabled;
+        SelectComboBoxItemByTag(CmbGameModeLimit, "512");
+        SelectComboBoxItemByTag(CmbGameModeLimit, settings.GameModeLimitKBps.ToString());
+
         // Populate Theme
         SelectComboBoxItemByTag(CmbTheme, settings.Theme);
 
@@ -144,6 +149,11 @@ public partial class SettingsWindow : Window
         settings.CloseToTray = ChkCloseToTray.IsChecked == true;
         settings.ShutdownWhenCompleted = ChkShutdownWhenDone.IsChecked == true;
         settings.ScanWithDefender = ChkScanWithDefender.IsChecked == true;
+        settings.GameModeEnabled = ChkGameMode.IsChecked == true;
+        if (CmbGameModeLimit.SelectedItem is ComboBoxItem gameItem && int.TryParse(gameItem.Tag?.ToString(), out int gameVal))
+        {
+            settings.GameModeLimitKBps = gameVal;
+        }
         settings.Save();
 
         DialogResult = true;
