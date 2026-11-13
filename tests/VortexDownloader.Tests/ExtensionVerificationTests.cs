@@ -6,9 +6,19 @@ using Xunit;
 
 namespace VortexDownloader.Tests;
 
+/// <summary>Skipped when the sibling VortexExtension copy is absent (CI runners, git worktrees).</summary>
+public sealed class SiblingExtensionFactAttribute : FactAttribute
+{
+    public SiblingExtensionFactAttribute()
+    {
+        if (!Directory.Exists(ExtensionVerificationTests.ResolveDirectories().RootDir))
+            Skip = "No sibling VortexExtension folder next to the repo";
+    }
+}
+
 public class ExtensionVerificationTests
 {
-    private static (string InTreeDir, string RootDir) ResolveDirectories()
+    internal static (string InTreeDir, string RootDir) ResolveDirectories()
     {
         string current = AppContext.BaseDirectory;
         DirectoryInfo? dir = new DirectoryInfo(current);
@@ -28,7 +38,7 @@ public class ExtensionVerificationTests
         return (inTreeDir, rootDir);
     }
 
-    [Fact]
+    [SiblingExtensionFact]
     public void ExtensionFolders_AreSynchronized_AndShareIdenticalHashes()
     {
         var (inTreeDir, rootDir) = ResolveDirectories();
