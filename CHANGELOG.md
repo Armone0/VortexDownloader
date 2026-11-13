@@ -9,6 +9,14 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 ### Yeni
 - **Oyun / tam ekran modu:** Tam ekran bir uygulama (oyun, film, sunum) çalışırken indirmeler otomatik yavaşlar (256 KB/s, 512 KB/s veya 1 MB/s; varsayılan 512 KB/s), ping etkilenmez. Tam ekrandan çıkınca kendi hız sınırın geri gelir; hız sınırı kutusunun yanında "🎮 Oyun modu" rozeti görünür. Ayarlardan kapatılabilir.
 - **Çoklu ayna (multi-mirror) indirme:** Yeni İndirme penceresinde "Ayna linkler (isteğe bağlı)" kutusuna aynı dosyanın başka adreslerini yaz (satır başına bir tane, en fazla 8); parçalar tüm geçerli kaynaklara dağıtılır, hızlar toplanır. Bir kaynak koparsa parçası kaldığı yerden diğerlerinde devam eder; "bağlantı süresi doldu" yalnızca tüm kaynaklar düşünce çıkar. Range desteklemeyen ya da boyutu tutmayan aynalar kullanılmaz. Kartta "⇄ 3 kaynak" rozeti sunucuları ve devre dışı kalanları gösterir.
+- **Tarayıcıdan gelen ZIP'te dosya seçimi:** Eklentinin yakaladığı `.zip` indirmelerinde pencerede ZIP kartı çıkar; "İçeriği gör ve seç" ile yalnızca istediğin dosyalar ana listede kart olarak iner.
+
+### Arayüz
+- Yeni İndirme penceresinde bağlantı sayısı açılır menü yerine tarayıcı penceresindeki gibi düğmelerle (1/2/4/8/16/32) seçilir; ayarlardaki varsayılan seçili gelir.
+- "Ayna linkler" ve "Toplu İndirme" seçeneklerinin üstüne gelince ne işe yaradıklarını anlatan bilgi kartları açılır.
+
+### Düzeltmeler
+- Çoklu aynada tüm kaynaklar aynı anda düştüğünde ana linkin "süresi doldu" bilgisi bazen kayboluyordu (yarış durumu); düzeltildi.
 
 ---
 

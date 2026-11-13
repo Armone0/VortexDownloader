@@ -17,42 +17,6 @@
         <!-- Soft Deep Drop Shadow matching Main Window -->
         <DropShadowEffect x:Key="WindowShadow" BlurRadius="26" Color="#000000" Opacity="0.5" ShadowDepth="4"/>
 
-        <!-- Segmented choice for the connection count (selected = sage fill) -->
-        <Style x:Key="ChunkSegmentStyle" TargetType="RadioButton">
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="3,0"/>
-            <Setter Property="Height" Value="38"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="seg" CornerRadius="8" BorderThickness="1"
-                                Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="seg" Property="Background" Value="{DynamicResource HoverTintBrush}"/>
-                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource AccentHighlightBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="seg" Property="Background" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
-                                <Setter TargetName="seg" Property="BorderBrush" Value="{DynamicResource ButtonPrimaryBgBrush}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ButtonPrimaryFgBrush}"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <!-- Primary Action Button (Mat Adaçayı Yeşili / Sage Green) -->
         <Style x:Key="PrimaryThemeButton" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -415,6 +379,25 @@
                         </StackPanel>
                     </Grid>
 
+                    <!-- ZIP: pick only some files out of the archive (shown for .zip links) -->
+                    <Border x:Name="ZipCard" Visibility="Collapsed" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource AccentHighlightBrush}"
+                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtZipTitle" Text="🗜️ Bu bir ZIP arşivi" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="TxtZipHint" Text="İçinden yalnızca istediğin dosyaları seçip indirebilirsin." FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button x:Name="BtnZipPick" Grid.Column="1" Content="📦 İçeriği gör ve seç" Style="{StaticResource SecondaryThemeButton}" Padding="14,0" Height="34" Margin="10,0,0,0" Click="BtnZipPick_Click"/>
+                            <Button x:Name="BtnZipClear" Grid.Column="2" Content="✕" ToolTip="Seçimi kaldır, arşivin tamamını indir" Visibility="Collapsed"
+                                    Style="{StaticResource SecondaryThemeButton}" Width="34" Height="34" Padding="0" Margin="6,0,0,0" Click="BtnZipClear_Click"/>
+                        </Grid>
+                    </Border>
+
                     <!-- Destination Directory -->
                     <TextBlock Text="KAYDEDİLECEK KLASÖR" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                     <Grid Margin="0,0,0,10">
@@ -541,9 +524,9 @@
 
                 <!-- Right Action Buttons -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="⏳ Kuyruğa Ekle" Style="{StaticResource SecondaryThemeButton}" Margin="0,0,8,0" Click="BtnQueue_Click"/>
-                    <Button Content="🌐 Tarayıcı ile İndir (Normal)" Style="{StaticResource BrowserFallbackButton}" Margin="0,0,8,0" Click="BtnDownloadWithBrowser_Click"/>
-                    <Button Content="⚡ Vortex ile İndir" IsDefault="True" Style="{StaticResource PrimaryThemeButton}" Click="BtnDownloadNow_Click"/>
+                    <Button x:Name="BtnQueue" Content="⏳ Kuyruğa Ekle" Style="{StaticResource SecondaryThemeButton}" Margin="0,0,8,0" Click="BtnQueue_Click"/>
+                    <Button x:Name="BtnBrowser" Content="🌐 Tarayıcı ile İndir (Normal)" Style="{StaticResource BrowserFallbackButton}" Margin="0,0,8,0" Click="BtnDownloadWithBrowser_Click"/>
+                    <Button x:Name="BtnDownloadNow" Content="⚡ Vortex ile İndir" IsDefault="True" Style="{StaticResource PrimaryThemeButton}" Click="BtnDownloadNow_Click"/>
                 </StackPanel>
             </Grid>
         </Grid>

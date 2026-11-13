@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.UI.Services;
 
@@ -28,6 +29,8 @@ public partial class DownloadPromptWindow : Window
     public string? Description { get; private set; }
     public string? AuthUsername { get; private set; }
     public string? AuthPassword { get; private set; }
+    /// <summary>Files picked inside the ZIP; when set, only these are fetched (into the folder of <see cref="ResultDestinationPath"/>).</summary>
+    public List<ZipEntryMetadata>? ZipEntries { get; private set; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -62,6 +65,7 @@ public partial class DownloadPromptWindow : Window
         TxtHeaderFileName.Text = initialName;
 
         AutoSelectCategory(initialName);
+        UpdateZipCard();
 
         if (size.HasValue && size.Value > 0)
         {
@@ -103,6 +107,7 @@ public partial class DownloadPromptWindow : Window
                 TxtFileName.Text = meta.SuggestedFileName;
                 TxtHeaderFileName.Text = meta.SuggestedFileName;
                 AutoSelectCategory(meta.SuggestedFileName);
+                UpdateZipCard();
             }
             if (meta.ContentLength > 0)
             {
@@ -364,6 +369,64 @@ public partial class DownloadPromptWindow : Window
             TxtRangeSupport.Text = "⏳ Range: Kontrol Ediliyor...";
             TxtRangeSupport.Foreground = TryFindResource("TextMutedBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x78));
         }
+    }
+
+    private bool LooksLikeZip() =>
+        TxtFileName.Text.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+        (Uri.TryCreate(ResultUrl, UriKind.Absolute, out var u) && u.AbsolutePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+
+    private void UpdateZipCard()
+    {
+        ZipCard.Visibility = LooksLikeZip() || ZipEntries != null ? Visibility.Visible : Visibility.Collapsed;
+        bool picked = ZipEntries is { Count: > 0 };
+        if (ZipEntries is { Count: > 0 } entries)
+        {
+            long total = entries.Sum(z => z.UncompressedSize);
+            TxtZipTitle.Text = $"🗜️ ZIP içinden {entries.Count} dosya seçildi · {FormatBytes(total)}";
+            TxtZipHint.Text = "Yalnızca seçtiğin dosyalar iner, arşivin tamamı değil.";
+            BtnZipPick.Content = "Seçimi değiştir";
+            BtnDownloadNow.Content = $"⚡ Seçilenleri İndir ({entries.Count})";
+        }
+        else
+        {
+            TxtZipTitle.Text = "🗜️ Bu bir ZIP arşivi";
+            TxtZipHint.Text = "İçinden yalnızca istediğin dosyaları seçip indirebilirsin.";
+            BtnZipPick.Content = "📦 İçeriği gör ve seç";
+            BtnDownloadNow.Content = "⚡ Vortex ile İndir";
+        }
+        BtnZipClear.Visibility = picked ? Visibility.Visible : Visibility.Collapsed;
+        // Picked entries download right away as cards; queueing / browser hand-off apply to the whole archive only
+        BtnQueue.Visibility = picked ? Visibility.Collapsed : Visibility.Visible;
+        BtnBrowser.Visibility = picked ? Visibility.Collapsed : Visibility.Visible;
+        TxtFileName.IsEnabled = !picked;
+    }
+
+    private void BtnZipPick_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var preview = new ZipPreviewWindow(ResultUrl, ZipEntries) { Owner = this };
+            if (preview.ShowDialog() != true) return;
+            if (preview.StartDownloadRequested)
+            {
+                ZipEntries = null;
+                UpdateZipCard();
+                BtnDownloadNow_Click(sender, e);
+                return;
+            }
+            ZipEntries = preview.SelectedEntries.Count > 0 ? preview.SelectedEntries : null;
+            UpdateZipCard();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"ZIP içeriği açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void BtnZipClear_Click(object sender, RoutedEventArgs e)
+    {
+        ZipEntries = null;
+        UpdateZipCard();
     }
 
     private void BtnQueue_Click(object sender, RoutedEventArgs e)

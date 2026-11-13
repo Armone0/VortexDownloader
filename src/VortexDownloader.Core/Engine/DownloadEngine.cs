@@ -820,10 +820,12 @@ public class DownloadEngine : IAsyncDisposable
                     ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
                 {
                     // ChunkDownloader already retried: give up on this source and move the rest of the chunk to another one.
-                    MarkSourceDead(task, source, ex.Message);
                     lock (chunkListLock)
                     {
+                        // Record the primary's error in the same lock as marking it dead: otherwise another worker's
+                        // TakeSource can see "all dead" first and throw a generic error, losing LinkExpired.
                         if (source == primaryUrl) primaryError ??= ex;
+                        MarkSourceDead(task, source, ex.Message);
                         if (sourceLoad.Keys.All(task.DeadSources.Contains))
                         {
                             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(primaryError ?? ex);

@@ -825,6 +825,13 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (prompt.ZipEntries is { Count: > 0 } zipEntries)
+            {
+                string folder = Path.GetDirectoryName(prompt.ResultDestinationPath) ?? AppSettings.Current.DefaultDownloadDirectory;
+                _ = DownloadZipEntriesAsync(prompt.ResultUrl, zipEntries, folder);
+                return;
+            }
+
             try
             {
                 var task = await _viewModel.Engine.AddDownloadAsync(

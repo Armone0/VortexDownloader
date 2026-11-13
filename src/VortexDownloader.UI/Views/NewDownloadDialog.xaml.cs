@@ -39,6 +39,10 @@ public partial class NewDownloadDialog : Window
         _engine = engine;
 
         ResultChunkCount = AppSettings.Current.DefaultChunkCount;
+        // Closest offered choice to the saved default (settings may hold a value not offered here)
+        var choices = ChunkChoices.Children.OfType<RadioButton>().ToList();
+        var best = choices.MinBy(rb => Math.Abs(int.Parse((string)rb.Tag) - ResultChunkCount));
+        if (best != null) best.IsChecked = true;
         FolderTextBox.Text = AppSettings.Current.DefaultDownloadDirectory;
 
         Loaded += NewDownloadDialog_Loaded;
@@ -351,7 +355,8 @@ public partial class NewDownloadDialog : Window
         }
 
         int chunkCount = 8;
-        if (ChunkCountComboBox.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out int parsed))
+        if (ChunkChoices.Children.OfType<RadioButton>().FirstOrDefault(rb => rb.IsChecked == true) is { } picked &&
+            int.TryParse(picked.Tag?.ToString(), out int parsed))
         {
             chunkCount = parsed;
         }
