@@ -182,8 +182,14 @@ public partial class NewDownloadDialog : Window
         else
         {
             UpdateSingleUrlFileName();
+            // Size/Range shown so far belonged to the previous link
+            SizeInfoTextBlock.Text = "Boyut: Bilinmiyor";
+            RangeInfoTextBlock.Text = "Range: Kontrol edilmedi";
         }
     }
+
+    // Last name filled in from a link; a new link may replace it, a name the user typed is kept.
+    private string? _autoFileName;
 
     private void UpdateBatchBadge()
     {
@@ -197,7 +203,7 @@ public partial class NewDownloadDialog : Window
     private void UpdateSingleUrlFileName()
     {
         string url = UrlTextBox.Text.Trim();
-        if ((string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == "(Toplu modda dosya adları bağlantılardan otomatik alınır)") && !string.IsNullOrWhiteSpace(url))
+        if ((string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == _autoFileName || FileNameTextBox.Text == "(Toplu modda dosya adları bağlantılardan otomatik alınır)") && !string.IsNullOrWhiteSpace(url))
         {
             try
             {
@@ -205,7 +211,7 @@ public partial class NewDownloadDialog : Window
                 string segment = Path.GetFileName(uri.LocalPath);
                 if (!string.IsNullOrWhiteSpace(segment))
                 {
-                    FileNameTextBox.Text = MainWindow.SanitizeFileName(Uri.UnescapeDataString(segment));
+                    FileNameTextBox.Text = _autoFileName = MainWindow.SanitizeFileName(Uri.UnescapeDataString(segment));
                 }
             }
             catch
@@ -332,9 +338,9 @@ public partial class NewDownloadDialog : Window
         try
         {
             var meta = await _engine.InspectUrlAsync(url, authUser: EnteredAuthUser, authPassword: AuthPasswordBox.Password);
-            if (!string.IsNullOrWhiteSpace(meta.SuggestedFileName) && (string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == "download.bin"))
+            if (!string.IsNullOrWhiteSpace(meta.SuggestedFileName) && (string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == _autoFileName || FileNameTextBox.Text == "download.bin"))
             {
-                FileNameTextBox.Text = MainWindow.SanitizeFileName(meta.SuggestedFileName);
+                FileNameTextBox.Text = _autoFileName = MainWindow.SanitizeFileName(meta.SuggestedFileName);
             }
 
             if (meta.ContentLength > 0)
