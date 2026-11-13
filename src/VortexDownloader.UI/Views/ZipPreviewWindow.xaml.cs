@@ -13,7 +13,10 @@ public partial class ZipPreviewWindow : Window
 {
     private readonly string _url;
     private CancellationTokenSource? _cts;
-    private List<ZipEntryDisplayItem> _items = [];
+    private List<ZipEntryDisplayItem> _items = []; // files only; folder rows are built from their paths
+    private List<ZipEntryDisplayItem> _roots = [];
+    private readonly System.Collections.ObjectModel.ObservableCollection<ZipEntryDisplayItem> _visible = [];
+    private bool _selectionUiQueued;
 
     public bool StartDownloadRequested { get; private set; }
     public List<ZipEntryMetadata> SelectedEntries { get; private set; } = [];
@@ -92,9 +95,14 @@ public partial class ZipPreviewWindow : Window
                 IsChecked = !entry.IsDirectory && _preselected.Contains(entry.FileName)
             }).ToList();
 
-            foreach (var item in displayList) item.PropertyChanged += (_, _) => UpdateSelectionUi();
-            _items = displayList;
-            ZipEntriesDataGrid.ItemsSource = displayList;
+            _items = displayList.Where(i => !i.IsDirectory).ToList();
+            foreach (var item in _items) item.PropertyChanged += (_, _) => QueueSelectionUi();
+            _roots = ZipEntryDisplayItem.BuildTree(_items);
+            // A single top-level folder (the usual "app/..." layout) is opened so the list isn't one lonely row.
+            if (_roots is [{ IsDirectory: true } only]) only.IsExpanded = true;
+            _visible.Clear();
+            foreach (var n in ZipEntryDisplayItem.VisibleUnder(_roots)) _visible.Add(n);
+            ZipEntriesDataGrid.ItemsSource = _visible;
             UpdateSelectionUi();
 
             int fileCount = entries.Count(e => !e.IsDirectory);
@@ -131,8 +139,34 @@ public partial class ZipPreviewWindow : Window
 
     private List<ZipEntryDisplayItem> CheckedItems => _items.Where(i => i.IsChecked && i.IsSelectable).ToList();
 
+    // Ticking a folder flips many files at once; refresh the counters once, not once per file.
+    private void QueueSelectionUi()
+    {
+        if (_selectionUiQueued) return;
+        _selectionUiQueued = true;
+        Dispatcher.BeginInvoke(() => { _selectionUiQueued = false; UpdateSelectionUi(); });
+    }
+
+    private void ToggleFolder(ZipEntryDisplayItem folder)
+    {
+        int idx = _visible.IndexOf(folder);
+        if (idx < 0) return;
+        if (folder.IsExpanded)
+        {
+            folder.IsExpanded = false;
+            while (idx + 1 < _visible.Count && _visible[idx + 1].Depth > folder.Depth) _visible.RemoveAt(idx + 1);
+        }
+        else
+        {
+            folder.IsExpanded = true;
+            int i = idx + 1;
+            foreach (var n in ZipEntryDisplayItem.VisibleUnder(folder.Children)) _visible.Insert(i++, n);
+        }
+    }
+
     private void UpdateSelectionUi()
     {
+        foreach (var row in _visible) if (row.IsDirectory) row.RaiseCheckState();
         var picked = CheckedItems;
         int selectable = _items.Count(i => i.IsSelectable);
         ExtractEntryButton.Content = picked.Count > 0
@@ -156,18 +190,27 @@ public partial class ZipPreviewWindow : Window
     {
         if (e.OriginalSource is not DependencyObject source) return;
         if (FindParent<System.Windows.Controls.CheckBox>(source) != null) return;
-        if (FindParent<System.Windows.Controls.DataGridRow>(source)?.Item is ZipEntryDisplayItem { IsSelectable: true } item)
-            item.IsChecked = !item.IsChecked;
+        if (FindParent<System.Windows.Controls.DataGridRow>(source)?.Item is not ZipEntryDisplayItem item) return;
+        if (item.IsDirectory) ToggleFolder(item); // a folder row opens/closes; its box selects everything inside
+        else if (item.IsSelectable) item.IsChecked = !item.IsChecked;
     }
 
     private void ZipEntriesDataGrid_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == System.Windows.Input.Key.Space &&
-            ZipEntriesDataGrid.SelectedItem is ZipEntryDisplayItem { IsSelectable: true } item)
+        if (ZipEntriesDataGrid.SelectedItem is not ZipEntryDisplayItem item) return;
+        switch (e.Key)
         {
-            item.IsChecked = !item.IsChecked;
-            e.Handled = true;
+            case System.Windows.Input.Key.Space when item.IsSelectable:
+                item.CheckState = item.CheckState != true;
+                break;
+            case System.Windows.Input.Key.Right when item is { IsDirectory: true, IsExpanded: false }:
+            case System.Windows.Input.Key.Left when item is { IsDirectory: true, IsExpanded: true }:
+                ToggleFolder(item);
+                break;
+            default:
+                return;
         }
+        e.Handled = true;
     }
 
     private static T? FindParent<T>(DependencyObject? node) where T : DependencyObject
@@ -201,10 +244,109 @@ public class ZipEntryDisplayItem : System.ComponentModel.INotifyPropertyChanged
             if (_isChecked == value) return;
             _isChecked = value;
             PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
+            PropertyChanged?.Invoke(this, new(nameof(CheckState)));
         }
     }
 
-    public bool IsSelectable => !IsDirectory;
+    // ---- Folder tree (rows are a flat list; Depth gives the indent) ----
+    public int Depth { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public List<ZipEntryDisplayItem> Children { get; } = [];
+    public System.Windows.Thickness Indent => new(Depth * 20, 0, 0, 0);
+
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsExpanded)));
+            PropertyChanged?.Invoke(this, new(nameof(Chevron)));
+        }
+    }
+    public string Chevron => IsExpanded ? "" : "";
+
+    private IEnumerable<ZipEntryDisplayItem> Files() =>
+        Children.SelectMany(c => c.IsDirectory ? c.Files() : [c]);
+
+    /// <summary>File: its own box. Folder: true/false when every file inside agrees, null when mixed; setting it ticks them all.</summary>
+    public bool? CheckState
+    {
+        get
+        {
+            if (!IsDirectory) return IsChecked;
+            int total = 0, on = 0;
+            foreach (var f in Files()) { total++; if (f.IsChecked) on++; }
+            return on == 0 ? false : on == total ? true : null;
+        }
+        set
+        {
+            if (!IsDirectory) { IsChecked = value == true; return; }
+            foreach (var f in Files()) f.IsChecked = value == true;
+        }
+    }
+    public void RaiseCheckState() => PropertyChanged?.Invoke(this, new(nameof(CheckState)));
+
+    public bool IsSelectable => !IsDirectory || Children.Count > 0;
+
+    /// <summary>Groups files into folder rows from their paths (folders first, then by name) and sums folder sizes.</summary>
+    public static List<ZipEntryDisplayItem> BuildTree(IEnumerable<ZipEntryDisplayItem> files)
+    {
+        var roots = new List<ZipEntryDisplayItem>();
+        var folders = new Dictionary<string, ZipEntryDisplayItem>(StringComparer.Ordinal);
+
+        ZipEntryDisplayItem? Folder(string path)
+        {
+            if (path.Length == 0) return null;
+            if (folders.TryGetValue(path, out var f)) return f;
+            int cut = path.LastIndexOf('/');
+            var parent = Folder(cut < 0 ? "" : path[..cut]);
+            f = new ZipEntryDisplayItem { FileName = path + "/", DisplayName = path[(cut + 1)..], IsDirectory = true, Depth = parent == null ? 0 : parent.Depth + 1 };
+            (parent?.Children ?? roots).Add(f);
+            return folders[path] = f;
+        }
+
+        foreach (var file in files)
+        {
+            string path = file.FileName.Replace('\\', '/').Trim('/');
+            int cut = path.LastIndexOf('/');
+            var parent = Folder(cut < 0 ? "" : path[..cut]);
+            file.DisplayName = path[(cut + 1)..];
+            file.Depth = parent == null ? 0 : parent.Depth + 1;
+            (parent?.Children ?? roots).Add(file);
+        }
+
+        void Finish(List<ZipEntryDisplayItem> list)
+        {
+            list.Sort((a, b) => a.IsDirectory != b.IsDirectory ? (a.IsDirectory ? -1 : 1)
+                : string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
+            foreach (var f in list.Where(i => i.IsDirectory))
+            {
+                Finish(f.Children);
+                var inside = f.Files().ToList();
+                f.UncompressedSize = inside.Sum(i => i.UncompressedSize);
+                f.CompressedSize = inside.Sum(i => i.CompressedSize);
+                f.UncompressedSizeFormatted = DownloadTask.FormatBytes(f.UncompressedSize);
+                f.CompressedSizeFormatted = DownloadTask.FormatBytes(f.CompressedSize);
+                f.LastModifiedFormatted = $"{inside.Count:N0} dosya";
+            }
+        }
+        Finish(roots);
+        return roots;
+    }
+
+    /// <summary>The rows shown for these nodes: each node, plus the contents of folders that are open.</summary>
+    public static IEnumerable<ZipEntryDisplayItem> VisibleUnder(IEnumerable<ZipEntryDisplayItem> nodes)
+    {
+        foreach (var n in nodes)
+        {
+            yield return n;
+            if (n.IsDirectory && n.IsExpanded)
+                foreach (var c in VisibleUnder(n.Children)) yield return c;
+        }
+    }
     public string FileName { get; set; } = string.Empty;
     public long UncompressedSize { get; set; }
     public string UncompressedSizeFormatted { get; set; } = "-";
