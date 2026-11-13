@@ -47,4 +47,17 @@
     <sys:String x:Key="Str_GameModeTooltip">Tam ekran bir uygulama (oyun, film, sunum) çalışıyor; indirmeler pinginizi etkilememesi için yavaşlatıldı. Tam ekrandan çıkınca kendi hız sınırınız geri gelir.</sys:String>
     <sys:String x:Key="Str_GameModeSetting">Tam ekran uygulamada (oyun, film) indirmeyi yavaşlat</sys:String>
     <sys:String x:Key="Str_GameModeSettingDesc">Tam ekran bir uygulama açıkken indirme hızı seçilen sınıra düşürülür; kapanınca kendi hız sınırınız geri gelir.</sys:String>
+    <sys:String x:Key="Str_Close">Kapat</sys:String>
+    <sys:String x:Key="Str_UpdateAvailable">v{0} çıktı</sys:String>
+    <sys:String x:Key="Str_ReleaseNotes">Sürüm notları</sys:String>
+    <sys:String x:Key="Str_SkipVersion">Bu sürümü atla</sys:String>
+    <sys:String x:Key="Str_CheckUpdatesSetting">Açılışta güncellemeleri kontrol et</sys:String>
+    <sys:String x:Key="Str_CheckUpdatesDesc">Günde en fazla bir kez yalnızca GitHub'a en son sürüm numarasını sorar; hiçbir şey indirilmez veya çalıştırılmaz.</sys:String>
+    <sys:String x:Key="Str_CheckUpdatesNow">Güncellemeleri kontrol et</sys:String>
+    <sys:String x:Key="Str_UpdateChecking">Kontrol ediliyor…</sys:String>
+    <sys:String x:Key="Str_UpToDate">Güncelsiniz (v{0}).</sys:String>
+    <sys:String x:Key="Str_UpdateFound">v{0} çıktı. Sürüm notları ana penceredeki bildirimde.</sys:String>
+    <sys:String x:Key="Str_UpdateCheckFailed">Kontrol edilemedi: {0}</sys:String>
+    <sys:String x:Key="Str_WatchClipboardSetting">Panoya kopyalanan indirme linklerini yakala</sys:String>
+    <sys:String x:Key="Str_WatchClipboardDesc">Kopyaladığınız doğrudan dosya linki (zip, exe, mp4…) için indirmeden önce onay sorulur. Normal web sayfaları yok sayılır; tam ekran oyun veya uygulama açıkken sessiz kalır.</sys:String>
 </ResourceDictionary>

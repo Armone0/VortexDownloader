@@ -263,6 +263,7 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         ThemeManager.ApplyDwmDarkMode(this, ThemeManager.CurrentTheme == "Dark");
+        ApplyClipboardWatch(AppSettings.Current.WatchClipboardLinks);
     }
 
     private void OnThemeChanged(string themeName)
@@ -319,6 +320,7 @@ public partial class MainWindow : Window
             0 => "Sınırsız",
             _ => $"{settings.MaxConcurrentDownloads} Görev"
         };
+        _ = CheckForUpdatesOnStartupAsync();
         await _viewModel.InitializeAsync();
         Log("MainWindow_Loaded exit");
     }
@@ -355,6 +357,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        _updateCts.Cancel();
+        ApplyClipboardWatch(false);
         _bridgeCts?.Cancel();
         try { _extensionBridgeListener?.Close(); } catch { }
         _bridgeCts?.Dispose();
@@ -1268,6 +1272,7 @@ public partial class MainWindow : Window
             _viewModel.Engine.MaxConcurrentDownloads = AppSettings.Current.MaxConcurrentDownloads;
             _viewModel.Engine.ScanWithDefender = AppSettings.Current.ScanWithDefender;
             _viewModel.ShutdownWhenCompleted = AppSettings.Current.ShutdownWhenCompleted;
+            ApplyClipboardWatch(AppSettings.Current.WatchClipboardLinks);
             _viewModel.SelectedMaxConcurrent = AppSettings.Current.MaxConcurrentDownloads switch
             {
                 1 => "1 Görev",
