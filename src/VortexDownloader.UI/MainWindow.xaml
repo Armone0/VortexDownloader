@@ -807,6 +807,15 @@
 
                             <Rectangle Width="1" Height="14" Fill="{DynamicResource CardBorderBrush}" Margin="2,0"/>
 
+                            <!-- Vortex Send: phone -> PC via QR -->
+                            <Button Style="{StaticResource SecondaryDarkButton}" BorderThickness="0" Background="Transparent" Padding="12,5" Click="BtnVortexSend_Click"
+                                    ToolTip="Aynı Wi-Fi'deki telefondan bağlantı gönder (QR kod)">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📱" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Telefondan gönder" FontSize="11" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+
                         </StackPanel>
                     </Border>
                 </Grid>

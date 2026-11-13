@@ -51,7 +51,8 @@ public partial class MainWindow : Window
         string? Cookies,
         string? Referrer,
         string? UserAgent,
-        string? PageUrl = null);
+        string? PageUrl = null,
+        bool RequireConfirmation = false); // never auto-start (links from Vortex Send)
 
     private readonly Queue<BrowserPromptItem> _browserPromptQueue = new();
     private bool _isPromptShowing = false;
@@ -652,7 +653,7 @@ public partial class MainWindow : Window
                         continue;
                     }
 
-                    if (AppSettings.Current.AutoStartBrowserDownloads)
+                    if (AppSettings.Current.AutoStartBrowserDownloads && !nextItem.RequireConfirmation)
                     {
                         await AutoStartDownloadFromBrowserAsync(nextItem);
                     }
@@ -1278,6 +1279,20 @@ public partial class MainWindow : Window
     {
         BtnSettings_Click(sender, e);
     }
+
+    // ==================== Vortex Send (phone -> PC via QR) ====================
+    // The LAN server lives only while this window is open; every link goes through the normal confirmation prompt.
+    private VortexSendWindow? _vortexSendWindow;
+
+    private void BtnVortexSend_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vortexSendWindow != null) { _vortexSendWindow.Activate(); return; }
+        _vortexSendWindow = new VortexSendWindow(url => EnqueueBrowserPrompt(
+            new BrowserPromptItem(url, null, null, null, null, null, RequireConfirmation: true))) { Owner = this };
+        _vortexSendWindow.Closed += (_, _) => _vortexSendWindow = null;
+        _vortexSendWindow.Show();
+    }
+    // ==================== /Vortex Send ====================
 
     private void BtnToolbarScheduler_Click(object sender, RoutedEventArgs e)
     {
