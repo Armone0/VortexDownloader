@@ -13,10 +13,14 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6.svg)](https://microsoft.com/windows)
 [![Release](https://img.shields.io/github/v/release/Armone0/VortexDownloader?color=brightgreen)](https://github.com/Armone0/VortexDownloader/releases)
-[![Tests](https://img.shields.io/badge/Tests-47%2F47%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-164%2F164%20Passing-success.svg)](tests/)
 [![Implementation](https://img.shields.io/badge/Implementation-Clean--Room%20Independent-blue.svg)](DISCLAIMER.md)
 
 [Features](#-key-features) • [Installation & Setup](#-installation--setup-guide) • [Browser Extension](#-browser-extension-setup) • [Architecture](#-architecture) • [Comparison](#-feature-comparison) • [Security](#-security--integrity) • [Legal Notice](#-legal-notice)
+
+<br/>
+
+<img src="docs/screenshots/main-window.png" alt="VortexDownloader main window: segmented downloads with live chunk map, multi-mirror source chip and Defender scan badge" width="860"/>
 
 </div>
 
@@ -32,6 +36,14 @@ Rather than relying on static file partitioning where slow connections stall com
 
 ## 🚀 Key Features
 
+* **⇄ Multi-Mirror Downloads:**  
+  Give extra mirror URLs for the same file; chunks are spread across every mirror that supports Range and reports the same size, so speeds add up. If a mirror drops, its chunks continue on the others.
+* **🎮 Game / Fullscreen Mode:**  
+  While a fullscreen app (game, film, presentation) runs, downloads slow down automatically (256 KB/s – 1 MB/s) so your ping stays low; your own limit comes back when you leave fullscreen.
+* **🗜️ Pick Files Out of a Remote ZIP:**  
+  Tick the files you want in the ZIP preview and only their bytes are fetched via HTTP Range — not the whole archive.
+* **🛡️ Defender Scan + SHA-256 & Expired-Link Resume:**  
+  Finished files are hashed and scanned with Windows Defender; a download whose signed link expired resumes from where it stopped once you fetch a fresh link.
 * **⚡ Dynamic Chunk Bisection (`FindMaxFreeChunk`):**  
   Mitigates tail latency at the end of downloads. When an active worker finishes early, it dynamically bisects the largest remaining active chunk so idle threads assist with the remaining data.
 * **🧠 Low-Allocation Pooled Buffer Streaming:**  
