@@ -15,7 +15,16 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vortexdownloader@armone0.github.io",
+      "strict_min_version": "121.0"
+    }
   },
   "content_scripts": [
     {

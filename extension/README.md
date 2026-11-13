@@ -1,6 +1,6 @@
 # VortexDownloader Browser Extension ⚡ (v1.7.0)
 
-Companion Manifest V3 browser extension for Google Chrome, Microsoft Edge, and Chromium-based browsers.
+Companion Manifest V3 browser extension for Google Chrome, Microsoft Edge, Chromium-based browsers and (experimental) Firefox 121+.
 
 ## 🚀 Features
 - **Floating Video & Media Grabber (Video Sniffer):**
@@ -23,3 +23,8 @@ Companion Manifest V3 browser extension for Google Chrome, Microsoft Edge, and C
 3. Click **Load unpacked** (Paketlenmemiş öğe yükle).
 4. Select this `extension` folder (or `VortexExtension`).
 5. Ensure VortexDownloader desktop app is running. Any video or file download initiated in the browser will now trigger the instant Vortex download prompt!
+
+## 🦊 Firefox (experimental)
+1. Open `about:debugging#/runtime/this-firefox` and click **Load Temporary Add-on**, then pick `extension/manifest.json`.
+2. In `about:addons` → VortexDownloader → **Permissions**, turn on access to all websites (Firefox does not grant it on install).
+3. A temporary add-on is removed when Firefox restarts. A permanent install needs the add-on signed by Mozilla (free, through addons.mozilla.org).

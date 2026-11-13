@@ -347,15 +347,17 @@ async function sendToVortex(payload, isRetry = false) {
   }
 }
 
-// 1. Intercept browser downloads and route to VortexDownloader via onDeterminingFilename
-chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
+// 1. Intercept browser downloads and route to VortexDownloader.
+// Chromium: onDeterminingFilename (the download waits for suggest()). Firefox has no such event,
+// so there we catch it in onCreated and cancel+erase the browser copy once Vortex accepts it.
+function handleBrowserDownload(downloadItem, suggest) {
   const url = downloadItem.finalUrl || downloadItem.url;
   const fileName = downloadItem.filename ? downloadItem.filename.split(/[\\/]/).pop() : "isimsiz";
 
   addLog("info", `İndirme algılandı: #${downloadItem.id} "${fileName}"`, { url, mime: downloadItem.mime });
 
   // Ignore data/blob/extension urls
-  if (!url || url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("chrome-extension:")) {
+  if (!url || url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("chrome-extension:") || url.startsWith("moz-extension:")) {
     addLog("warn", `Desteklenmeyen protokol (atlanıyor): ${url}`);
     suggest();
     return;
@@ -460,7 +462,16 @@ chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
   });
 
   return true; // Keep async channel open for suggest()!
-});
+}
+
+if (chrome.downloads.onDeterminingFilename) {
+  chrome.downloads.onDeterminingFilename.addListener(handleBrowserDownload);
+} else {
+  chrome.downloads.onCreated.addListener((item) => {
+    if (item.byExtensionId) return; // our own fallback/media downloads
+    handleBrowserDownload(item, () => {});
+  });
+}
 
 // 2. Handle media download requests, link interceptions, and diagnostic log requests
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

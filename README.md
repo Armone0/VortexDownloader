@@ -82,6 +82,11 @@ The extension lives in the [`extension/`](extension/) folder of the repository a
 3. Click **Load unpacked** and select the `extension` folder.
 4. Keep `VortexDownloader.exe` running. On first use the app asks you to approve the extension (one-time pairing).
 
+**Firefox (experimental, version 121 or newer).** Not yet tested in a real Firefox.
+1. Open `about:debugging#/runtime/this-firefox` and click **Load Temporary Add-on**, then pick `extension/manifest.json`.
+2. In `about:addons` → VortexDownloader → **Permissions**, turn on access to all websites (Firefox does not grant it on install).
+3. A temporary add-on is removed when Firefox restarts. A permanent install needs the add-on signed by Mozilla (free, through addons.mozilla.org).
+
 If the app is closed, the browser downloads the file normally. Nothing is lost.
 
 ## 🔒 Security & privacy
