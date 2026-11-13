@@ -1021,6 +1021,13 @@
                                                         Command="{Binding DataContext.RefreshLinkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}"/>
 
+                                                <!-- PS4 PKG inspector (finished .pkg only) -->
+                                                <Button Style="{StaticResource ItemActionButton}" Content="🎮 PKG bilgisi"
+                                                        Margin="0,0,6,0"
+                                                        Visibility="{Binding IsPkgFile, Converter={StaticResource BoolToVis}}"
+                                                        Command="{Binding DataContext.OpenPkgInspectorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"/>
+
                                                 <!-- Open Folder Button -->
                                                 <Button Style="{StaticResource ItemActionButton}" Content="📁 Klasör" 
                                                         Margin="0,0,6,0"

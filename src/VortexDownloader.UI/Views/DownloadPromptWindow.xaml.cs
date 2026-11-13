@@ -403,7 +403,25 @@ public partial class DownloadPromptWindow : Window
         BtnQueue.Visibility = picked ? Visibility.Collapsed : Visibility.Visible;
         BtnBrowser.Visibility = picked ? Visibility.Collapsed : Visibility.Visible;
         TxtFileName.IsEnabled = !picked;
+        UpdatePkgCard();
     }
+
+    // --- PS4 PKG inspector card ---
+    private void UpdatePkgCard() =>
+        PkgCard.Visibility = Core.Packages.Ps4PkgReader.IsPkgName(TxtFileName.Text) || Core.Packages.Ps4PkgReader.IsPkgName(ResultUrl) ? Visibility.Visible : Visibility.Collapsed;
+
+    private void BtnPkgInspect_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            new PkgInspectorWindow(ResultUrl, Cookies, Referrer) { Owner = this }.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"PKG bilgisi açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    // --- end PS4 PKG inspector card ---
 
     private void BtnZipPick_Click(object sender, RoutedEventArgs e)
     {

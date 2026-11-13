@@ -402,6 +402,7 @@ public class MainViewModel : ViewModelBase
     public ICommand DeleteTaskCommand { get; }
     public ICommand OpenFolderCommand { get; }
     public ICommand RefreshLinkCommand { get; }
+    public ICommand OpenPkgInspectorCommand { get; }
 
     public MainViewModel(DownloadEngine? engine = null)
     {
@@ -484,6 +485,13 @@ public class MainViewModel : ViewModelBase
             if (item?.CanRefreshLink != true) return; // CanRefreshLink only allows absolute http/https URLs
             try { Process.Start(new ProcessStartInfo(item.SourcePageUrl!) { UseShellExecute = true }); }
             catch (Exception ex) { MessageBox.Show($"Sayfa açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        });
+
+        // Read-only PS4 PKG viewer for a finished .pkg download.
+        OpenPkgInspectorCommand = new RelayCommand<DownloadItemViewModel>(item =>
+        {
+            if (item?.IsPkgFile != true || !File.Exists(item.DestinationPath)) return;
+            new Views.PkgInspectorWindow(item.DestinationPath) { Owner = Application.Current?.MainWindow }.Show();
         });
 
         SetFilterCommand = new RelayCommand<string>(filter =>

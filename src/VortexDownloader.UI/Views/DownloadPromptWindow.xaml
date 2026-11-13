@@ -398,6 +398,22 @@
                         </Grid>
                     </Border>
 
+                    <!-- PS4 PKG: read title / icon / PARAM.SFO before downloading (shown for .pkg links) -->
+                    <Border x:Name="PkgCard" Visibility="Collapsed" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource AccentHighlightBrush}"
+                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="🎮 Bu bir PS4 PKG dosyası" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="İndirmeden önce oyun adını, sürümünü ve gereken yazılımı görebilirsin." FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="🎮 PKG bilgisini gör" Style="{StaticResource SecondaryThemeButton}" Padding="14,0" Height="34" Margin="10,0,0,0" Click="BtnPkgInspect_Click"/>
+                        </Grid>
+                    </Border>
+
                     <!-- Destination Directory -->
                     <TextBlock Text="KAYDEDİLECEK KLASÖR" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                     <Grid Margin="0,0,0,10">
