@@ -1,7 +1,9 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using VortexDownloader.Core.Common;
 using VortexDownloader.UI.Services;
+using VortexDownloader.UI.ViewModels;
 
 namespace VortexDownloader.UI.Views;
 
@@ -54,6 +56,13 @@ public partial class SettingsWindow : Window
         ChkGameMode.IsChecked = settings.GameModeEnabled;
         SelectComboBoxItemByTag(CmbGameModeLimit, "512");
         SelectComboBoxItemByTag(CmbGameModeLimit, settings.GameModeLimitKBps.ToString());
+
+        ChkAutoFolderByType.IsChecked = settings.AutoFolderByType;
+        TxtShortcuts.Text = MainWindow.ShortcutsHelp;
+        if (Owner?.DataContext is MainViewModel vm)
+        {
+            TxtMonthStats.Text = DownloadStats.Format(DownloadStats.ForMonth(vm.Engine.Tasks, DateTime.Now));
+        }
 
         // Populate Theme
         SelectComboBoxItemByTag(CmbTheme, settings.Theme);
@@ -150,6 +159,7 @@ public partial class SettingsWindow : Window
         settings.ShutdownWhenCompleted = ChkShutdownWhenDone.IsChecked == true;
         settings.ScanWithDefender = ChkScanWithDefender.IsChecked == true;
         settings.GameModeEnabled = ChkGameMode.IsChecked == true;
+        settings.AutoFolderByType = ChkAutoFolderByType.IsChecked == true;
         if (CmbGameModeLimit.SelectedItem is ComboBoxItem gameItem && int.TryParse(gameItem.Tag?.ToString(), out int gameVal))
         {
             settings.GameModeLimitKBps = gameVal;

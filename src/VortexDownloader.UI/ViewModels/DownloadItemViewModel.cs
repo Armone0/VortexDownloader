@@ -3,6 +3,7 @@ using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using SolidColorBrush = System.Windows.Media.SolidColorBrush;
 using VortexDownloader.Core.Common;
+using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
 
 namespace VortexDownloader.UI.ViewModels;
@@ -109,12 +110,14 @@ public class DownloadItemViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsActive));
                 OnPropertyChanged(nameof(IsDone));
                 OnPropertyChanged(nameof(IsPkgFile));
+                RaiseMediaActionsChanged();
             }
         }
     }
 
     public string StatusText => !string.IsNullOrEmpty(_customStatusText)
         ? _customStatusText
+        : IsScheduled ? DownloadSchedule.FormatLabel(_startAt!.Value, DateTime.Now)
         : Status switch
         {
             DownloadStatus.Queued => "Sırada",
@@ -235,7 +238,8 @@ public class DownloadItemViewModel : ViewModelBase
 
     private static string HostOf(string url) => Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
 
-    public bool CanPause => SupportsPause && Status == DownloadStatus.Downloading;
+    // A scheduled (queued) task can be paused too: that cancels the schedule.
+    public bool CanPause => SupportsPause && (Status == DownloadStatus.Downloading || IsScheduled);
 
     /// <summary>False for cards the engine doesn't own (e.g. files fetched out of a ZIP), so no dead Pause button shows.</summary>
     public bool SupportsPause { get; init; } = true;
@@ -340,6 +344,7 @@ public class DownloadItemViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(ScanBadgeText));
                 OnPropertyChanged(nameof(HasScanBadge));
+                RaiseMediaActionsChanged();
             }
         }
     }
@@ -378,9 +383,72 @@ public class DownloadItemViewModel : ViewModelBase
         try { System.Windows.Clipboard.SetText(_sha256!); } catch { /* clipboard busy */ }
     });
 
+    // --- Scheduled start ---
+    private DateTime? _startAt;
+
+    public bool IsScheduled => Status == DownloadStatus.Queued && _startAt != null;
+
+    public DateTime? StartAt
+    {
+        get => _startAt;
+        private set
+        {
+            if (SetProperty(ref _startAt, value))
+            {
+                OnPropertyChanged(nameof(StatusText));
+                OnPropertyChanged(nameof(CanPause));
+            }
+        }
+    }
+
+    // --- ffmpeg presets (MP4 remux / audio extract) on finished media ---
+    private bool _isConverting;
+    private string _convertStatus = string.Empty;
+
+    /// <summary>Cancels the running ffmpeg job (owned by MainViewModel).</summary>
+    internal CancellationTokenSource? ConvertCts { get; set; }
+
+    public bool IsConverting
+    {
+        get => _isConverting;
+        set { if (SetProperty(ref _isConverting, value)) RaiseMediaActionsChanged(); }
+    }
+
+    public string ConvertStatus
+    {
+        get => _convertStatus;
+        set { if (SetProperty(ref _convertStatus, value)) RaiseMediaActionsChanged(); }
+    }
+
+    private string LowerExtension => System.IO.Path.GetExtension(FileName).ToLowerInvariant();
+    // Not offered on files Defender flagged.
+    private bool CanStartConversion => IsDone && !_isConverting && _scanStatus != ScanStatus.Threat;
+    public bool CanConvertToMp4 => CanStartConversion && FileCategories.Is(FileName, FileCategories.Video) && LowerExtension != ".mp4";
+    public bool CanExtractAudio => CanStartConversion &&
+        (FileCategories.Is(FileName, FileCategories.Video) || (FileCategories.Is(FileName, FileCategories.Music) && LowerExtension != ".m4a"));
+    public bool HasConvertStatus => _convertStatus.Length > 0;
+    public bool ShowMediaActions => CanConvertToMp4 || CanExtractAudio || _isConverting || HasConvertStatus;
+
+    private void RaiseMediaActionsChanged()
+    {
+        OnPropertyChanged(nameof(CanConvertToMp4));
+        OnPropertyChanged(nameof(CanExtractAudio));
+        OnPropertyChanged(nameof(HasConvertStatus));
+        OnPropertyChanged(nameof(ShowMediaActions));
+    }
+
+    private bool _expectedHashLoaded;
+
     public void UpdateFromTask(DownloadTask task)
     {
         Id = task.Id;
+        StartAt = task.StartAt;
+        if (!_expectedHashLoaded)
+        {
+            // Only once: afterwards the hash popup's text box owns the value.
+            _expectedHashLoaded = true;
+            if (!string.IsNullOrEmpty(task.ExpectedSha256)) ExpectedHash = task.ExpectedSha256;
+        }
         Sha256 = task.Sha256;
         ScanStatus = task.ScanStatus;
         FileName = task.FileName;

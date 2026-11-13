@@ -375,6 +375,10 @@
                                 <Button x:Name="BtnBrowseFolder" Grid.Column="1" Style="{StaticResource SecondaryButton}" 
                                         Content="{DynamicResource Str_Browse}" Click="BtnBrowseFolder_Click" Height="32"/>
                             </Grid>
+                            <CheckBox x:Name="ChkAutoFolderByType" Style="{StaticResource ModernCheckBox}"
+                                      Content="Dosya türüne göre klasörle" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <TextBlock Text="Bu klasöre inen yeni dosyalar Video, Müzik, Belgeler, Arşivler, Programlar veya Diğer alt klasörüne kaydedilir. Mevcut dosyalar taşınmaz, hiçbir dosyanın üzerine yazılmaz."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
@@ -584,6 +588,19 @@
                                 <TextBlock Grid.Column="0" Text="• SHA-256 Otomatik Doğrulama" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="1" Text="• Yerel Tarayıcı Köprüsü (Port 19741)" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- This month's numbers (from completed tasks) + keyboard shortcuts -->
+                    <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                            BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock x:Name="TxtMonthStats" Text="Bu ay: —" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Text="⌨ Klavye Kısayolları" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,10,0,4"/>
+                            <TextBlock x:Name="TxtShortcuts" FontSize="11" LineHeight="17"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

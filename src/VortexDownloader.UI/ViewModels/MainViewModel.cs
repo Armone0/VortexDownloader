@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
+using VortexDownloader.Core.Media;
 using VortexDownloader.Core.Models;
 using VortexDownloader.UI.Services;
 
@@ -104,11 +105,11 @@ public class MainViewModel : ViewModelBase
     public bool HasNoDownloads => Downloads.Count == 0;
     public int PausedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Paused);
     public int CompletedDownloadsCount => Downloads.Count(d => d.Status == DownloadStatus.Completed);
-    public int CompressedCount => Downloads.Count(d => HasExtension(d.FileName, ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2"));
-    public int DocumentsCount => Downloads.Count(d => HasExtension(d.FileName, ".pdf", ".docx", ".doc", ".xlsx", ".txt", ".pptx", ".epub"));
-    public int MusicCount => Downloads.Count(d => HasExtension(d.FileName, ".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a"));
-    public int ProgramsCount => Downloads.Count(d => HasExtension(d.FileName, ".exe", ".msi", ".iso", ".bat", ".cmd", ".apk"));
-    public int VideoCount => Downloads.Count(d => HasExtension(d.FileName, ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm"));
+    public int CompressedCount => Downloads.Count(d => FileCategories.Is(d.FileName, FileCategories.Compressed));
+    public int DocumentsCount => Downloads.Count(d => FileCategories.Is(d.FileName, FileCategories.Documents));
+    public int MusicCount => Downloads.Count(d => FileCategories.Is(d.FileName, FileCategories.Music));
+    public int ProgramsCount => Downloads.Count(d => FileCategories.Is(d.FileName, FileCategories.Programs));
+    public int VideoCount => Downloads.Count(d => FileCategories.Is(d.FileName, FileCategories.Video));
     public int FilteredDownloadsCount => FilteredDownloads.Count();
 
     public string FreeDiskSpaceText
@@ -208,31 +209,23 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public IEnumerable<DownloadItemViewModel> FilteredDownloads => string.IsNullOrWhiteSpace(_searchText)
-        ? FilteredByCategory
-        : FilteredByCategory.Where(d =>
+    public IEnumerable<DownloadItemViewModel> FilteredDownloads => Downloads.Where(MatchesView);
+
+    /// <summary>Current sidebar filter + search; also the list's live CollectionView filter (keeps selection across updates).</summary>
+    public bool MatchesView(DownloadItemViewModel d) =>
+        MatchesCategory(d) && (string.IsNullOrWhiteSpace(_searchText) ||
             d.FileName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
             d.Url.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
 
-    private IEnumerable<DownloadItemViewModel> FilteredByCategory => _currentFilter switch
+    private bool MatchesCategory(DownloadItemViewModel d) => _currentFilter switch
     {
-        "Downloading" => Downloads.Where(d => d.Status == DownloadStatus.Downloading),
-        "Paused" => Downloads.Where(d => d.Status == DownloadStatus.Paused),
-        "Completed" => Downloads.Where(d => d.Status == DownloadStatus.Completed),
-        "Compressed" => Downloads.Where(d => HasExtension(d.FileName, ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2")),
-        "Documents" => Downloads.Where(d => HasExtension(d.FileName, ".pdf", ".docx", ".doc", ".xlsx", ".txt", ".pptx", ".epub")),
-        "Music" => Downloads.Where(d => HasExtension(d.FileName, ".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a")),
-        "Programs" => Downloads.Where(d => HasExtension(d.FileName, ".exe", ".msi", ".iso", ".bat", ".cmd", ".apk")),
-        "Video" => Downloads.Where(d => HasExtension(d.FileName, ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm")),
-        _ => Downloads
+        "Downloading" => d.Status == DownloadStatus.Downloading,
+        "Paused" => d.Status == DownloadStatus.Paused,
+        "Completed" => d.Status == DownloadStatus.Completed,
+        FileCategories.Compressed or FileCategories.Documents or FileCategories.Music
+            or FileCategories.Programs or FileCategories.Video => FileCategories.Is(d.FileName, _currentFilter),
+        _ => true
     };
-
-    private static bool HasExtension(string? fileName, params string[] exts)
-    {
-        if (string.IsNullOrEmpty(fileName)) return false;
-        string ext = Path.GetExtension(fileName).ToLowerInvariant();
-        return exts.Contains(ext);
-    }
 
     public ICommand SetFilterCommand { get; }
 
@@ -433,51 +426,50 @@ public class MainViewModel : ViewModelBase
                 }
             }
         });
+        // Card buttons act on the whole selection when the clicked card is part of a multi-selection.
         PauseTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
-            if (item != null)
+            if (item == null) return;
+            foreach (var target in BulkTargets(item))
             {
-                await _engine.PauseTaskAsync(item.Id);
-                item.CancelAction?.Invoke();
+                if (target != item && !target.CanPause) continue;
+                await _engine.PauseTaskAsync(target.Id);
+                target.CancelAction?.Invoke();
             }
         });
         ResumeTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
-            if (item != null) await _engine.ResumeTaskAsync(item.Id);
+            if (item == null) return;
+            foreach (var target in BulkTargets(item))
+            {
+                if (target == item || target.CanResume) await _engine.ResumeTaskAsync(target.Id);
+            }
         });
         DeleteTaskCommand = new RelayCommand<DownloadItemViewModel>(async item =>
         {
-            if (item != null)
-            {
-                // Finished downloads leave a real file behind: ask before touching the disk.
-                bool deleteFile = false;
-                if (item.Status == DownloadStatus.Completed && File.Exists(item.DestinationPath))
-                {
-                    var answer = Views.ConfirmDeleteDialog.Ask(Application.Current?.MainWindow, item.FileName, item.DestinationPath);
-                    if (answer == null) return;
-                    deleteFile = answer.Value;
-                }
-
-                await _engine.RemoveTaskAsync(item.Id);
-                if (deleteFile)
-                {
-                    try { File.Delete(item.DestinationPath); }
-                    catch (Exception ex) { MessageBox.Show($"Dosya silinemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error); }
-                }
-                item.CancelAction?.Invoke();
-                if (Downloads.Contains(item))
-                {
-                    Downloads.Remove(item);
-                }
-            }
+            if (item != null) await DeleteItemsAsync(BulkTargets(item), alwaysConfirm: false);
         });
         OpenFolderCommand = new RelayCommand<DownloadItemViewModel>(item =>
         {
-            if (item != null && !string.IsNullOrEmpty(item.DestinationPath))
+            if (item == null) return;
+            // One Explorer window per folder, not per file.
+            foreach (var group in BulkTargets(item).Where(d => !string.IsNullOrEmpty(d.DestinationPath))
+                         .GroupBy(d => Path.GetDirectoryName(d.DestinationPath), StringComparer.OrdinalIgnoreCase).Take(10))
             {
-                OpenInExplorer(item.DestinationPath);
+                OpenInExplorer(group.First().DestinationPath);
             }
         });
+
+        ConvertToMp4Command = new RelayCommand<DownloadItemViewModel>(async item =>
+        {
+            if (item?.CanConvertToMp4 == true) await RunConversionAsync(item, FfmpegPreset.RemuxToMp4);
+        });
+        ExtractAudioCommand = new RelayCommand<DownloadItemViewModel>(async item =>
+        {
+            if (item?.CanExtractAudio == true) await RunConversionAsync(item, FfmpegPreset.ExtractAudioM4a);
+        });
+        CancelConvertCommand = new RelayCommand<DownloadItemViewModel>(item => item?.ConvertCts?.Cancel());
+        _engine.AutoFolderRoot = () => AppSettings.Current.AutoFolderByType ? AppSettings.Current.DefaultDownloadDirectory : null;
 
         // Opens the page the download came from; the browser extension then sends a fresh link that resumes this task.
         RefreshLinkCommand = new RelayCommand<DownloadItemViewModel>(item =>
@@ -594,6 +586,117 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(TotalActiveProgressRatio));
         OnPropertyChanged(nameof(HasIndeterminateProgress));
         CheckAutoShutdown();
+    }
+
+    // ==================== Multi-select + bulk actions ====================
+
+    /// <summary>Selected cards, kept in sync by the main window's list.</summary>
+    public IReadOnlyList<DownloadItemViewModel> SelectedItems { get; set; } = [];
+
+    private IReadOnlyList<DownloadItemViewModel> BulkTargets(DownloadItemViewModel item) =>
+        SelectedItems.Count > 1 && SelectedItems.Contains(item) ? SelectedItems.ToList() : [item];
+
+    /// <summary>Removes the items; finished files on disk are only deleted after ConfirmDeleteDialog says so.</summary>
+    public async Task DeleteItemsAsync(IReadOnlyList<DownloadItemViewModel> items, bool alwaysConfirm)
+    {
+        if (items.Count == 0) return;
+        var owner = Application.Current?.MainWindow;
+        var files = items.Where(d => d.Status == DownloadStatus.Completed && File.Exists(d.DestinationPath)).ToList();
+
+        bool deleteFiles = false;
+        if (files.Count > 0)
+        {
+            var answer = items.Count == 1
+                ? Views.ConfirmDeleteDialog.Ask(owner, items[0].FileName, items[0].DestinationPath)
+                : Views.ConfirmDeleteDialog.AskMany(owner, items.Count, files.Select(f => f.DestinationPath).ToList());
+            if (answer == null) return;
+            deleteFiles = answer.Value;
+        }
+        else if (alwaysConfirm || items.Count > 1)
+        {
+            string what = items.Count == 1 ? $"\"{items[0].FileName}\"" : $"{items.Count} indirme";
+            if (!Views.ConfirmDialog.Ask(owner, "İndirmeler kaldırılsın mı?", $"{what} listeden kaldırılacak.", null, "Kaldır")) return;
+        }
+
+        var failed = new List<string>();
+        foreach (var item in items)
+        {
+            item.ConvertCts?.Cancel();
+            await _engine.RemoveTaskAsync(item.Id);
+            if (deleteFiles && files.Contains(item))
+            {
+                try { File.Delete(item.DestinationPath); }
+                catch (Exception ex) { failed.Add($"{item.FileName}: {ex.Message}"); }
+            }
+            item.CancelAction?.Invoke();
+            Downloads.Remove(item);
+        }
+        if (failed.Count > 0)
+        {
+            MessageBox.Show($"Dosya silinemedi:\n{string.Join("\n", failed.Take(5))}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ==================== ffmpeg presets on finished media ====================
+
+    public ICommand ConvertToMp4Command { get; }
+    public ICommand ExtractAudioCommand { get; }
+    public ICommand CancelConvertCommand { get; }
+
+    private readonly Dictionary<DownloadItemViewModel, Task> _conversions = [];
+
+    private async Task RunConversionAsync(DownloadItemViewModel item, FfmpegPreset preset)
+    {
+        string source = item.DestinationPath;
+        using var cts = new CancellationTokenSource();
+        item.ConvertCts = cts;
+        item.IsConverting = true;
+        item.ConvertStatus = "Hazırlanıyor…";
+
+        var work = Task.Run(async () =>
+        {
+            var sidecar = new SidecarManager();
+            string? ffmpeg = sidecar.GetFfmpegPath();
+            if (ffmpeg == null)
+            {
+                // Same first-run flow as media downloads: fetch the sidecars into %APPDATA%\VortexDownloader\bin.
+                PostToUi(() => item.ConvertStatus = "FFmpeg indiriliyor…");
+                await sidecar.EnsureSidecarsAsync(ct: cts.Token);
+                ffmpeg = sidecar.GetFfmpegPath() ?? throw new InvalidOperationException("FFmpeg hazırlanamadı.");
+            }
+            PostToUi(() => item.ConvertStatus = "Dönüştürülüyor…");
+            return await FfmpegPresets.ConvertAsync(new DefaultProcessRunner(), ffmpeg, preset, source,
+                p => PostToUi(() => { if (item.IsConverting) item.ConvertStatus = $"Dönüştürülüyor… %{p:0}"; }), cts.Token);
+        });
+        _conversions[item] = work;
+
+        try
+        {
+            string output = await work;
+            item.ConvertStatus = $"✓ Kaydedildi: {Path.GetFileName(output)}";
+        }
+        catch (OperationCanceledException)
+        {
+            item.ConvertStatus = "Dönüştürme iptal edildi";
+        }
+        catch (Exception ex)
+        {
+            item.ConvertStatus = $"✗ {ex.Message}";
+        }
+        finally
+        {
+            _conversions.Remove(item);
+            item.ConvertCts = null;
+            item.IsConverting = false;
+        }
+    }
+
+    /// <summary>App exit: cancel running ffmpeg jobs and wait briefly so the processes are killed, not orphaned.</summary>
+    public void CancelConversions()
+    {
+        if (_conversions.Count == 0) return;
+        foreach (var item in _conversions.Keys) item.ConvertCts?.Cancel();
+        try { Task.WaitAll(_conversions.Values.ToArray(), TimeSpan.FromSeconds(3)); } catch (AggregateException) { }
     }
 
     private void PostToUi(Action action)

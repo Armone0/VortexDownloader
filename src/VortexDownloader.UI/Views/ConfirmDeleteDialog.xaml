@@ -124,7 +124,7 @@
                     </Grid>
                     <StackPanel Grid.Column="1" Margin="14,1,8,0">
                         <TextBlock Text="İndirmeyi sil" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        <TextBlock Text="Bu indirme listeden kaldırılacak." FontSize="12.5" Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock x:Name="SubtitleText" Text="Bu indirme listeden kaldırılacak." FontSize="12.5" Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </StackPanel>
                     <Button Grid.Column="2" Content="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"
                             Width="30" Height="30" Padding="0" BorderThickness="0" Background="Transparent"
@@ -147,7 +147,7 @@
                 <CheckBox x:Name="DeleteFileCheck" Margin="0,12,0,0" Style="{StaticResource DeleteFileCheckBox}"
                           Checked="DeleteFileCheck_Changed" Unchecked="DeleteFileCheck_Changed">
                     <StackPanel>
-                        <TextBlock Text="Dosyayı diskten de kalıcı olarak sil" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="DeleteFileLabel" Text="Dosyayı diskten de kalıcı olarak sil" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock x:Name="WarningText" Text="Bu işlem geri alınamaz; dosya Geri Dönüşüm Kutusu'na gitmez."
                                    FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TextMutedBrush}"/>
                     </StackPanel>

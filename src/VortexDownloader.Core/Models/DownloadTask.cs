@@ -36,6 +36,12 @@ public class DownloadTask
     /// <summary>Sources (primary or mirror) that failed during the current run. Replaced, never mutated, so readers need no lock.</summary>
     [JsonIgnore]
     public IReadOnlyCollection<string> DeadSources { get; set; } = [];
+    /// <summary>Scheduled start (UTC). While in the future the queued task is skipped by the queue; cleared when due or paused.</summary>
+    public DateTime? StartAt { get; set; }
+    /// <summary>SHA-256 the user expects (lowercase hex); compared with <see cref="Sha256"/> after completion. Integrity only, not safety.</summary>
+    public string? ExpectedSha256 { get; set; }
+    /// <summary>Seconds spent in Downloading state (excludes queue/schedule/pause time); used for average speed stats.</summary>
+    public double ActiveSeconds { get; set; }
 
     private readonly object _chunksLock = new();
 

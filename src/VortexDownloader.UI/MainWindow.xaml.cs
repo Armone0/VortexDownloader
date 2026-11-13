@@ -955,7 +955,9 @@ public partial class MainWindow : Window
                                 item.Url,
                                 item.DestinationPath,
                                 dialog.ResultChunkCount,
-                                autoStart: true);
+                                autoStart: true,
+                                startAt: dialog.ResultStartAt,
+                                expectedSha256: dialog.ExpectedSha256.GetValueOrDefault(item.Url));
                         }
                         catch (Exception ex)
                         {
@@ -975,7 +977,10 @@ public partial class MainWindow : Window
                         dialog.ResultDestinationPath,
                         dialog.ResultChunkCount,
                         autoStart: true,
-                        mirrorUrls: dialog.ResultMirrorUrls);
+                        mirrorUrls: dialog.ResultMirrorUrls,
+                        startAt: dialog.ResultStartAt,
+                        // The GitHub picker closes the dialog itself, so its digest arrives through the map instead.
+                        expectedSha256: dialog.ResultExpectedSha256 ?? dialog.ExpectedSha256.GetValueOrDefault(dialog.ResultUrl));
                 }
             }
             catch (Exception ex)

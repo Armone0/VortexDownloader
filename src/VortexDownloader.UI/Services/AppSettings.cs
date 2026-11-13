@@ -40,6 +40,8 @@ public class AppSettings
     public bool GameModeEnabled { get; set; } = true;
     public int GameModeLimitKBps { get; set; } = 512;
     public List<string> FavoritePlugins { get; set; } = [];
+    /// <summary>New downloads into the default folder go to a subfolder by type (Video, Müzik, …). Existing files are never moved.</summary>
+    public bool AutoFolderByType { get; set; } = false;
 
     // Browser bridge pairing: random per-install secret + the extension origins the user approved
     public string BridgeToken { get; set; } = "";
