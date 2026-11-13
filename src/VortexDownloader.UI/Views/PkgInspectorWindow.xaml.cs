@@ -181,7 +181,7 @@ public partial class PkgInspectorWindow : Window
             using (var stream = await OpenAsync(token))
                 written = await Task.Run(() => Ps4PkgReader.ExtractEntries(stream, picked, folder, progress, token), token);
             FooterHintText.Text = $"{written.Count} dosya çıkarıldı: {folder}";
-            try { Process.Start("explorer.exe", $"\"{folder}\""); } catch { /* opening the folder is a convenience */ }
+            try { Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true }); } catch { /* opening the folder is a convenience */ }
         }
         catch (OperationCanceledException)
         {

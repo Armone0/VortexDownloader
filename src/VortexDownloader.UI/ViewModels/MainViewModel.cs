@@ -715,22 +715,29 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int SHParseDisplayName(string name, IntPtr bindCtx, out IntPtr pidl, uint sfgaoIn, out uint sfgaoOut);
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll")]
+    private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, uint cidl, IntPtr apidl, uint flags);
+
+    // Asks the running shell to show the file instead of starting explorer.exe with arguments,
+    // which some antivirus behaviour rules flag when an unsigned app does it.
     private static void OpenInExplorer(string filePath)
     {
         try
         {
-            if (File.Exists(filePath))
+            if (!File.Exists(filePath))
             {
-                Process.Start("explorer.exe", $"/select,\"{filePath}\"");
-            }
-            else
-            {
+                // File gone: just open the folder it was in
                 string? dir = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
-                {
-                    Process.Start("explorer.exe", $"\"{dir}\"");
-                }
+                    Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+                return;
             }
+            if (SHParseDisplayName(filePath, IntPtr.Zero, out IntPtr pidl, 0, out _) != 0 || pidl == IntPtr.Zero) return;
+            try { SHOpenFolderAndSelectItems(pidl, 0, IntPtr.Zero, 0); }
+            finally { System.Runtime.InteropServices.Marshal.FreeCoTaskMem(pidl); }
         }
         catch
         {
