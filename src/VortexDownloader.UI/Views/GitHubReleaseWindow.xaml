@@ -179,7 +179,7 @@
                             <TextBlock Grid.Column="3" Text="İndirme" Style="{StaticResource Muted}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                         </Grid>
                         <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource CardBorderBrush}"/>
-                        <ListBox x:Name="AssetList" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0,4"
+                        <ListBox x:Name="AssetList" Background="Transparent" Foreground="{DynamicResource TextPrimaryBrush}" BorderThickness="0" HorizontalContentAlignment="Stretch" Padding="0,4"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
