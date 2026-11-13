@@ -524,7 +524,7 @@ public partial class MainWindow : Window
                     return;
                 }
                 string body = new string(buffer, 0, total);
-                BridgeLog($"--> [POST] Body ({body.Length} chars): {body}");
+                BridgeLog($"--> [POST] Body ({body.Length} chars)"); // not the body itself: it carries the page's cookies
                 BrowserDownloadPayload? data;
                 try { data = JsonSerializer.Deserialize<BrowserDownloadPayload>(body, JsonOptions); }
                 catch (JsonException)
@@ -595,7 +595,7 @@ public partial class MainWindow : Window
                 }
                 else
                 {
-                    BridgeLog($"<-- 400 Bad Request: Empty URL in POST payload (raw body: '{body}')");
+                    BridgeLog("<-- 400 Bad Request: Empty URL in POST payload");
                     context.Response.StatusCode = 400;
                     return;
                 }

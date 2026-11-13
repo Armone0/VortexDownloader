@@ -233,4 +233,17 @@ public class AuthAndProxyTests
     {
         Assert.ThrowsAny<ArgumentException>(() => ProxyFactory.Create(ProxyMode.Manual, host, port));
     }
+    [Fact]
+    public void ChildEnvironment_FollowsProxyChoice_AndEscapesTheLogin()
+    {
+        Assert.Null(ProxyFactory.BuildChildEnvironment(ProxyMode.System, null, 0));
+        var none = ProxyFactory.BuildChildEnvironment(ProxyMode.None, null, 0)!;
+        Assert.Equal("*", none["NO_PROXY"]);
+        Assert.Equal("", none["HTTPS_PROXY"]);
+        var manual = ProxyFactory.BuildChildEnvironment(ProxyMode.Manual, " proxy.lan ", 3128, "me@corp", "p:a ss")!;
+        Assert.Equal("http://me%40corp:p%3Aa%20ss@proxy.lan:3128", manual["HTTPS_PROXY"]);
+        Assert.Equal(manual["HTTPS_PROXY"], manual["HTTP_PROXY"]);
+        Assert.Contains("192.168.0.0/16", manual["NO_PROXY"]);
+        Assert.Equal("http://proxy.lan:3128", ProxyFactory.BuildChildEnvironment(ProxyMode.Manual, "proxy.lan", 3128)!["HTTP_PROXY"]);
+    }
 }

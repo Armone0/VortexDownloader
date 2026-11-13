@@ -40,4 +40,31 @@ public static class ProxyFactory
                 return null;
         }
     }
+
+    /// <summary>Proxy environment handed to child programs (yt-dlp); null leaves them on the inherited/Windows proxy. Set once at startup.</summary>
+    public static IReadOnlyDictionary<string, string>? ChildProcessEnvironment { get; set; }
+
+    /// <summary>
+    /// Env vars that make child programs follow the same choice: None = direct (NO_PROXY=*), Manual = HTTP(S)_PROXY.
+    /// Env, not a --proxy argument, so the proxy password never shows in a process command line. Call after <see cref="Create"/> validated the input.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string>? BuildChildEnvironment(ProxyMode mode, string? host, int port, string? user = null, string? password = null)
+    {
+        switch (mode)
+        {
+            case ProxyMode.None:
+                return new Dictionary<string, string> { ["HTTP_PROXY"] = "", ["HTTPS_PROXY"] = "", ["ALL_PROXY"] = "", ["NO_PROXY"] = "*" };
+            case ProxyMode.Manual:
+                string auth = string.IsNullOrEmpty(user) ? "" :
+                    Uri.EscapeDataString(user) + (string.IsNullOrEmpty(password) ? "" : ":" + Uri.EscapeDataString(password)) + "@";
+                string url = $"http://{auth}{host!.Trim()}:{port}";
+                return new Dictionary<string, string>
+                {
+                    ["HTTP_PROXY"] = url, ["HTTPS_PROXY"] = url, ["ALL_PROXY"] = "",
+                    ["NO_PROXY"] = "localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16"
+                };
+            default:
+                return null;
+        }
+    }
 }

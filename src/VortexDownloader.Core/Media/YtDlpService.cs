@@ -96,6 +96,10 @@ public class DefaultProcessRunner : IProcessRunner
         {
             psi.ArgumentList.Add(arg);
         }
+        if (VortexDownloader.Core.Network.ProxyFactory.ChildProcessEnvironment is { } proxyEnv)
+        {
+            foreach (var (key, value) in proxyEnv) psi.Environment[key] = value;
+        }
 
         using var process = new Process { StartInfo = psi };
         var stdoutBuilder = new StringBuilder();

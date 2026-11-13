@@ -95,6 +95,9 @@ public partial class App : System.Windows.Application
                     SecretProtector.Unprotect(settings.ProxyPasswordProtected)) is { } proxy)
             {
                 HttpClient.DefaultProxy = proxy;
+                // yt-dlp runs as its own process and never sees DefaultProxy
+                ProxyFactory.ChildProcessEnvironment = ProxyFactory.BuildChildEnvironment(mode, settings.ProxyHost, settings.ProxyPort,
+                    settings.ProxyUser, SecretProtector.Unprotect(settings.ProxyPasswordProtected));
             }
         }
         catch (Exception ex) when (ex is ArgumentException or UriFormatException)
