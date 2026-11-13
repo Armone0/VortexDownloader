@@ -221,4 +221,36 @@ public class ReliabilityTests
 
         Assert.Empty(unobserved);
     }
+
+    [Fact]
+    public async Task ServerStallsForever_ChunkReconnectsOnItsOwn()
+    {
+        var never = new TaskCompletionSource(); // never released: only the stall timeout can unstick the read
+        await using var server = new RawHttpServer(Data, r => r.GetNumber == 1
+            ? new(CutAfter: 200_000, Stall: never.Task)
+            : new());
+        await using var h = new EngineHarness();
+        var old = VortexDownloader.Core.Network.ChunkDownloader.StallTimeout;
+        VortexDownloader.Core.Network.ChunkDownloader.StallTimeout = TimeSpan.FromSeconds(1);
+        try
+        {
+            var task = await h.AddAsync(server.Url, 1);
+            Assert.Null(await h.RunToEndAsync(task));
+            Assert.Equal(EngineHarness.Hash(Data), EngineHarness.HashFile(h.Dest));
+        }
+        finally
+        {
+            VortexDownloader.Core.Network.ChunkDownloader.StallTimeout = old;
+        }
+    }
+
+    [Theory]
+    [InlineData(unchecked((int)0x80070070), true)]  // disk full
+    [InlineData(unchecked((int)0x80070020), true)]  // sharing violation
+    [InlineData(unchecked((int)0x80004005), false)] // generic (e.g. connection reset while reading)
+    public void LocalDiskErrors_DoNotCountAsDeadMirror(int hresult, bool local)
+    {
+        Assert.Equal(local, DownloadEngine.IsLocalDiskError(new IOException("x", hresult)));
+        Assert.False(DownloadEngine.IsLocalDiskError(new HttpRequestException("x")));
+    }
 }

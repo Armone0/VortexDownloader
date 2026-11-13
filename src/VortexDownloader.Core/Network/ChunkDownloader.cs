@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -11,6 +11,7 @@ namespace VortexDownloader.Core.Network;
 public class ChunkDownloader
 {
     private const int BufferSize = 131072; // 128 KB buffer, perfectly aligned with ArrayPool 2^17 bucket
+    public static TimeSpan StallTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     public static HttpClient CreateOptimizedHttpClient(bool allowInvalidCertificates = false)
     {
@@ -197,6 +198,8 @@ public class ChunkDownloader
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 
         byte[] buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+        // A server that stops sending without closing would otherwise hang this chunk forever.
+        using var stallCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -213,9 +216,19 @@ public class ChunkDownloader
                     maxToRead = (int)Math.Min(buffer.Length, remaining);
                 }
 
-                int bytesRead = await contentStream.ReadAsync(
-                    buffer.AsMemory(0, maxToRead),
-                    cancellationToken).ConfigureAwait(false);
+                int bytesRead;
+                stallCts.CancelAfter(StallTimeout);
+                try
+                {
+                    bytesRead = await contentStream.ReadAsync(
+                        buffer.AsMemory(0, maxToRead),
+                        stallCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // IOException so the retry loop above reconnects from CurrentPos.
+                    throw new IOException($"No data received for {StallTimeout.TotalSeconds:0} s; reconnecting.");
+                }
 
                 if (bytesRead == 0)
                 {

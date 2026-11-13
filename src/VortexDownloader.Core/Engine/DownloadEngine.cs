@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -296,7 +296,7 @@ public class DownloadEngine : IAsyncDisposable
         await Task.CompletedTask;
     }
 
-    public const string LinkExpiredMessage = "Bağlantının süresi dolmuş olabilir. Sayfadan dosyayı yeniden indir; Vortex kaldığı yerden devam eder.";
+    public const string LinkExpiredMessage = "BaÄŸlantÄ±nÄ±n sÃ¼resi dolmuÅŸ olabilir. Sayfadan dosyayÄ± yeniden indir; Vortex kaldÄ±ÄŸÄ± yerden devam eder.";
 
     private static bool IsLinkExpiredError(Exception ex) => ex is HttpRequestException
     {
@@ -316,9 +316,9 @@ public class DownloadEngine : IAsyncDisposable
         string? userAgent = null,
         CancellationToken cancellationToken = default)
     {
-        if (!_tasks.TryGetValue(taskId, out var task)) return "İndirme bulunamadı.";
+        if (!_tasks.TryGetValue(taskId, out var task)) return "Ä°ndirme bulunamadÄ±.";
         if (task.Status is DownloadStatus.Downloading or DownloadStatus.Assembling or DownloadStatus.Completed)
-            return "Bu indirme şu an yenilenemez (aktif ya da tamamlanmış).";
+            return "Bu indirme ÅŸu an yenilenemez (aktif ya da tamamlanmÄ±ÅŸ).";
 
         var meta = await InspectUrlAsync(newUrl, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
         if (DescribeMismatch(task, meta) is { } mismatch) return mismatch;
@@ -342,13 +342,13 @@ public class DownloadEngine : IAsyncDisposable
     private static string? DescribeMismatch(DownloadTask task, UrlMetadata meta, bool checkValidators = true)
     {
         if (!meta.SupportsRange)
-            return "Yeni bağlantı kaldığı yerden devam etmeyi (Range) desteklemiyor ya da erişilemiyor.";
+            return "Yeni baÄŸlantÄ± kaldÄ±ÄŸÄ± yerden devam etmeyi (Range) desteklemiyor ya da eriÅŸilemiyor.";
         if (task.TotalBytes <= 0 || meta.ContentLength != task.TotalBytes)
-            return $"Dosya boyutu eşleşmiyor (beklenen {DownloadTask.FormatBytes(task.TotalBytes)}, yeni bağlantı {DownloadTask.FormatBytes(meta.ContentLength)}).";
+            return $"Dosya boyutu eÅŸleÅŸmiyor (beklenen {DownloadTask.FormatBytes(task.TotalBytes)}, yeni baÄŸlantÄ± {DownloadTask.FormatBytes(meta.ContentLength)}).";
         if (checkValidators && (
             (!string.IsNullOrEmpty(task.ETag) && !string.IsNullOrEmpty(meta.ETag) && task.ETag != meta.ETag) ||
             (!string.IsNullOrEmpty(task.LastModified) && !string.IsNullOrEmpty(meta.LastModified) && task.LastModified != meta.LastModified)))
-            return "Sunucudaki dosya değişmiş (ETag/Last-Modified farklı); kaldığı yerden devam etmek bozuk dosya üretir.";
+            return "Sunucudaki dosya deÄŸiÅŸmiÅŸ (ETag/Last-Modified farklÄ±); kaldÄ±ÄŸÄ± yerden devam etmek bozuk dosya Ã¼retir.";
         return null;
     }
 
@@ -387,6 +387,11 @@ public class DownloadEngine : IAsyncDisposable
             .Select(x => (x.Url, x.Reason!))
             .ToList();
     }
+
+    // A full or locked disk is our problem, not the server's: failing over would wrongly kill healthy mirrors.
+    public static bool IsLocalDiskError(Exception ex) =>
+        ex is DirectoryNotFoundException or PathTooLongException ||
+        (ex is IOException && (ex.HResult & 0xFFFF) is 0x70 or 0x27 or 0x20 or 0x21); // disk full, handle-disk-full, sharing, lock violation
 
     private static void MarkSourceDead(DownloadTask task, string source, string reason)
     {
@@ -509,7 +514,7 @@ public class DownloadEngine : IAsyncDisposable
                 long reqMb = task.TotalBytes / 1024 / 1024;
                 long availMb = availableBytes / 1024 / 1024;
                 task.Status = DownloadStatus.Failed;
-                task.ErrorMessage = $"Yetersiz disk alanı! Gerekli: {reqMb} MB, Boş alan: {availMb} MB.";
+                task.ErrorMessage = $"Yetersiz disk alanÄ±! Gerekli: {reqMb} MB, BoÅŸ alan: {availMb} MB.";
                 TaskFailed?.Invoke(task, task.ErrorMessage);
                 return;
             }
@@ -632,7 +637,7 @@ public class DownloadEngine : IAsyncDisposable
             {
                 if (task.Chunks.Any(c => !c.IsCompleted))
                 {
-                    throw new InvalidOperationException("Bazı indirme parçaları tamamlanamadı; birleştirme iptal edildi.");
+                    throw new InvalidOperationException("BazÄ± indirme parÃ§alarÄ± tamamlanamadÄ±; birleÅŸtirme iptal edildi.");
                 }
             }
 
@@ -816,7 +821,7 @@ public class DownloadEngine : IAsyncDisposable
                         referrer: isPrimary ? task.Referrer : null,
                         userAgent: task.UserAgent).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (source != null && !cancellationToken.IsCancellationRequested &&
+                catch (Exception ex) when (source != null && !cancellationToken.IsCancellationRequested && !IsLocalDiskError(ex) &&
                     ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
                 {
                     // ChunkDownloader already retried: give up on this source and move the rest of the chunk to another one.
