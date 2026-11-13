@@ -91,7 +91,7 @@ If the app is closed, the browser downloads the file normally. Nothing is lost.
 
 ## 🔒 Security & privacy
 
-- **No telemetry, no accounts, no ads.** Vortex only connects to the servers you download from. The one exception: the first time you use media downloads, it fetches `yt-dlp` (from GitHub) and `ffmpeg` (from gyan.dev).
+- **No telemetry, no accounts, no ads.** Vortex only connects to the servers you download from, plus two things you can see and control: the first time you use media downloads it fetches `yt-dlp` (from GitHub) and `ffmpeg` (from gyan.dev), and the update check below asks GitHub for the latest version number.
 - **Local bridge hardening.** The bridge listens only on `127.0.0.1:19741`. It checks the `Host` header (to block DNS rebinding), blocks cross-site `Sec-Fetch-Site` requests, and allows only extension origins.
 - **Per-install pairing.** Each install generates a random 256-bit token, and only extensions you approved in the app can queue downloads. Tokens are compared in constant time.
 - **Safe file writes.** File names are sanitized, archive paths can't escape the target folder (zip-slip protection), existing files are never overwritten, and decompressed output has a size cap.
