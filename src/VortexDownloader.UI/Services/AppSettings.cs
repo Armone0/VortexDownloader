@@ -43,6 +43,14 @@ public class AppSettings
     /// <summary>New downloads into the default folder go to a subfolder by type (Video, Müzik, …). Existing files are never moved.</summary>
     public bool AutoFolderByType { get; set; } = false;
 
+    /// <summary>System (Windows proxy), None or Manual (<see cref="Core.Network.ProxyMode"/>). Applied at startup.</summary>
+    public string ProxyMode { get; set; } = "System";
+    public string ProxyHost { get; set; } = "";
+    public int ProxyPort { get; set; } = 8080;
+    public string ProxyUser { get; set; } = "";
+    /// <summary>DPAPI blob (current user) of the proxy password; never stored in plain text.</summary>
+    public string? ProxyPasswordProtected { get; set; }
+
     // Browser bridge pairing: random per-install secret + the extension origins the user approved
     public string BridgeToken { get; set; } = "";
     public List<string> PairedExtensionOrigins { get; set; } = [];

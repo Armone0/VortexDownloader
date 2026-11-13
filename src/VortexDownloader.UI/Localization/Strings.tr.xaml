@@ -47,4 +47,19 @@
     <sys:String x:Key="Str_GameModeTooltip">Tam ekran bir uygulama (oyun, film, sunum) çalışıyor; indirmeler pinginizi etkilememesi için yavaşlatıldı. Tam ekrandan çıkınca kendi hız sınırınız geri gelir.</sys:String>
     <sys:String x:Key="Str_GameModeSetting">Tam ekran uygulamada (oyun, film) indirmeyi yavaşlat</sys:String>
     <sys:String x:Key="Str_GameModeSettingDesc">Tam ekran bir uygulama açıkken indirme hızı seçilen sınıra düşürülür; kapanınca kendi hız sınırınız geri gelir.</sys:String>
+    <sys:String x:Key="Str_Proxy">Proxy</sys:String>
+    <sys:String x:Key="Str_ProxyDesc">Değişiklik uygulama yeniden başlatılınca geçerli olur. Bu bilgisayar ve yerel ağ (127.0.0.1, 192.168.x.x, 10.x.x.x) her zaman doğrudan bağlanır.</sys:String>
+    <sys:String x:Key="Str_ProxySystem">Sistem proxy'si</sys:String>
+    <sys:String x:Key="Str_ProxyNone">Proxy yok</sys:String>
+    <sys:String x:Key="Str_ProxyManual">Elle</sys:String>
+    <sys:String x:Key="Str_ProxyHost">Sunucu</sys:String>
+    <sys:String x:Key="Str_ProxyPort">Port</sys:String>
+    <sys:String x:Key="Str_ProxyUser">Kullanıcı adı (isteğe bağlı)</sys:String>
+    <sys:String x:Key="Str_ProxyPassword">Şifre (isteğe bağlı, şifreli saklanır)</sys:String>
+    <sys:String x:Key="Str_ProxyInvalid">Proxy sunucusu ya da portu geçersiz (port 1-65535 olmalı).</sys:String>
+    <sys:String x:Key="Str_AuthToggle">Kullanıcı adı / şifre</sys:String>
+    <sys:String x:Key="Str_AuthUser">Kullanıcı adı</sys:String>
+    <sys:String x:Key="Str_AuthPassword">Şifre</sys:String>
+    <sys:String x:Key="Str_AuthHint">Yalnızca bu adresin sunucusuna gönderilir; ayna linklere ve başka siteye yönlendirmelere gönderilmez. Şifre bu Windows kullanıcısına şifreli saklanır.</sys:String>
+    <sys:String x:Key="Str_AuthRequired">Kimlik doğrulama gerekli / hatalı</sys:String>
 </ResourceDictionary>

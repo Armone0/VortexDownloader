@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using VortexDownloader.Core.Network;
 
 namespace VortexDownloader.Core.Engine;
 
@@ -10,7 +11,8 @@ public record UrlMetadata(
     long ContentLength,
     bool SupportsRange,
     string? ETag,
-    string? LastModified = null);
+    string? LastModified = null,
+    bool AuthRequired = false);
 
 public static class UrlMetadataInspector
 {
@@ -20,13 +22,15 @@ public static class UrlMetadataInspector
         CancellationToken cancellationToken = default,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        HttpCredential? credential = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
-        static void ApplyHeaders(HttpRequestMessage req, string? c, string? r, string? ua)
+        void ApplyHeaders(HttpRequestMessage req, string? c, string? r, string? ua)
         {
+            req.Headers.Authorization = credential?.HeaderFor(url);
             req.Headers.Accept.ParseAdd("*/*");
             req.Headers.AcceptLanguage.ParseAdd("tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7");
             if (!string.IsNullOrWhiteSpace(c)) req.Headers.TryAddWithoutValidation("Cookie", c);
@@ -43,6 +47,7 @@ public static class UrlMetadataInspector
         bool supportsRange = false;
         string? etag = null;
         string? lastModified = null;
+        bool authRequired = false;
 
         // Try HEAD first
         HttpResponseMessage? headResponse = null;
@@ -51,6 +56,7 @@ public static class UrlMetadataInspector
             using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
             ApplyHeaders(headRequest, cookies, referrer, userAgent);
             headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            authRequired = headResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized;
             if (headResponse.IsSuccessStatusCode)
             {
                 etag = headResponse.Headers.ETag?.Tag;
@@ -98,6 +104,7 @@ public static class UrlMetadataInspector
                     HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken).ConfigureAwait(false);
 
+                authRequired = getResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized;
                 if (getResponse.StatusCode == System.Net.HttpStatusCode.PartialContent)
                 {
                     supportsRange = true;
@@ -139,7 +146,8 @@ public static class UrlMetadataInspector
             contentLength,
             supportsRange,
             etag,
-            lastModified);
+            lastModified,
+            authRequired);
     }
 
     private static string ExtractFileNameFromUrl(string url)

@@ -47,4 +47,19 @@
     <sys:String x:Key="Str_GameModeTooltip">A fullscreen app (game, movie, presentation) is running; downloads are slowed down so they don't hurt your ping. Your own speed limit returns when you leave fullscreen.</sys:String>
     <sys:String x:Key="Str_GameModeSetting">Slow down downloads while a fullscreen app (game, movie) is running</sys:String>
     <sys:String x:Key="Str_GameModeSettingDesc">While a fullscreen app is open, download speed drops to the selected limit; your own speed limit returns when it closes.</sys:String>
+    <sys:String x:Key="Str_Proxy">Proxy</sys:String>
+    <sys:String x:Key="Str_ProxyDesc">Changes apply after the app restarts. This computer and the local network (127.0.0.1, 192.168.x.x, 10.x.x.x) always connect directly.</sys:String>
+    <sys:String x:Key="Str_ProxySystem">System proxy</sys:String>
+    <sys:String x:Key="Str_ProxyNone">No proxy</sys:String>
+    <sys:String x:Key="Str_ProxyManual">Manual</sys:String>
+    <sys:String x:Key="Str_ProxyHost">Server</sys:String>
+    <sys:String x:Key="Str_ProxyPort">Port</sys:String>
+    <sys:String x:Key="Str_ProxyUser">Username (optional)</sys:String>
+    <sys:String x:Key="Str_ProxyPassword">Password (optional, stored encrypted)</sys:String>
+    <sys:String x:Key="Str_ProxyInvalid">Invalid proxy server or port (port must be 1-65535).</sys:String>
+    <sys:String x:Key="Str_AuthToggle">Username / password</sys:String>
+    <sys:String x:Key="Str_AuthUser">Username</sys:String>
+    <sys:String x:Key="Str_AuthPassword">Password</sys:String>
+    <sys:String x:Key="Str_AuthHint">Sent only to this address's server; never to mirrors or to redirects to another site. The password is stored encrypted for this Windows user.</sys:String>
+    <sys:String x:Key="Str_AuthRequired">Authentication required / failed</sys:String>
 </ResourceDictionary>

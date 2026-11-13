@@ -2,6 +2,8 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Windows;
+using VortexDownloader.Core.Common;
+using VortexDownloader.Core.Network;
 using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI;
@@ -69,6 +71,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         var settings = AppSettings.Current;
+        ApplyProxy(settings);
         if (!string.IsNullOrEmpty(settings.Theme) && !settings.Theme.Equals("Dark", StringComparison.OrdinalIgnoreCase))
         {
             ThemeManager.SetTheme(settings.Theme);
@@ -80,6 +83,24 @@ public partial class App : System.Windows.Application
         }
 
         Log("OnStartup finished");
+    }
+
+    // One switch for every HttpClient in the app: none sets its own Proxy, and handlers read DefaultProxy on their first request.
+    private static void ApplyProxy(AppSettings settings)
+    {
+        try
+        {
+            if (Enum.TryParse<ProxyMode>(settings.ProxyMode, ignoreCase: true, out var mode) &&
+                ProxyFactory.Create(mode, settings.ProxyHost, settings.ProxyPort, settings.ProxyUser,
+                    SecretProtector.Unprotect(settings.ProxyPasswordProtected)) is { } proxy)
+            {
+                HttpClient.DefaultProxy = proxy;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or UriFormatException)
+        {
+            Log($"Proxy setting ignored, using the system proxy: {ex.GetType().Name}"); // no host/user/password in the log
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
