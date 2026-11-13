@@ -31,6 +31,11 @@ public class DownloadTask
     public string? SourcePageUrl { get; set; }
     /// <summary>Server rejected the link (401/403/404/410 or size changed); downloaded chunks are kept for a refresh.</summary>
     public bool LinkExpired { get; set; }
+    /// <summary>Extra URLs serving the same file; chunks are spread over <see cref="Url"/> and these.</summary>
+    public List<string> MirrorUrls { get; set; } = [];
+    /// <summary>Sources (primary or mirror) that failed during the current run. Replaced, never mutated, so readers need no lock.</summary>
+    [JsonIgnore]
+    public IReadOnlyCollection<string> DeadSources { get; set; } = [];
 
     private readonly object _chunksLock = new();
 

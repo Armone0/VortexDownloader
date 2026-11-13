@@ -220,9 +220,13 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="İndirme Bağlantısı (URL)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <CheckBox x:Name="BatchModeCheckBox" Grid.Column="1" Content="Toplu İndirme (Batch)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                <CheckBox x:Name="MirrorCheckBox" Grid.Column="1" Content="Ayna linkler (isteğe bağlı)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                          Checked="MirrorCheckBox_CheckedChanged" Unchecked="MirrorCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,14,0"
+                          ToolTip="Aynı dosyanın başka adresleri. Parçalar tüm geçerli kaynaklara dağıtılır; biri koparsa diğerleri devam eder."/>
+                <CheckBox x:Name="BatchModeCheckBox" Grid.Column="2" Content="Toplu İndirme (Batch)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
                           Checked="BatchModeCheckBox_CheckedChanged" Unchecked="BatchModeCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center"/>
             </Grid>
 
@@ -238,6 +242,11 @@
                 <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Bilgi Al" Margin="0,0,8,0" Click="AnalyzeButton_Click"/>
                 <Button x:Name="ZipPreviewButton" Grid.Column="2" Content="📦 ZIP Önizle" Foreground="{DynamicResource AccentHighlightBrush}" Click="ZipPreviewButton_Click"/>
             </Grid>
+
+            <!-- Mirror URLs (single download only): one per line, same file on other servers -->
+            <TextBox x:Name="MirrorTextBox" Visibility="Collapsed" Margin="0,0,0,14" Height="64"
+                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                     ToolTip="Her satıra bir ayna bağlantısı (en fazla 8). Boyutu ana bağlantıyla aynı olmayan ya da Range desteklemeyen aynalar kullanılmaz."/>
 
             <!-- Detected Info Badge -->
             <Border x:Name="InfoBadge" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="14,10" Margin="0,0,0,14" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">

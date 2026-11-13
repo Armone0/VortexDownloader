@@ -4,6 +4,13 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [Unreleased]
+
+### Yeni
+- **Çoklu ayna (multi-mirror) indirme:** Yeni İndirme penceresinde "Ayna linkler (isteğe bağlı)" kutusuna aynı dosyanın başka adreslerini yaz (satır başına bir tane, en fazla 8); parçalar tüm geçerli kaynaklara dağıtılır, hızlar toplanır. Bir kaynak koparsa parçası kaldığı yerden diğerlerinde devam eder; "bağlantı süresi doldu" yalnızca tüm kaynaklar düşünce çıkar. Range desteklemeyen ya da boyutu/ETag'i/Last-Modified'ı tutmayan aynalar kullanılmaz. Kartta "⇄ 3 kaynak" rozeti sunucuları ve devre dışı kalanları gösterir.
+
+---
+
 ## [1.7.0] - 2026-11-12
 
 ### Yeni

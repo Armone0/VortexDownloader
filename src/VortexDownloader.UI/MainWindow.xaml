@@ -899,6 +899,13 @@
                                                             </TextBlock.Style>
                                                         </TextBlock>
                                                     </Border>
+                                                    <!-- Multi-mirror chip: source count; tooltip lists hosts and which ones dropped out -->
+                                                    <Border CornerRadius="10" Padding="8,1" Margin="6,0,0,0" VerticalAlignment="Center" BorderThickness="1"
+                                                            Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                                                            ToolTip="{Binding MirrorTooltip}"
+                                                            Visibility="{Binding HasMirrors, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="{Binding MirrorChipText}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                    </Border>
                                                     <!-- SHA-256 chip: opens a small popup to copy the hash and compare with an expected one -->
                                                     <Grid Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding HasSha256, Converter={StaticResource BoolToVis}}">
                                                         <ToggleButton x:Name="HashToggle" Content="SHA-256" ToolTip="{Binding HashTooltip}" Cursor="Hand"
