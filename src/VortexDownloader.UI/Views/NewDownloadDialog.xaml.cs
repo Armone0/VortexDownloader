@@ -7,6 +7,7 @@ using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
 using VortexDownloader.Core.Network;
+using VortexDownloader.Core.Sources;
 using VortexDownloader.UI.Services;
 
 namespace VortexDownloader.UI.Views;
@@ -124,6 +125,8 @@ public partial class NewDownloadDialog : Window
         if (_zipUrl != null && UrlTextBox.Text.Trim() != _zipUrl) SetZipSelection(null, []);
         string rawText = UrlTextBox.Text;
         var urls = ParseUrls(rawText);
+        GitHubButton.Visibility = urls.Count == 1 && GitHubReleaseClient.TryParseRepo(urls[0], out _, out _, out _)
+            ? Visibility.Visible : Visibility.Collapsed;
 
         if (urls.Count > 1 && BatchModeCheckBox.IsChecked != true)
         {
@@ -233,6 +236,50 @@ public partial class NewDownloadDialog : Window
         {
             MessageBox.Show(this, $"ZIP önizleme penceresi açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    /// <summary>sha256 digests (lowercase hex) of the assets picked from a GitHub release, keyed by download URL.</summary>
+    public Dictionary<string, string> ExpectedSha256 { get; } = new(StringComparer.Ordinal);
+
+    private void GitHubButton_Click(object sender, RoutedEventArgs e)
+    {
+        var urls = ParseUrls(UrlTextBox.Text);
+        if (urls.Count != 1 || !GitHubReleaseClient.TryParseRepo(urls[0], out var owner, out var repo, out var tag)) return;
+
+        var win = new GitHubReleaseWindow(owner, repo, tag) { Owner = this };
+        if (win.ShowDialog() != true || win.SelectedAssets.Count == 0) return;
+
+        string folder = FolderTextBox.Text.Trim();
+        try { Directory.CreateDirectory(folder); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Hedef klasör oluşturulamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // Same result shape as the normal URL path: BatchItems for several, ResultUrl/ResultDestinationPath for one.
+        BatchItems.Clear();
+        ExpectedSha256.Clear();
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in win.SelectedAssets)
+        {
+            string name = MainWindow.SanitizeFileName(a.Name);
+            string stem = Path.GetFileNameWithoutExtension(name), ext = Path.GetExtension(name);
+            string target = Path.Combine(folder, name);
+            for (int i = 1; used.Contains(target) || File.Exists(target); i++) target = Path.Combine(folder, $"{stem} ({i}){ext}");
+            used.Add(target);
+            BatchItems.Add((a.Url, target));
+            // wire: ExpectedSha256
+            if (a.ExpectedSha256 != null) ExpectedSha256[a.Url] = a.ExpectedSha256;
+        }
+
+        ResultChunkCount = ChunkChoices.Children.OfType<RadioButton>().FirstOrDefault(rb => rb.IsChecked == true) is { } picked &&
+            int.TryParse(picked.Tag?.ToString(), out int c) ? c : 8;
+        ResultUrl = BatchItems[0].Url;
+        ResultDestinationPath = BatchItems[0].DestinationPath;
+        ResultMirrorUrls = [];
+        IsBatchMode = BatchItems.Count > 1;
+        DialogResult = true;
     }
 
     private async Task ProbeUrlAsync(string url)
