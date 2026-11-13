@@ -4,6 +4,14 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.9.1] - 2026-11-13
+
+### Arayüz
+- **ZIP/RAR önizlemesinde klasör ağacı:** Dosyalar klasörlerin altında gruplanır; klasör satırına tıklayınca açılır/kapanır (▸/▾, klavyede sağ/sol ok). Klasörün kutusu içindeki tüm dosyaları seçer, kısmen seçiliyse ara durumda görünür; klasör satırında toplam boyut ve dosya sayısı yazar.
+- **GitHub sürümleri penceresi yenilendi:** Sütun başlıkları ve "tümünü seç", dosya türü etiketi, "N indirme", GitHub özet yayınlıyorsa "✓ SHA-256 doğrulanır" rozeti; satırın her yerine tıklayınca seçilir. Sürüm notları alt kartta açık ve Markdown işaretleri temizlenmiş olarak görünür; tarih, etiket ve dosya sayısı tek satırda.
+
+---
+
 ## [1.9.0] - 2026-11-13
 
 > Tarayıcı eklentisi değişmedi (1.7.0 olarak kalır).

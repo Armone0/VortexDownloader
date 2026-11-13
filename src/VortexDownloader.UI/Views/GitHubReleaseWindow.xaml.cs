@@ -17,12 +17,40 @@ public partial class GitHubReleaseWindow : Window
         public string Label => Release.Prerelease ? $"{Release.Name}  (ön sürüm)" : Release.Name;
     }
 
-    private sealed class AssetRow(GitHubAsset a)
+    private sealed class AssetRow(GitHubAsset a) : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         public GitHubAsset Asset { get; } = a;
-        public bool IsChecked { get; set; }
+        private bool _isChecked;
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set { if (_isChecked == value) return; _isChecked = value; PropertyChanged?.Invoke(this, new(nameof(IsChecked))); }
+        }
         public string SizeText => DownloadTask.FormatBytes(Asset.Size);
-        public string CountText => $"{Asset.DownloadCount:N0} ↓";
+        public string CountText => Asset.DownloadCount == 1 ? "1 indirme" : $"{Asset.DownloadCount:N0} indirme";
+        public Visibility DigestVisibility => Asset.Sha256 != null ? Visibility.Visible : Visibility.Collapsed;
+        public string ExtLabel
+        {
+            get
+            {
+                string ext = System.IO.Path.GetExtension(Asset.Name).TrimStart('.').ToUpperInvariant();
+                return ext.Length is > 0 and <= 4 ? ext : "FILE";
+            }
+        }
+    }
+
+    // GitHub notes are Markdown; show them as readable plain text instead of raw ##/**/` marks.
+    private static string PlainNotes(string md)
+    {
+        var lines = md.Replace("\r", "").Split('\n').Select(l =>
+        {
+            string t = System.Text.RegularExpressions.Regex.Replace(l, @"^\s{0,3}#{1,6}\s*", "");
+            t = System.Text.RegularExpressions.Regex.Replace(t, @"^(\s*)[-*]\s+", "$1• ");
+            t = System.Text.RegularExpressions.Regex.Replace(t, @"\[([^\]]+)\]\([^)]+\)", "$1");
+            return t.Replace("**", "").Replace("`", "");
+        });
+        return System.Text.RegularExpressions.Regex.Replace(string.Join("\n", lines), @"\n{3,}", "\n\n").Trim();
     }
 
     private readonly string _owner, _repo;
@@ -84,7 +112,7 @@ public partial class GitHubReleaseWindow : Window
         if (items.Count == 0)
         {
             ShowStatus(_all.Count == 0 ? "Bu depoda yayınlanmış sürüm yok." : "Yalnızca ön sürümler var; \"Ön sürümleri göster\" kutusunu işaretle.", false, false);
-            DateText.Text = ""; NotesExpander.Visibility = Visibility.Collapsed;
+            DateText.Text = "";
             return;
         }
         ReleaseCombo.SelectedItem = items.FirstOrDefault(i => i.Release.Tag == preferTag) ?? items[0];
@@ -97,10 +125,12 @@ public partial class GitHubReleaseWindow : Window
     {
         if (ReleaseCombo.SelectedItem is not ReleaseItem item) return;
         var r = item.Release;
-        DateText.Text = r.PublishedAt is { } d ? $"Yayın tarihi: {d.LocalDateTime.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)}" : "";
-        NotesText.Text = r.Body;
-        NotesExpander.Visibility = string.IsNullOrWhiteSpace(r.Body) ? Visibility.Collapsed : Visibility.Visible;
-        NotesExpander.IsExpanded = false;
+        var facts = new List<string>();
+        if (r.PublishedAt is { } d) facts.Add(d.LocalDateTime.ToString("d MMMM yyyy", CultureInfo.CurrentCulture));
+        facts.Add(r.Tag);
+        facts.Add($"{r.Assets.Count} dosya");
+        DateText.Text = string.Join("  ·  ", facts);
+        NotesText.Text = string.IsNullOrWhiteSpace(r.Body) ? "Bu sürüm için not yazılmamış." : PlainNotes(r.Body);
 
         if (r.Assets.Count == 0)
         {
@@ -118,11 +148,35 @@ public partial class GitHubReleaseWindow : Window
 
     private void AssetCheck_Click(object sender, RoutedEventArgs e) => UpdateSummary();
 
+    private void AssetRow_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        // The box handles its own clicks; anywhere else on the row toggles it.
+        if (e.OriginalSource is DependencyObject src && FindParent<System.Windows.Controls.CheckBox>(src) != null) return;
+        if ((sender as FrameworkElement)?.DataContext is AssetRow row) row.IsChecked = !row.IsChecked;
+        UpdateSummary();
+    }
+
+    private void SelectAllCheck_Click(object sender, RoutedEventArgs e)
+    {
+        var all = AssetList.ItemsSource as List<AssetRow> ?? [];
+        bool select = all.Any(r => !r.IsChecked);
+        foreach (var r in all) r.IsChecked = select;
+        UpdateSummary();
+    }
+
+    private static T? FindParent<T>(DependencyObject? node) where T : DependencyObject
+    {
+        while (node != null && node is not T) node = System.Windows.Media.VisualTreeHelper.GetParent(node);
+        return node as T;
+    }
+
     private void UpdateSummary()
     {
-        var rows = (AssetList.ItemsSource as List<AssetRow>)?.Where(r => r.IsChecked).ToList() ?? [];
+        var all = AssetList.ItemsSource as List<AssetRow> ?? [];
+        var rows = all.Where(r => r.IsChecked).ToList();
         SummaryText.Text = rows.Count == 0 ? "Seçili: 0" : $"Seçili: {rows.Count} · {DownloadTask.FormatBytes(rows.Sum(r => r.Asset.Size))}";
         DownloadButton.IsEnabled = rows.Count > 0;
+        SelectAllCheck.IsChecked = rows.Count == 0 ? false : rows.Count == all.Count ? true : null;
     }
 
     private void RetryButton_Click(object sender, RoutedEventArgs e) => _ = LoadAsync();
