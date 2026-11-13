@@ -27,6 +27,8 @@ build.bat
 scripts/
 *.bat
 *.ps1
+!scripts/
+!scripts/soak-test.ps1
 *.pdb
 *.FileListAbsolute.txt
 *.GeneratedMSBuildEditorConfig.editorconfig

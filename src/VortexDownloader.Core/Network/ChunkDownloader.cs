@@ -58,8 +58,9 @@ public class ChunkDownloader
         const int maxRetries = 3;
         int attempt = 0;
 
-        while (attempt < maxRetries)
+        while (true)
         {
+            long posBefore = chunk.CurrentPos;
             try
             {
                 await DownloadChunkInternalAsync(
@@ -67,8 +68,11 @@ public class ChunkDownloader
                     supportsRange, cookies, referrer, userAgent).ConfigureAwait(false);
                 return;
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException && attempt < maxRetries - 1 && !cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (ex is HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
             {
+                // An attempt that moved the chunk forward is not a failure streak: a flaky link that keeps making progress must not run out of retries.
+                if (chunk.CurrentPos > posBefore) attempt = 0;
+                if (attempt >= maxRetries - 1) throw;
                 attempt++;
                 int delayMs = (ex is HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests }) 
                     ? attempt * 2000 

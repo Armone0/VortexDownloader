@@ -25,7 +25,7 @@ To protect the project and all contributors:
    ```
 
 ## 📝 Pull Request Guidelines
-1. Ensure all 18 existing unit tests pass before submitting.
+1. Ensure all tests pass (`dotnet test`) before submitting.
 2. If adding a new feature or algorithm fix, write corresponding tests in `tests/VortexDownloader.Tests/`.
 3. Follow idiomatic modern C# 13 patterns (nullable references, file-scoped namespaces, pattern matching).
 4. Keep commit messages concise following Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`).

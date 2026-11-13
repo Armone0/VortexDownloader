@@ -54,6 +54,7 @@ public class StateStore
             {
                 await JsonSerializer.SerializeAsync(stream, tasks, _jsonOptions, cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                stream.Flush(flushToDisk: true); // else a power cut after the rename can leave a zero-length state file
             }
 
             // Atomic move / replace
@@ -83,6 +84,8 @@ public class StateStore
                 return [];
             }
 
+            tasks.RemoveAll(t => t == null); // a torn/edited file may hold null entries: keep the rest
+
             // Restore in-memory derived states
             foreach (var task in tasks)
             {
@@ -96,9 +99,15 @@ public class StateStore
 
             return tasks;
         }
+        catch (JsonException)
+        {
+            // Torn/corrupt JSON: start empty, but keep the bad file aside so the next save does not destroy it.
+            try { File.Move(_storageFilePath, _storageFilePath + ".corrupt", overwrite: true); } catch { }
+            return [];
+        }
         catch
         {
-            // If file is corrupted or unreadable, return empty list gracefully
+            // If file is unreadable, return empty list gracefully
             return [];
         }
         finally
