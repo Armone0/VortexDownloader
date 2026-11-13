@@ -954,7 +954,8 @@ public partial class MainWindow : Window
                                 item.Url,
                                 item.DestinationPath,
                                 dialog.ResultChunkCount,
-                                autoStart: true);
+                                autoStart: true,
+                                startAt: dialog.ResultStartAt);
                         }
                         catch (Exception ex)
                         {
@@ -974,7 +975,9 @@ public partial class MainWindow : Window
                         dialog.ResultDestinationPath,
                         dialog.ResultChunkCount,
                         autoStart: true,
-                        mirrorUrls: dialog.ResultMirrorUrls);
+                        mirrorUrls: dialog.ResultMirrorUrls,
+                        startAt: dialog.ResultStartAt,
+                        expectedSha256: dialog.ResultExpectedSha256);
                 }
             }
             catch (Exception ex)

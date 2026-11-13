@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Yeni İndirme Ekle - VortexDownloader"
-        Height="565" Width="640"
+        Height="685" Width="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -371,6 +371,36 @@
                     <RadioButton GroupName="NdChunks" Style="{StaticResource ChunkSegmentStyle}" Tag="32" Content="32" ToolTip="En fazla: bazı sunucular bu kadar bağlantıyı sınırlayabilir"/>
                 </UniformGrid>
             </StackPanel>
+
+            <!-- Scheduled start + expected SHA-256 (logic in NewDownloadDialog.Schedule.cs) -->
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Başlangıç" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <UniformGrid Rows="1" Margin="-3,0">
+                        <RadioButton x:Name="StartNowRadio" GroupName="NdStart" Style="{StaticResource ChunkSegmentStyle}" Content="Şimdi" IsChecked="True"/>
+                        <RadioButton x:Name="StartAtRadio" GroupName="NdStart" Style="{StaticResource ChunkSegmentStyle}" Content="Saat seç"
+                                     Checked="StartAtRadio_Changed" Unchecked="StartAtRadio_Changed"
+                                     ToolTip="Seçilen saatte kuyruğa girer. Geçmiş bir saat yarına kurulur; uygulama o saatte kapalıysa açılınca hemen başlar."/>
+                    </UniformGrid>
+                    <StackPanel x:Name="StartTimePanel" Orientation="Horizontal" Margin="0,8,0,0" IsEnabled="False" Opacity="0.5">
+                        <ComboBox x:Name="StartHourCombo" Width="74" MaxDropDownHeight="240" ToolTip="Saat"/>
+                        <TextBlock Text=":" FontSize="16" FontWeight="Bold" Margin="6,0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <ComboBox x:Name="StartMinuteCombo" Width="74" MaxDropDownHeight="240" ToolTip="Dakika"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Beklenen SHA-256 (isteğe bağlı)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBox x:Name="ExpectedHashTextBox" FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                             ToolTip="Sitenin yayımladığı SHA-256 (64 karakter). Boşluk ve büyük/küçük harf önemli değil. Toplu indirmede kullanılmaz."/>
+                    <TextBlock Text="Eşleşme yalnızca dosyanın bozulmadan indiğini gösterir, güvenli olduğunu değil." FontSize="11" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextMutedBrush}" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Grid>
         </StackPanel>
 
         <!-- Action Buttons -->

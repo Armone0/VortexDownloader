@@ -305,6 +305,8 @@ public partial class NewDownloadDialog : Window
 
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
+        if (!TryReadScheduleAndHash()) return; // schedule + expected hash: NewDownloadDialog.Schedule.cs
+
         if (_zipEntries.Count > 0 && _zipUrl != null)
         {
             string zipFolder = FolderTextBox.Text.Trim();
