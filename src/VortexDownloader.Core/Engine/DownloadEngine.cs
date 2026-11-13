@@ -31,6 +31,12 @@ public class DownloadEngine : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, Task> _postCheckTasks = new();
 
     public bool ScanWithDefender { get; set; } = true;
+
+    /// <summary>
+    /// "Dosya türüne göre klasörle": returns the default download folder when the option is on, else null.
+    /// New downloads saved directly in that folder go to a category subfolder instead.
+    /// </summary>
+    public Func<string?>? AutoFolderRoot { get; set; }
     public event Action<DownloadTask>? ThreatDetected;
 
     public event Action<DownloadTask>? TaskAdded;
@@ -103,7 +109,9 @@ public class DownloadEngine : IAsyncDisposable
         string? referrer = null,
         string? userAgent = null,
         string? sourcePageUrl = null,
-        IEnumerable<string>? mirrorUrls = null)
+        IEnumerable<string>? mirrorUrls = null,
+        DateTime? startAt = null,
+        string? expectedSha256 = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -116,6 +124,19 @@ public class DownloadEngine : IAsyncDisposable
         {
             fileName = metadata.SuggestedFileName;
             destinationPath = Path.Combine(destinationPath, fileName);
+        }
+
+        if (AutoFolderRoot?.Invoke() is { } autoRoot)
+        {
+            // Unique against files on disk and other tasks' targets: never overwrite.
+            string resolved = FileCategories.ResolveAutoFolderPath(destinationPath, autoRoot, p =>
+                File.Exists(p) || _tasks.Values.Any(t => string.Equals(t.DestinationPath, p, StringComparison.OrdinalIgnoreCase)));
+            if (resolved != destinationPath)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(resolved)!);
+                destinationPath = resolved;
+                fileName = Path.GetFileName(resolved);
+            }
         }
 
         string tempDir = Path.Combine(
@@ -140,7 +161,9 @@ public class DownloadEngine : IAsyncDisposable
             Cookies = cookies,
             Referrer = referrer,
             UserAgent = userAgent,
-            SourcePageUrl = sourcePageUrl ?? referrer
+            SourcePageUrl = sourcePageUrl ?? referrer,
+            StartAt = startAt?.ToUniversalTime(),
+            ExpectedSha256 = expectedSha256
         };
 
         // Initialize initial chunks
@@ -186,8 +209,9 @@ public class DownloadEngine : IAsyncDisposable
                     break;
                 }
 
+                var now = DateTime.UtcNow;
                 var nextTask = _tasks.Values
-                    .Where(t => t.Status == DownloadStatus.Queued)
+                    .Where(t => t.Status == DownloadStatus.Queued && !DownloadSchedule.IsWaiting(t, now))
                     .OrderBy(t => t.CreatedAt)
                     .FirstOrDefault();
 
@@ -274,6 +298,7 @@ public class DownloadEngine : IAsyncDisposable
 
             task.Status = DownloadStatus.Paused;
             task.SpeedBytesPerSec = 0;
+            task.StartAt = null; // pausing a scheduled task cancels the schedule
 
             TaskUpdated?.Invoke(task);
             await SaveStateAsync().ConfigureAwait(false);
@@ -909,10 +934,21 @@ public class DownloadEngine : IAsyncDisposable
         _lastMonitorTicks = currentTicks;
 
         bool hasChanges = false;
+        bool scheduleDue = false;
+        var utcNow = DateTime.UtcNow;
         foreach (var task in _tasks.Values)
         {
+            if (DownloadSchedule.IsDue(task, utcNow))
+            {
+                // Start time reached (or passed while the app was closed): hand it to the normal queue.
+                task.StartAt = null;
+                scheduleDue = true;
+                TaskUpdated?.Invoke(task);
+            }
+
             if (task.Status == DownloadStatus.Downloading)
             {
+                task.ActiveSeconds += elapsedSeconds;
                 task.RecalculateDownloadedBytes();
                 long currentBytes = task.DownloadedBytes;
                 _lastDownloadedBytes.TryGetValue(task.Id, out long previousBytes);
@@ -931,6 +967,12 @@ public class DownloadEngine : IAsyncDisposable
                     TaskUpdated?.Invoke(task);
                 }
             }
+        }
+
+        if (scheduleDue)
+        {
+            ProcessDownloadQueue();
+            _ = SaveStateAsync();
         }
 
         if (hasChanges && Interlocked.Increment(ref _stateSaveTickCounter) % StateSaveIntervalTicks == 0)
@@ -975,7 +1017,10 @@ public class DownloadEngine : IAsyncDisposable
                         ScanStatus = t.ScanStatus,
                         SourcePageUrl = t.SourcePageUrl,
                         LinkExpired = t.LinkExpired,
-                        MirrorUrls = [.. t.MirrorUrls]
+                        MirrorUrls = [.. t.MirrorUrls],
+                        StartAt = t.StartAt,
+                        ExpectedSha256 = t.ExpectedSha256,
+                        ActiveSeconds = t.ActiveSeconds
                     };
                 }
             }).ToList();

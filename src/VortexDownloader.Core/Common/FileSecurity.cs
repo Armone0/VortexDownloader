@@ -19,6 +19,20 @@ public static class FileHasher
     public static bool Matches(string? actual, string? expected) =>
         !string.IsNullOrWhiteSpace(actual) && !string.IsNullOrWhiteSpace(expected) &&
         string.Equals(actual.Trim(), expected.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Validates a user-typed SHA-256: whitespace is ignored, case-insensitive, must be 64 hex chars.
+    /// Empty input is valid (no expectation) and yields null.
+    /// </summary>
+    public static bool TryNormalizeSha256(string? input, out string? normalized)
+    {
+        normalized = null;
+        if (string.IsNullOrWhiteSpace(input)) return true;
+        string hex = string.Concat(input.Where(c => !char.IsWhiteSpace(c)));
+        if (hex.Length != 64 || !hex.All(Uri.IsHexDigit)) return false;
+        normalized = hex.ToLowerInvariant();
+        return true;
+    }
 }
 
 /// <summary>
