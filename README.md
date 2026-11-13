@@ -16,11 +16,11 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 
 ### [⬇️ Download for Windows](https://github.com/Armone0/VortexDownloader/releases/latest)
 
-<sub>Portable · single .exe · no installer · no .NET runtime needed</sub>
+<sub>Portable · single .exe · no .NET runtime needed · or install with one command: <code>irm https://raw.githubusercontent.com/Armone0/VortexDownloader/main/install.ps1 | iex</code></sub>
 
 <br/>
 
-<img src="docs/screenshots/main-window.png" alt="VortexDownloader main window: segmented downloads with a live chunk map, multi-mirror source chip and Defender scan badge" width="860"/>
+<img src="docs/screenshots/demo.gif" alt="Demo: a new download starts, eight connections fill the chunk map at 25 MB/s, and the finished file gets a SHA-256 hash and a Defender 'Clean' badge" width="840"/>
 
 [Features](#-features) · [Quick start](#-quick-start) · [Browser extension](#-browser-extension) · [Security](#-security--privacy) · [Build](#-build-from-source) · [FAQ](#-faq) · [Türkçe](#-türkçe)
 
@@ -57,6 +57,14 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 | 🎨 **Polished UI** | Dark and light themes, English and Turkish, tray icon, Windows 11 taskbar progress, and options to stop sleep or shut down when done. |
 
 ## 📦 Quick start
+
+**One command** (PowerShell). It downloads the latest release, checks its SHA-256, installs it to `%LOCALAPPDATA%\Programs\VortexDownloader` and adds a Start menu shortcut. Run it again to update.
+
+```powershell
+irm https://raw.githubusercontent.com/Armone0/VortexDownloader/main/install.ps1 | iex
+```
+
+**Or by hand:**
 
 1. Download **`VortexDownloader-vX.Y.Z-win-x64.zip`** from the [latest release](https://github.com/Armone0/VortexDownloader/releases/latest).
 2. Extract it anywhere and run **`VortexDownloader.exe`**.
@@ -181,6 +189,8 @@ Bug reports, ideas and pull requests are welcome. Please read [CONTRIBUTING.md](
 ## 🇹🇷 Türkçe
 
 **VortexDownloader**, Windows için açık kaynaklı ve hızlı bir indirme yöneticisidir.
+
+Tek komutla kurmak için PowerShell'e yapıştır: `irm https://raw.githubusercontent.com/Armone0/VortexDownloader/main/install.ps1 | iex`
 - Dosyaları 32 bağlantıya kadar parçalayarak indirir ve birden fazla aynadan aynı anda çekebilir.
 - ZIP ve RAR arşivlerinin içinden yalnızca istediğin dosyaları indirir.
 - Oyun açıkken indirmeyi kendiliğinden yavaşlatır.
