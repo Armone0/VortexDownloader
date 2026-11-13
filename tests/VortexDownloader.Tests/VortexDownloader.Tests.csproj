@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Small RAR archives made with WinRAR (normal/solid RAR5, password-protected; WinRAR 7 no longer writes RAR4) -->
+    <None Include="Fixtures\*.rar" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\VortexDownloader.Core\VortexDownloader.Core.csproj" />
   </ItemGroup>
 

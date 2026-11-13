@@ -124,7 +124,7 @@ public static class ZipEntryExtractor
         return reserved ? "_" + name : name;
     }
 
-    private static (string Path, FileStream Stream) CreateUniqueFile(string folder, string fileName)
+    internal static (string Path, FileStream Stream) CreateUniqueFile(string folder, string fileName)
     {
         string root = Path.GetFullPath(folder);
         string expectedDir = Path.GetDirectoryName(Path.Combine(root, "_"))!;

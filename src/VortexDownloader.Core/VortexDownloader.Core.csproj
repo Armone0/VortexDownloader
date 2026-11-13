@@ -9,4 +9,8 @@
     <FileVersion>1.7.0.0</FileVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" Version="0.50.7" />
+  </ItemGroup>
+
 </Project>

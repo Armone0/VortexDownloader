@@ -828,7 +828,7 @@ public partial class MainWindow : Window
             if (prompt.ZipEntries is { Count: > 0 } zipEntries)
             {
                 string folder = Path.GetDirectoryName(prompt.ResultDestinationPath) ?? AppSettings.Current.DefaultDownloadDirectory;
-                _ = DownloadZipEntriesAsync(prompt.ResultUrl, zipEntries, folder);
+                _ = DownloadZipEntriesAsync(prompt.ResultUrl, zipEntries, folder, prompt.IsRar, prompt.Cookies, prompt.Referrer);
                 return;
             }
 
@@ -854,9 +854,11 @@ public partial class MainWindow : Window
         }
     }
 
-    // Files picked inside a remote ZIP: one card per file in the main list, fetched one after another with Range requests
-    private async Task DownloadZipEntriesAsync(string zipUrl, List<ZipEntryMetadata> entries, string folder)
+    // Files picked inside a remote ZIP/RAR: one card per file in the main list, fetched one after another with Range requests
+    private async Task DownloadZipEntriesAsync(string zipUrl, List<ZipEntryMetadata> entries, string folder,
+        bool isRar = false, string? cookies = null, string? referrer = null)
     {
+        string kind = isRar ? "RAR" : "ZIP";
         // One token per card so deleting one file's card stops only that file
         var tokens = entries.Select(_ => new CancellationTokenSource()).ToList();
         var cards = entries.Select((entry, n) => new DownloadItemViewModel
@@ -866,8 +868,8 @@ public partial class MainWindow : Window
             Url = zipUrl,
             DestinationPath = Path.Combine(folder, Path.GetFileName(entry.FileName.TrimEnd('/'))),
             Status = DownloadStatus.Queued,
-            CustomStatusText = "Sırada (ZIP)",
-            ChunkInfo = "ZIP içinden",
+            CustomStatusText = $"Sırada ({kind})",
+            ChunkInfo = $"{kind} içinden",
             SupportsPause = false,
             TotalBytes = entry.UncompressedSize,
             CancelAction = () => { try { tokens[n].Cancel(); } catch { } }
@@ -882,7 +884,7 @@ public partial class MainWindow : Window
             var token = tokens[i].Token;
             if (token.IsCancellationRequested || !_viewModel.Downloads.Contains(card)) continue; // deleted from the list meanwhile
             card.Status = DownloadStatus.Downloading;
-            card.CustomStatusText = "İndiriliyor (ZIP)";
+            card.CustomStatusText = $"İndiriliyor ({kind})";
             var clock = Stopwatch.StartNew();
             var progress = new Progress<long>(written =>
             {
@@ -894,7 +896,9 @@ public partial class MainWindow : Window
             });
             try
             {
-                string path = await ZipEntryExtractor.ExtractRemoteEntryAsync(client, zipUrl, entry, folder, progress, token);
+                string path = isRar
+                    ? await RemoteRarArchive.ExtractEntryAsync(zipUrl, entry, folder, cookies, referrer, progress, token)
+                    : await ZipEntryExtractor.ExtractRemoteEntryAsync(client, zipUrl, entry, folder, progress, token);
                 card.DestinationPath = path; // may carry a " (1)" suffix
                 card.FileName = Path.GetFileName(path);
                 card.DownloadedBytes = card.TotalBytes;
@@ -934,7 +938,7 @@ public partial class MainWindow : Window
         {
             if (dialog.ZipRequest is { } zip)
             {
-                _ = DownloadZipEntriesAsync(zip.Url, zip.Entries, zip.Folder);
+                _ = DownloadZipEntriesAsync(zip.Url, zip.Entries, zip.Folder, RemoteRarArchive.IsRarName(zip.Url));
                 return;
             }
             try

@@ -295,7 +295,7 @@ public partial class NewDownloadDialog : Window
         SizeInfoTextBlock.Foreground = (System.Windows.Media.Brush)FindResource(active ? "AccentHighlightBrush" : "TextSecondaryBrush");
         SizeInfoTextBlock.ToolTip = active ? string.Join("\n", _zipEntries.Select(z => z.FileName)) : null;
         SizeInfoTextBlock.Text = active
-            ? $"ZIP içinden {_zipEntries.Count} dosya seçildi · {DownloadTask.FormatBytes(_zipEntries.Sum(z => z.UncompressedSize))}"
+            ? $"{(RemoteRarArchive.IsRarName(_zipUrl) ? "RAR" : "ZIP")} içinden {_zipEntries.Count} dosya seçildi · {DownloadTask.FormatBytes(_zipEntries.Sum(z => z.UncompressedSize))}"
             : "Boyut: Bilinmiyor";
         RangeInfoTextBlock.Text = active ? "Yalnızca seçilenler iner" : "Range: Kontrol edilmedi";
     }

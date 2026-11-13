@@ -18,10 +18,25 @@ public partial class ZipPreviewWindow : Window
     public bool StartDownloadRequested { get; private set; }
     public List<ZipEntryMetadata> SelectedEntries { get; private set; } = [];
 
-    public ZipPreviewWindow(string url, IEnumerable<ZipEntryMetadata>? preselected = null)
+    private readonly bool _isRar;
+    private readonly string? _cookies;
+    private readonly string? _referrer;
+
+    /// <param name="fileName">Name the browser reported; decides ZIP vs RAR when the URL has no extension.</param>
+    /// <param name="cookies">Sent with RAR range requests (sites behind a login, e.g. Moodle).</param>
+    public ZipPreviewWindow(string url, IEnumerable<ZipEntryMetadata>? preselected = null, string? fileName = null,
+        string? cookies = null, string? referrer = null)
     {
         InitializeComponent();
         _url = url;
+        _isRar = RemoteRarArchive.IsRarName(fileName) || RemoteRarArchive.IsRarName(url);
+        _cookies = cookies;
+        _referrer = referrer;
+        if (_isRar)
+        {
+            Title = "RAR Arşiv Önizleme - VortexDownloader";
+            HeaderTitleText.Text = "RAR arşiv içeriği";
+        }
         _preselected = preselected?.Select(e => e.FileName).ToHashSet(StringComparer.Ordinal) ?? [];
         UrlTextBlock.Text = url;
         Loaded += (_, _) => _ = LoadZipEntriesAsync();
@@ -48,7 +63,18 @@ public partial class ZipPreviewWindow : Window
 
         try
         {
-            List<ZipEntryMetadata> entries = await ZipInspector.InspectRemoteZipAsync(_url, _cts.Token);
+            List<ZipEntryMetadata> entries;
+            if (_isRar)
+            {
+                var listing = await RemoteRarArchive.ListAsync(_url, _cookies, _referrer, _cts.Token);
+                entries = listing.Entries;
+                if (listing.IsSolid)
+                    FooterHintText.Text = "Bu RAR katı (solid) sıkıştırılmış: seçtiğin dosyaya kadar arşivin baştan o noktaya kadarki kısmı da indirilir.";
+            }
+            else
+            {
+                entries = await ZipInspector.InspectRemoteZipAsync(_url, _cts.Token);
+            }
 
             var displayList = entries.Select(entry => new ZipEntryDisplayItem
             {
@@ -91,7 +117,7 @@ public partial class ZipPreviewWindow : Window
         {
             LoadingPanel.Visibility = Visibility.Collapsed;
             ErrorPanel.Visibility = Visibility.Visible;
-            ErrorMessageText.Text = $"ZIP arşivi okunamadı:\n{ex.Message}";
+            ErrorMessageText.Text = $"{(_isRar ? "RAR" : "ZIP")} arşivi okunamadı:\n{ex.Message}";
         }
     }
 

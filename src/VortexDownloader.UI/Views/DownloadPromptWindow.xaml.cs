@@ -371,25 +371,29 @@ public partial class DownloadPromptWindow : Window
         }
     }
 
+    /// <summary>True when the picked entries come from a RAR (decided by the browser's file name or the URL path).</summary>
+    public bool IsRar => RemoteRarArchive.IsRarName(TxtFileName.Text) || RemoteRarArchive.IsRarName(ResultUrl);
+
     private bool LooksLikeZip() =>
         TxtFileName.Text.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
         (Uri.TryCreate(ResultUrl, UriKind.Absolute, out var u) && u.AbsolutePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
 
     private void UpdateZipCard()
     {
-        ZipCard.Visibility = LooksLikeZip() || ZipEntries != null ? Visibility.Visible : Visibility.Collapsed;
+        ZipCard.Visibility = LooksLikeZip() || IsRar || ZipEntries != null ? Visibility.Visible : Visibility.Collapsed;
+        string kind = IsRar ? "RAR" : "ZIP";
         bool picked = ZipEntries is { Count: > 0 };
         if (ZipEntries is { Count: > 0 } entries)
         {
             long total = entries.Sum(z => z.UncompressedSize);
-            TxtZipTitle.Text = $"🗜️ ZIP içinden {entries.Count} dosya seçildi · {FormatBytes(total)}";
+            TxtZipTitle.Text = $"🗜️ {kind} içinden {entries.Count} dosya seçildi · {FormatBytes(total)}";
             TxtZipHint.Text = "Yalnızca seçtiğin dosyalar iner, arşivin tamamı değil.";
             BtnZipPick.Content = "Seçimi değiştir";
             BtnDownloadNow.Content = $"⚡ Seçilenleri İndir ({entries.Count})";
         }
         else
         {
-            TxtZipTitle.Text = "🗜️ Bu bir ZIP arşivi";
+            TxtZipTitle.Text = $"🗜️ Bu bir {kind} arşivi";
             TxtZipHint.Text = "İçinden yalnızca istediğin dosyaları seçip indirebilirsin.";
             BtnZipPick.Content = "📦 İçeriği gör ve seç";
             BtnDownloadNow.Content = "⚡ Vortex ile İndir";
@@ -405,7 +409,7 @@ public partial class DownloadPromptWindow : Window
     {
         try
         {
-            var preview = new ZipPreviewWindow(ResultUrl, ZipEntries) { Owner = this };
+            var preview = new ZipPreviewWindow(ResultUrl, ZipEntries, TxtFileName.Text, Cookies, Referrer) { Owner = this };
             if (preview.ShowDialog() != true) return;
             if (preview.StartDownloadRequested)
             {
@@ -419,7 +423,7 @@ public partial class DownloadPromptWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"ZIP içeriği açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, $"Arşiv içeriği açılamadı: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
