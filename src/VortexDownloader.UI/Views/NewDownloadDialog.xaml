@@ -10,6 +10,51 @@
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif">
 
     <Window.Resources>
+        <!-- Themed info card for the option tooltips (no Effect: it would blur the text) -->
+        <Style x:Key="InfoCardToolTip" TargetType="ToolTip">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Placement" Value="Bottom"/>
+            <Setter Property="VerticalOffset" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource AccentHighlightBrush}"
+                                BorderThickness="1" CornerRadius="10" Padding="14,12" MaxWidth="330"
+                                TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="InfoTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="InfoBody" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="InfoExample" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentHighlightBrush}"/>
+        </Style>
+        <Style x:Key="InfoGlyph" TargetType="Border">
+            <Setter Property="Width" Value="15"/>
+            <Setter Property="Height" Value="15"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="5,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TextMutedBrush}"/>
+        </Style>
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -223,11 +268,49 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="İndirme Bağlantısı (URL)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <CheckBox x:Name="MirrorCheckBox" Grid.Column="1" Content="Ayna linkler (isteğe bağlı)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                <CheckBox x:Name="MirrorCheckBox" Grid.Column="1" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
                           Checked="MirrorCheckBox_CheckedChanged" Unchecked="MirrorCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,14,0"
-                          ToolTip="Aynı dosyanın başka adresleri. Parçalar tüm geçerli kaynaklara dağıtılır; biri koparsa diğerleri devam eder."/>
-                <CheckBox x:Name="BatchModeCheckBox" Grid.Column="2" Content="Toplu İndirme (Batch)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
-                          Checked="BatchModeCheckBox_CheckedChanged" Unchecked="BatchModeCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center"/>
+                          ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="30000">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Ayna linkler (isteğe bağlı)" VerticalAlignment="Center"/>
+                        <Border Style="{StaticResource InfoGlyph}">
+                            <TextBlock Text="i" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                    <CheckBox.ToolTip>
+                        <ToolTip Style="{StaticResource InfoCardToolTip}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource InfoTitle}" Text="⇄  Ayna linkler: tek dosya, birden çok sunucu"/>
+                                <TextBlock Style="{StaticResource InfoBody}" Text="Aynı dosya başka sitelerde de varsa (ör. Linux ISO yansıları) o adresleri ekle. Vortex parçaları tüm sunuculara dağıtır, hızlar toplanır."/>
+                                <TextBlock Style="{StaticResource InfoBody}" Text="Bir sunucu koparsa indirme diğerlerinden devam eder. Boyutu farklı ya da devam etmeyi desteklemeyen adresler otomatik elenir."/>
+                                <TextBlock Style="{StaticResource InfoBody}" Margin="0,4,0,4" Text="Her satıra bir adres, en fazla 8:"/>
+                                <TextBlock Style="{StaticResource InfoExample}" Text="https://ayna1.org/dosya.iso&#x0a;https://ayna2.net/dosya.iso"/>
+                            </StackPanel>
+                        </ToolTip>
+                    </CheckBox.ToolTip>
+                </CheckBox>
+                <CheckBox x:Name="BatchModeCheckBox" Grid.Column="2" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                          Checked="BatchModeCheckBox_CheckedChanged" Unchecked="BatchModeCheckBox_CheckedChanged" Cursor="Hand" VerticalAlignment="Center"
+                          ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="30000">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Toplu İndirme (Batch)" VerticalAlignment="Center"/>
+                        <Border Style="{StaticResource InfoGlyph}">
+                            <TextBlock Text="i" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+                    <CheckBox.ToolTip>
+                        <!-- Shifted left so the card stays inside the dialog (this checkbox sits at the right edge) -->
+                        <ToolTip Style="{StaticResource InfoCardToolTip}" HorizontalOffset="-150">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource InfoTitle}" Text="📋  Toplu indirme: birçok dosya, tek seferde"/>
+                                <TextBlock Style="{StaticResource InfoBody}" Text="Farklı dosyaların bağlantılarını alt alta yapıştır; her biri listeye ayrı bir indirme olarak eklenir ve kuyruk sırasıyla iner."/>
+                                <TextBlock Style="{StaticResource InfoBody}" Text="Birden fazla satır yapıştırınca kendiliğinden açılır."/>
+                                <TextBlock Style="{StaticResource InfoBody}" Margin="0,4,0,4" Text="Ayna linklerden farkı: ayna aynı dosyanın kopyalarıdır, toplu indirme farklı dosyalardır."/>
+                                <TextBlock Style="{StaticResource InfoExample}" Text="https://site.com/bolum1.mp4&#x0a;https://site.com/bolum2.mp4"/>
+                            </StackPanel>
+                        </ToolTip>
+                    </CheckBox.ToolTip>
+                </CheckBox>
             </Grid>
 
             <!-- URL Input and Action Buttons -->
