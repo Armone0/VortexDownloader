@@ -68,7 +68,8 @@ public partial class NewDownloadDialog : Window
                 else if (urls.Count == 1)
                 {
                     UrlTextBox.Text = urls[0];
-                    _ = ProbeUrlAsync(UrlTextBox.Text.Trim()); // user:pass@ already moved to the login fields
+                    MoveUserInfoToFields();
+                    _ = ProbeUrlAsync(UrlTextBox.Text.Trim());
                 }
             }
         }
@@ -141,21 +142,25 @@ public partial class NewDownloadDialog : Window
         Height += show ? 78 : -78;
     }
 
+    private void UrlTextBox_LostFocus(object sender, RoutedEventArgs e) => MoveUserInfoToFields();
+
+    /// <summary>
+    /// Moves user:pass@ from a single URL into the login fields so it never shows in the URL box or on the card.
+    /// Run on commit (focus loss, Analyze, Start, clipboard prefill), not per keystroke, so typing is not interrupted.
+    /// </summary>
+    private void MoveUserInfoToFields()
+    {
+        if (BatchModeCheckBox.IsChecked == true || ParseUrls(UrlTextBox.Text).Count != 1) return;
+        string clean = HttpCredential.StripUserInfo(UrlTextBox.Text.Trim(), out var infoUser, out var infoPassword);
+        if (infoUser == null) return;
+        AuthUserTextBox.Text = infoUser;
+        AuthPasswordBox.Password = infoPassword ?? "";
+        AuthCheckBox.IsChecked = true;
+        UrlTextBox.Text = clean;
+    }
+
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (BatchModeCheckBox.IsChecked != true && ParseUrls(UrlTextBox.Text).Count == 1)
-        {
-            string clean = HttpCredential.StripUserInfo(UrlTextBox.Text.Trim(), out var infoUser, out var infoPassword);
-            if (infoUser != null)
-            {
-                // user:pass@ moves into the login fields so it never shows in the URL box, on the card or in logs.
-                AuthUserTextBox.Text = infoUser;
-                AuthPasswordBox.Password = infoPassword ?? "";
-                AuthCheckBox.IsChecked = true;
-                UrlTextBox.Text = clean; // runs this handler again with the clean URL
-                return;
-            }
-        }
         if (_zipUrl != null && UrlTextBox.Text.Trim() != _zipUrl) SetZipSelection(null, []);
         string rawText = UrlTextBox.Text;
         var urls = ParseUrls(rawText);
@@ -231,6 +236,7 @@ public partial class NewDownloadDialog : Window
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
+        MoveUserInfoToFields();
         string url = UrlTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -394,6 +400,7 @@ public partial class NewDownloadDialog : Window
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryReadScheduleAndHash()) return; // schedule + expected hash: NewDownloadDialog.Schedule.cs
+        MoveUserInfoToFields();
 
         if (_zipEntries.Count > 0 && _zipUrl != null)
         {

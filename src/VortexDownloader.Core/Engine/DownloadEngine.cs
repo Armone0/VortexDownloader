@@ -75,8 +75,23 @@ public class DownloadEngine : IAsyncDisposable
     public async Task InitializeAsync()
     {
         var savedTasks = await _stateStore.LoadTasksAsync().ConfigureAwait(false);
+        bool migrated = false;
         foreach (var task in savedTasks)
         {
+            // Older versions kept user:pass@ in the URL (plain text in tasks.json, shown on cards): move it to the protected login.
+            string clean = HttpCredential.StripUserInfo(task.Url, out var infoUser, out var infoPassword);
+            if (infoUser != null)
+            {
+                task.Url = clean;
+                if (string.IsNullOrEmpty(task.AuthUser))
+                {
+                    task.AuthUser = infoUser;
+                    task.AuthPassword = infoPassword;
+                    task.AuthOrigin = HttpCredential.OriginOf(clean);
+                }
+                migrated = true;
+            }
+
             _tasks[task.Id] = task;
             TaskAdded?.Invoke(task);
 
@@ -86,6 +101,7 @@ public class DownloadEngine : IAsyncDisposable
                 StartPostDownloadChecks(task);
             }
         }
+        if (migrated) await SaveStateAsync().ConfigureAwait(false);
     }
 
     public async Task<UrlMetadata> InspectUrlAsync(
@@ -880,6 +896,8 @@ public class DownloadEngine : IAsyncDisposable
                         // Safe for every source: HeaderFor only answers for the origin the user entered it for.
                         credential: task.Credential).ConfigureAwait(false);
                 }
+                // shortcut: a 401 fails the task but sibling workers on healthy sources finish their in-flight chunks first;
+                // cancel them via a linked token (and keep that cancel out of this failover filter) if the delay matters.
                 catch (Exception ex) when (source != null && !cancellationToken.IsCancellationRequested && !IsLocalDiskError(ex) &&
                     !IsAuthError(task, ex) &&
                     ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)

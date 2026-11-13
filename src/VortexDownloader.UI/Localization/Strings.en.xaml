@@ -52,7 +52,7 @@
     <sys:String x:Key="Str_ProxySystem">System proxy</sys:String>
     <sys:String x:Key="Str_ProxyNone">No proxy</sys:String>
     <sys:String x:Key="Str_ProxyManual">Manual</sys:String>
-    <sys:String x:Key="Str_ProxyHost">Server</sys:String>
+    <sys:String x:Key="Str_ProxyHost">Server (e.g. proxy.company.com, without http://)</sys:String>
     <sys:String x:Key="Str_ProxyPort">Port</sys:String>
     <sys:String x:Key="Str_ProxyUser">Username (optional)</sys:String>
     <sys:String x:Key="Str_ProxyPassword">Password (optional, stored encrypted)</sys:String>

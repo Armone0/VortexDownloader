@@ -24,9 +24,13 @@ public static class ProxyFactory
                 return new WebProxy(); // no address: every request goes direct
             case ProxyMode.Manual:
                 ArgumentException.ThrowIfNullOrWhiteSpace(host);
+                host = host.Trim();
+                // A bare host name or IPv4 only: "http://proxy" or "proxy:3128" would silently become a proxy on the wrong host.
+                if (Uri.CheckHostName(host) is not (UriHostNameType.Dns or UriHostNameType.IPv4))
+                    throw new ArgumentException("Proxy host must be a host name or IPv4 address.", nameof(host));
                 ArgumentOutOfRangeException.ThrowIfLessThan(port, 1);
                 ArgumentOutOfRangeException.ThrowIfGreaterThan(port, 65535);
-                return new WebProxy(host.Trim(), port)
+                return new WebProxy(host, port)
                 {
                     BypassProxyOnLocal = true,
                     BypassList = [PrivateNetworkBypass],

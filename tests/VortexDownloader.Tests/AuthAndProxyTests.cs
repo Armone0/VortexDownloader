@@ -104,6 +104,50 @@ public class AuthAndProxyTests
         Assert.All(target.SeenAuthorization, a => Assert.Null(a));
     }
 
+    [Fact]
+    public async Task Credential_IsNotSentToRefreshedLinkOnAnotherHost()
+    {
+        await using var origin = new RawHttpServer(Data, requiredAuth: Basic("alice", "pw"));
+        await using var fresh = new RawHttpServer(Data);
+        await using var h = new EngineHarness();
+        var task = await h.Engine.AddDownloadAsync(origin.Url, h.Dest, chunkCount: 4, autoStart: false, authUser: "alice", authPassword: "pw");
+
+        Assert.Null(await h.Engine.RefreshTaskUrlAsync(task.Id, fresh.Url));
+        Assert.Null(await h.RunToEndAsync(task));
+        Assert.Equal(EngineHarness.Hash(Data), EngineHarness.HashFile(h.Dest));
+        Assert.True(fresh.GetCount > 0);
+        Assert.All(fresh.SeenAuthorization, a => Assert.Null(a));
+    }
+
+    [Fact]
+    public async Task LegacyTaskWithUserInfoInUrl_IsMigratedOnLoad()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "vortex_auth_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string file = Path.Combine(dir, "tasks.json");
+            await new StateStore(file).SaveTasksAsync([new Core.Models.DownloadTask { Url = "https://bob:old%21pw@nas.example.com/a.iso" }]);
+
+            await using (var engine = new DownloadEngine(new StateStore(file), new HttpClient()) { ScanWithDefender = false })
+            {
+                await engine.InitializeAsync();
+                var t = Assert.Single(engine.Tasks);
+                Assert.Equal("https://nas.example.com/a.iso", t.Url);
+                Assert.Equal("bob", t.AuthUser);
+                Assert.Equal("old!pw", t.AuthPassword);
+                Assert.Equal("https://nas.example.com", t.AuthOrigin);
+            }
+            string json = File.ReadAllText(file);
+            Assert.DoesNotContain("old%21pw", json);
+            Assert.DoesNotContain("bob:", json);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
     [Theory]
     [InlineData(false)] // wrong password on the primary
     [InlineData(true)]  // a mirror asks for a login we do not have for it
@@ -182,6 +226,9 @@ public class AuthAndProxyTests
     [InlineData("", 8080)]
     [InlineData("proxy", 0)]
     [InlineData("proxy", 70000)]
+    [InlineData("http://proxy.corp", 3128)]
+    [InlineData("proxy.corp:3128", 3128)]
+    [InlineData("user@proxy.corp", 3128)]
     public void Proxy_Manual_RejectsBadHostOrPort(string host, int port)
     {
         Assert.ThrowsAny<ArgumentException>(() => ProxyFactory.Create(ProxyMode.Manual, host, port));

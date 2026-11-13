@@ -52,7 +52,7 @@
     <sys:String x:Key="Str_ProxySystem">Sistem proxy'si</sys:String>
     <sys:String x:Key="Str_ProxyNone">Proxy yok</sys:String>
     <sys:String x:Key="Str_ProxyManual">Elle</sys:String>
-    <sys:String x:Key="Str_ProxyHost">Sunucu</sys:String>
+    <sys:String x:Key="Str_ProxyHost">Sunucu (ör. proxy.firma.com, http:// olmadan)</sys:String>
     <sys:String x:Key="Str_ProxyPort">Port</sys:String>
     <sys:String x:Key="Str_ProxyUser">Kullanıcı adı (isteğe bağlı)</sys:String>
     <sys:String x:Key="Str_ProxyPassword">Şifre (isteğe bağlı, şifreli saklanır)</sys:String>

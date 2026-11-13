@@ -267,7 +267,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="UrlTextBox" Grid.Column="0" TextChanged="UrlTextBox_TextChanged" Margin="0,0,8,0"
+                <TextBox x:Name="UrlTextBox" Grid.Column="0" TextChanged="UrlTextBox_TextChanged" LostFocus="UrlTextBox_LostFocus" Margin="0,0,8,0"
                          AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Height="36"/>
                 <Button x:Name="AnalyzeButton" Grid.Column="1" Content="Bilgi Al" Margin="0,0,8,0" Click="AnalyzeButton_Click"/>
                 <Button x:Name="ZipPreviewButton" Grid.Column="2" Content="📦 ZIP / RAR Önizle" Foreground="{DynamicResource AccentHighlightBrush}" Click="ZipPreviewButton_Click"/>
