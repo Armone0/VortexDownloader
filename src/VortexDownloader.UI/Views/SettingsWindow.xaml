@@ -453,6 +453,22 @@
                             <TextBlock Text="Biten dosya arka planda Windows Defender ile taranır. SHA-256 özeti her zaman hesaplanır."
                                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12" TextWrapping="Wrap"/>
 
+                            <CheckBox x:Name="ChkWatchClipboard" Style="{StaticResource ModernCheckBox}"
+                                      Content="{DynamicResource Str_WatchClipboardSetting}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource Str_WatchClipboardDesc}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,12" TextWrapping="Wrap"/>
+
+                            <CheckBox x:Name="ChkCheckUpdates" Style="{StaticResource ModernCheckBox}"
+                                      Content="{DynamicResource Str_CheckUpdatesSetting}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource Str_CheckUpdatesDesc}"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="26,0,0,6" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Margin="26,0,0,12">
+                                <Button x:Name="BtnCheckUpdates" Style="{StaticResource SecondaryButton}" Height="28"
+                                        Content="{DynamicResource Str_CheckUpdatesNow}" Click="BtnCheckUpdates_Click"/>
+                                <TextBlock x:Name="TxtUpdateResult" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                                           MaxWidth="320" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </StackPanel>
+
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

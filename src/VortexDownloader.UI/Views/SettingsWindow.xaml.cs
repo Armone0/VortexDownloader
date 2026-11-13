@@ -58,6 +58,8 @@ public partial class SettingsWindow : Window
         SelectComboBoxItemByTag(CmbGameModeLimit, settings.GameModeLimitKBps.ToString());
 
         ChkAutoFolderByType.IsChecked = settings.AutoFolderByType;
+        ChkWatchClipboard.IsChecked = settings.WatchClipboardLinks;
+        ChkCheckUpdates.IsChecked = settings.CheckUpdatesOnStartup;
         TxtShortcuts.Text = MainWindow.ShortcutsHelp;
         if (Owner?.DataContext is MainViewModel vm)
         {
@@ -132,6 +134,33 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        BtnCheckUpdates.IsEnabled = false;
+        TxtUpdateResult.Text = LocalizationManager.GetString("Str_UpdateChecking", "Kontrol ediliyor…");
+        try
+        {
+            string? newer = await UpdateChecker.FindNewerVersionAsync();
+            if (newer == null)
+            {
+                TxtUpdateResult.Text = string.Format(LocalizationManager.GetString("Str_UpToDate", "Güncelsiniz (v{0})."), AppInfo.Version);
+            }
+            else
+            {
+                TxtUpdateResult.Text = string.Format(LocalizationManager.GetString("Str_UpdateFound", "v{0} çıktı."), newer);
+                (Owner as MainWindow)?.ShowUpdateBanner(newer, respectSkip: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateResult.Text = string.Format(LocalizationManager.GetString("Str_UpdateCheckFailed", "Kontrol edilemedi: {0}"), ex.Message);
+        }
+        finally
+        {
+            BtnCheckUpdates.IsEnabled = true;
+        }
+    }
+
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
         var settings = AppSettings.Current;
@@ -160,6 +189,8 @@ public partial class SettingsWindow : Window
         settings.ScanWithDefender = ChkScanWithDefender.IsChecked == true;
         settings.GameModeEnabled = ChkGameMode.IsChecked == true;
         settings.AutoFolderByType = ChkAutoFolderByType.IsChecked == true;
+        settings.WatchClipboardLinks = ChkWatchClipboard.IsChecked == true;
+        settings.CheckUpdatesOnStartup = ChkCheckUpdates.IsChecked == true;
         if (CmbGameModeLimit.SelectedItem is ComboBoxItem gameItem && int.TryParse(gameItem.Tag?.ToString(), out int gameVal))
         {
             settings.GameModeLimitKBps = gameVal;

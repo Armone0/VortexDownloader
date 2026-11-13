@@ -96,6 +96,7 @@ If the app is closed, the browser downloads the file normally. Nothing is lost.
 - **Per-install pairing.** Each install generates a random 256-bit token, and only extensions you approved in the app can queue downloads. Tokens are compared in constant time.
 - **Safe file writes.** File names are sanitized, archive paths can't escape the target folder (zip-slip protection), existing files are never overwritten, and decompressed output has a size cap.
 - **Cookies stay with their site.** In multi-mirror downloads, the main site's cookies and referrer are never sent to other mirror hosts.
+- **Update check and clipboard watching.** The update check only fetches the latest version number from GitHub (at most once a day), never downloads or runs anything, and can be turned off in Settings. Clipboard link watching is off by default and always asks before downloading.
 - **Send from phone is opt-in.** It listens on your private LAN address only while its window is open, needs a fresh random token, accepts only private-network clients, and never downloads without your confirmation.
 
 Found a vulnerability? Please open a private security advisory on GitHub instead of a public issue.

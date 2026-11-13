@@ -43,6 +43,16 @@ public class AppSettings
     /// <summary>New downloads into the default folder go to a subfolder by type (Video, Müzik, …). Existing files are never moved.</summary>
     public bool AutoFolderByType { get; set; } = false;
 
+    // Update check: only asks GitHub for the latest release number; never downloads or runs anything.
+    public bool CheckUpdatesOnStartup { get; set; } = true;
+    public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>Newest version seen on GitHub ("1.9.2"), so the notice survives restarts inside the 24 h window.</summary>
+    public string? LatestKnownVersion { get; set; }
+    public string? SkippedUpdateVersion { get; set; }
+
+    /// <summary>Offer copied direct-file links as downloads (always asks first).</summary>
+    public bool WatchClipboardLinks { get; set; } = false;
+
     // Browser bridge pairing: random per-install secret + the extension origins the user approved
     public string BridgeToken { get; set; } = "";
     public List<string> PairedExtensionOrigins { get; set; } = [];
