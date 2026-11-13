@@ -37,6 +37,8 @@ public class AppSettings
     public bool CloseToTray { get; set; } = true;
     public bool AutoStartBrowserDownloads { get; set; } = false;
     public bool ScanWithDefender { get; set; } = true;
+    public bool GameModeEnabled { get; set; } = true;
+    public int GameModeLimitKBps { get; set; } = 512;
     public List<string> FavoritePlugins { get; set; } = [];
 
     // Browser bridge pairing: random per-install secret + the extension origins the user approved

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using VortexDownloader.Core.Common;
 using VortexDownloader.Core.Engine;
 using VortexDownloader.Core.Models;
 using VortexDownloader.UI.Services;
@@ -249,6 +250,50 @@ public class MainViewModel : ViewModelBase
 
     public IReadOnlyList<string> SpeedLimitOptions { get; } = ["Sınırsız", "1 MB/s", "5 MB/s", "10 MB/s"];
 
+    // Game / fullscreen mode: the user's own limit is kept separately so it survives the throttle.
+    private long _userLimitBytes;
+    private long _gameLimitBytes;
+    private bool _gameModeActive;
+    private string _gameModeLimitText = "";
+
+    public bool IsGameModeActive
+    {
+        get => _gameModeActive;
+        private set => SetProperty(ref _gameModeActive, value);
+    }
+
+    /// <summary>Effective limit shown in the game mode badge, e.g. "512 KB/s".</summary>
+    public string GameModeLimitText
+    {
+        get => _gameModeLimitText;
+        private set => SetProperty(ref _gameModeLimitText, value);
+    }
+
+    /// <summary>Called by the fullscreen poll; reads the settings each time so changes apply without a restart.</summary>
+    public void UpdateGameMode(bool fullscreenAppRunning)
+    {
+        var settings = AppSettings.Current;
+        bool active = settings.GameModeEnabled && settings.GameModeLimitKBps > 0 && fullscreenAppRunning;
+        long gameLimit = settings.GameModeLimitKBps * 1024L;
+        if (active == _gameModeActive && (!active || gameLimit == _gameLimitBytes)) return;
+
+        _gameLimitBytes = gameLimit;
+        IsGameModeActive = active;
+        ApplyEffectiveLimit();
+    }
+
+    private void ApplyEffectiveLimit()
+    {
+        long effective = _gameModeActive
+            ? SpeedLimitPolicy.CombineLimits(_userLimitBytes, _gameLimitBytes)
+            : _userLimitBytes;
+
+        _engine.SetGlobalSpeedLimit(effective);
+
+        long kb = effective / 1024;
+        GameModeLimitText = kb >= 1024 && kb % 1024 == 0 ? $"{kb / 1024} MB/s" : $"{kb} KB/s";
+    }
+
     public IReadOnlyList<string> MaxConcurrentOptions { get; } = ["1 Görev", "2 Görev", "3 Görev", "5 Görev", "Sınırsız"];
 
     private string _selectedMaxConcurrent = "3 Görev";
@@ -457,7 +502,7 @@ public class MainViewModel : ViewModelBase
 
     private void ApplySpeedLimit(string limitOption)
     {
-        long bytesPerSec = limitOption switch
+        _userLimitBytes = limitOption switch
         {
             "1 MB/s" => 1024 * 1024,
             "5 MB/s" => 5 * 1024 * 1024,
@@ -465,7 +510,7 @@ public class MainViewModel : ViewModelBase
             _ => 0 // Sınırsız
         };
 
-        _engine.SetGlobalSpeedLimit(bytesPerSec);
+        ApplyEffectiveLimit();
     }
 
     private void OnEngineTaskAdded(DownloadTask task)

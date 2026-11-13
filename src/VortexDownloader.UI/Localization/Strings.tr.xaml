@@ -43,4 +43,8 @@
     <sys:String x:Key="Str_Programs">Programlar</sys:String>
     <sys:String x:Key="Str_Video">Videolar</sys:String>
     <sys:String x:Key="Str_DiskSpace">Boş Alan:</sys:String>
+    <sys:String x:Key="Str_GameMode">Oyun modu</sys:String>
+    <sys:String x:Key="Str_GameModeTooltip">Tam ekran bir uygulama (oyun, film, sunum) çalışıyor; indirmeler pinginizi etkilememesi için yavaşlatıldı. Tam ekrandan çıkınca kendi hız sınırınız geri gelir.</sys:String>
+    <sys:String x:Key="Str_GameModeSetting">Tam ekran uygulamada (oyun, film) indirmeyi yavaşlat</sys:String>
+    <sys:String x:Key="Str_GameModeSettingDesc">Tam ekran bir uygulama açıkken indirme hızı seçilen sınıra düşürülür; kapanınca kendi hız sınırınız geri gelir.</sys:String>
 </ResourceDictionary>
