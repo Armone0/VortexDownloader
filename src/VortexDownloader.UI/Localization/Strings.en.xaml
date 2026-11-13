@@ -60,4 +60,19 @@
     <sys:String x:Key="Str_UpdateCheckFailed">Could not check: {0}</sys:String>
     <sys:String x:Key="Str_WatchClipboardSetting">Catch download links copied to the clipboard</sys:String>
     <sys:String x:Key="Str_WatchClipboardDesc">When you copy a direct file link (zip, exe, mp4…) you are asked before anything downloads. Plain web pages are ignored; stays silent while a fullscreen game or app is open.</sys:String>
+    <sys:String x:Key="Str_Proxy">Proxy</sys:String>
+    <sys:String x:Key="Str_ProxyDesc">Changes apply after the app restarts. This computer and the local network (127.0.0.1, 192.168.x.x, 10.x.x.x) always connect directly.</sys:String>
+    <sys:String x:Key="Str_ProxySystem">System proxy</sys:String>
+    <sys:String x:Key="Str_ProxyNone">No proxy</sys:String>
+    <sys:String x:Key="Str_ProxyManual">Manual</sys:String>
+    <sys:String x:Key="Str_ProxyHost">Server (e.g. proxy.company.com, without http://)</sys:String>
+    <sys:String x:Key="Str_ProxyPort">Port</sys:String>
+    <sys:String x:Key="Str_ProxyUser">Username (optional)</sys:String>
+    <sys:String x:Key="Str_ProxyPassword">Password (optional, stored encrypted)</sys:String>
+    <sys:String x:Key="Str_ProxyInvalid">Invalid proxy server or port (port must be 1-65535).</sys:String>
+    <sys:String x:Key="Str_AuthToggle">Username / password</sys:String>
+    <sys:String x:Key="Str_AuthUser">Username</sys:String>
+    <sys:String x:Key="Str_AuthPassword">Password</sys:String>
+    <sys:String x:Key="Str_AuthHint">Sent only to this address's server; never to mirrors or to redirects to another site. The password is stored encrypted for this Windows user.</sys:String>
+    <sys:String x:Key="Str_AuthRequired">Authentication required / failed</sys:String>
 </ResourceDictionary>

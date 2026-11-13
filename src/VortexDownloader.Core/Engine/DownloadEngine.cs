@@ -75,8 +75,23 @@ public class DownloadEngine : IAsyncDisposable
     public async Task InitializeAsync()
     {
         var savedTasks = await _stateStore.LoadTasksAsync().ConfigureAwait(false);
+        bool migrated = false;
         foreach (var task in savedTasks)
         {
+            // Older versions kept user:pass@ in the URL (plain text in tasks.json, shown on cards): move it to the protected login.
+            string clean = HttpCredential.StripUserInfo(task.Url, out var infoUser, out var infoPassword);
+            if (infoUser != null)
+            {
+                task.Url = clean;
+                if (string.IsNullOrEmpty(task.AuthUser))
+                {
+                    task.AuthUser = infoUser;
+                    task.AuthPassword = infoPassword;
+                    task.AuthOrigin = HttpCredential.OriginOf(clean);
+                }
+                migrated = true;
+            }
+
             _tasks[task.Id] = task;
             TaskAdded?.Invoke(task);
 
@@ -86,6 +101,7 @@ public class DownloadEngine : IAsyncDisposable
                 StartPostDownloadChecks(task);
             }
         }
+        if (migrated) await SaveStateAsync().ConfigureAwait(false);
     }
 
     public async Task<UrlMetadata> InspectUrlAsync(
@@ -93,10 +109,16 @@ public class DownloadEngine : IAsyncDisposable
         CancellationToken cancellationToken = default,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        string? authUser = null,
+        string? authPassword = null)
     {
+        url = HttpCredential.StripUserInfo(url, out var infoUser, out var infoPassword);
+        var credential = string.IsNullOrEmpty(authUser)
+            ? HttpCredential.For(url, infoUser, infoPassword)
+            : HttpCredential.For(url, authUser, authPassword);
         return await UrlMetadataInspector.InspectAsync(
-            _httpClient, url, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
+            _httpClient, url, cancellationToken, cookies, referrer, userAgent, credential).ConfigureAwait(false);
     }
 
     public async Task<DownloadTask> AddDownloadAsync(
@@ -111,13 +133,21 @@ public class DownloadEngine : IAsyncDisposable
         string? sourcePageUrl = null,
         IEnumerable<string>? mirrorUrls = null,
         DateTime? startAt = null,
-        string? expectedSha256 = null)
+        string? expectedSha256 = null,
+        string? authUser = null,
+        string? authPassword = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
 
+        // user:pass@ never stays in the URL (cards, tasks.json, logs): it becomes the task's credential instead.
+        url = HttpCredential.StripUserInfo(url, out var infoUser, out var infoPassword);
+        if (string.IsNullOrEmpty(authUser)) (authUser, authPassword) = (infoUser, infoPassword);
+        var credential = HttpCredential.For(url, authUser, authPassword);
+
         // Fetch URL metadata only if not preloaded (preserves single-use tokens!)
-        var metadata = preloadedMetadata ?? await InspectUrlAsync(url, CancellationToken.None, cookies, referrer, userAgent).ConfigureAwait(false);
+        var metadata = preloadedMetadata ?? await UrlMetadataInspector.InspectAsync(
+            _httpClient, url, CancellationToken.None, cookies, referrer, userAgent, credential).ConfigureAwait(false);
 
         string fileName = Path.GetFileName(destinationPath);
         if (string.IsNullOrWhiteSpace(fileName))
@@ -163,7 +193,10 @@ public class DownloadEngine : IAsyncDisposable
             UserAgent = userAgent,
             SourcePageUrl = sourcePageUrl ?? referrer,
             StartAt = startAt?.ToUniversalTime(),
-            ExpectedSha256 = expectedSha256
+            ExpectedSha256 = expectedSha256,
+            AuthUser = credential?.User,
+            AuthOrigin = credential?.Origin,
+            AuthPassword = credential != null ? authPassword : null
         };
 
         // Initialize initial chunks
@@ -323,6 +356,14 @@ public class DownloadEngine : IAsyncDisposable
 
     public const string LinkExpiredMessage = "BaÄŸlantÄ±nÄ±n sÃ¼resi dolmuÅŸ olabilir. Sayfadan dosyayÄ± yeniden indir; Vortex kaldÄ±ÄŸÄ± yerden devam eder.";
 
+    public const string AuthFailedMessage = "Kimlik doğrulama gerekli / hatalı. Kullanıcı adı ve şifreyi kontrol edip yeniden dene.";
+
+    // A 401 from a site the user gave credentials for (or from a plain link with no page to refresh it from) is a login
+    // problem: it must not mark the source dead or ask for a fresh link. Browser-captured links keep the expired-link path.
+    private static bool IsAuthError(DownloadTask task, Exception ex) =>
+        ex is HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized } &&
+        (task.Credential != null || task.SourcePageUrl == null);
+
     private static bool IsLinkExpiredError(Exception ex) => ex is HttpRequestException
     {
         StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden
@@ -345,7 +386,10 @@ public class DownloadEngine : IAsyncDisposable
         if (task.Status is DownloadStatus.Downloading or DownloadStatus.Assembling or DownloadStatus.Completed)
             return "Bu indirme ÅŸu an yenilenemez (aktif ya da tamamlanmÄ±ÅŸ).";
 
-        var meta = await InspectUrlAsync(newUrl, cancellationToken, cookies, referrer, userAgent).ConfigureAwait(false);
+        newUrl = HttpCredential.StripUserInfo(newUrl, out _, out _);
+        // The task's credential stays bound to the origin it was given for: a fresh link on another host never gets it.
+        var meta = await UrlMetadataInspector.InspectAsync(
+            _httpClient, newUrl, cancellationToken, cookies, referrer, userAgent, task.Credential).ConfigureAwait(false);
         if (DescribeMismatch(task, meta) is { } mismatch) return mismatch;
 
         task.Url = newUrl;
@@ -391,9 +435,10 @@ public class DownloadEngine : IAsyncDisposable
             if (result.Count >= MaxMirrors) break;
             if (Uri.TryCreate(raw?.Trim(), UriKind.Absolute, out var uri) &&
                 (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
-                seen.Add(uri.AbsoluteUri))
+                // user:pass@ on a mirror is dropped: credentials belong to the primary's origin only, and URLs get logged.
+                HttpCredential.StripUserInfo(uri.AbsoluteUri, out _, out _) is var clean && seen.Add(clean))
             {
-                result.Add(uri.AbsoluteUri);
+                result.Add(clean);
             }
         }
         return result;
@@ -404,7 +449,8 @@ public class DownloadEngine : IAsyncDisposable
     {
         // The primary's cookies/referrer belong to its host and are never sent to a mirror.
         var metas = await Task.WhenAll(task.MirrorUrls.Select(m =>
-            InspectUrlAsync(m, cancellationToken, userAgent: task.UserAgent))).ConfigureAwait(false);
+            UrlMetadataInspector.InspectAsync(_httpClient, m, cancellationToken, userAgent: task.UserAgent,
+                credential: task.Credential))).ConfigureAwait(false); // HeaderFor sends it only to the credential's origin
         return metas
             // Different servers emit different ETag/Last-Modified for the same file, so mirrors are matched by size only.
             .Select(meta => (meta.Url, Reason: DescribeMismatch(task, meta, checkValidators: false)))
@@ -551,7 +597,7 @@ public class DownloadEngine : IAsyncDisposable
                 {
                     var freshMeta = await UrlMetadataInspector.InspectAsync(
                         _httpClient, task.Url, cancellationToken,
-                        task.Cookies, task.Referrer, task.UserAgent).ConfigureAwait(false);
+                        task.Cookies, task.Referrer, task.UserAgent, task.Credential).ConfigureAwait(false);
 
                     // A different size usually means the signed link now serves an error page: keep the chunks, ask for a fresh link.
                     if (task.TotalBytes > 0 && freshMeta.ContentLength > 0 && task.TotalBytes != freshMeta.ContentLength)
@@ -642,7 +688,8 @@ public class DownloadEngine : IAsyncDisposable
                         supportsRange: task.SupportsRange,
                         cookies: task.Cookies,
                         referrer: task.Referrer,
-                        userAgent: task.UserAgent).ConfigureAwait(false);
+                        userAgent: task.UserAgent,
+                        credential: task.Credential).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -708,8 +755,9 @@ public class DownloadEngine : IAsyncDisposable
             }
 
             task.Status = DownloadStatus.Failed;
-            task.LinkExpired = IsLinkExpiredError(ex);
-            task.ErrorMessage = task.LinkExpired ? LinkExpiredMessage : ex.Message;
+            bool authError = IsAuthError(task, ex);
+            task.LinkExpired = !authError && IsLinkExpiredError(ex);
+            task.ErrorMessage = authError ? AuthFailedMessage : task.LinkExpired ? LinkExpiredMessage : ex.Message;
             task.SpeedBytesPerSec = 0;
             await SaveStateAsync().ConfigureAwait(false);
             TaskFailed?.Invoke(task, ex.Message);
@@ -844,9 +892,14 @@ public class DownloadEngine : IAsyncDisposable
                         // The primary's cookies/referrer belong to its host and are never sent to a mirror.
                         cookies: isPrimary ? task.Cookies : null,
                         referrer: isPrimary ? task.Referrer : null,
-                        userAgent: task.UserAgent).ConfigureAwait(false);
+                        userAgent: task.UserAgent,
+                        // Safe for every source: HeaderFor only answers for the origin the user entered it for.
+                        credential: task.Credential).ConfigureAwait(false);
                 }
+                // shortcut: a 401 fails the task but sibling workers on healthy sources finish their in-flight chunks first;
+                // cancel them via a linked token (and keep that cancel out of this failover filter) if the delay matters.
                 catch (Exception ex) when (source != null && !cancellationToken.IsCancellationRequested && !IsLocalDiskError(ex) &&
+                    !IsAuthError(task, ex) &&
                     ex is HttpRequestException or IOException or InvalidOperationException or OperationCanceledException)
                 {
                     // ChunkDownloader already retried: give up on this source and move the rest of the chunk to another one.
@@ -1025,7 +1078,10 @@ public class DownloadEngine : IAsyncDisposable
                         MirrorUrls = [.. t.MirrorUrls],
                         StartAt = t.StartAt,
                         ExpectedSha256 = t.ExpectedSha256,
-                        ActiveSeconds = t.ActiveSeconds
+                        ActiveSeconds = t.ActiveSeconds,
+                        AuthUser = t.AuthUser,
+                        AuthOrigin = t.AuthOrigin,
+                        AuthPassword = t.AuthPassword // written DPAPI-protected (AuthPasswordProtected)
                     };
                 }
             }).ToList();

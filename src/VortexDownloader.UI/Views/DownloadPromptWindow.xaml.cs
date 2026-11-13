@@ -510,21 +510,7 @@ public partial class DownloadPromptWindow : Window
         Description = TxtDescription.Text.Trim();
         AuthUsername = TxtAuthUser.Text.Trim();
         AuthPassword = TxtAuthPassword.Password;
-
-        if (!string.IsNullOrWhiteSpace(AuthUsername))
-        {
-            try
-            {
-                var uriB = new UriBuilder(ResultUrl);
-                uriB.UserName = Uri.EscapeDataString(AuthUsername);
-                if (!string.IsNullOrEmpty(AuthPassword))
-                {
-                    uriB.Password = Uri.EscapeDataString(AuthPassword);
-                }
-                ResultUrl = uriB.Uri.AbsoluteUri;
-            }
-            catch { }
-        }
+        // Credentials go to the engine separately (sent only to this URL's origin), never inside the URL.
 
         DialogResult = true;
         Close();

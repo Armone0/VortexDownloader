@@ -50,7 +50,8 @@ public class ChunkDownloader
         bool supportsRange = true,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        HttpCredential? credential = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(chunk);
@@ -66,10 +67,12 @@ public class ChunkDownloader
             {
                 await DownloadChunkInternalAsync(
                     httpClient, url, chunk, speedLimiter, onBytesReceived, cancellationToken,
-                    supportsRange, cookies, referrer, userAgent).ConfigureAwait(false);
+                    supportsRange, cookies, referrer, userAgent, credential).ConfigureAwait(false);
                 return;
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+            // A 401 is not retried: repeating a wrong password can lock the account.
+            catch (Exception ex) when (ex is HttpRequestException or IOException && !cancellationToken.IsCancellationRequested &&
+                ex is not HttpRequestException { StatusCode: HttpStatusCode.Unauthorized })
             {
                 // An attempt that moved the chunk forward is not a failure streak: a flaky link that keeps making progress must not run out of retries.
                 if (chunk.CurrentPos > posBefore) attempt = 0;
@@ -93,7 +96,8 @@ public class ChunkDownloader
         bool supportsRange = true,
         string? cookies = null,
         string? referrer = null,
-        string? userAgent = null)
+        string? userAgent = null,
+        HttpCredential? credential = null)
     {
         if (chunk.IsCompleted)
         {
@@ -149,6 +153,8 @@ public class ChunkDownloader
             request.Headers.UserAgent.Clear();
             request.Headers.UserAgent.ParseAdd(userAgent);
         }
+        // Only for the credential's own origin; .NET drops it on redirects.
+        request.Headers.Authorization = credential?.HeaderFor(url);
 
         long startByte = chunk.CurrentPos;
         if (supportsRange)

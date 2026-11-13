@@ -254,6 +254,7 @@ public partial class MainWindow : Window
         {
             var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VortexDownloader");
             Directory.CreateDirectory(appData);
+            msg = System.Text.RegularExpressions.Regex.Replace(msg, @"://[^/\s@'""]+@", "://***@"); // never log user:pass@ from URLs
             File.AppendAllText(Path.Combine(appData, "bridge.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n");
         }
         catch { }
@@ -848,7 +849,9 @@ public partial class MainWindow : Window
                     cookies: prompt.Cookies,
                     referrer: prompt.Referrer,
                     userAgent: prompt.UserAgent,
-                    sourcePageUrl: pageUrl);
+                    sourcePageUrl: pageUrl,
+                    authUser: prompt.AuthUsername,
+                    authPassword: prompt.AuthPassword);
 
                 _trayIcon?.ShowNotification("⚡ VortexDownloader", $"İndirme Başlatıldı: {task.FileName}");
             }
@@ -983,6 +986,8 @@ public partial class MainWindow : Window
                         autoStart: true,
                         mirrorUrls: dialog.ResultMirrorUrls,
                         startAt: dialog.ResultStartAt,
+                        authUser: dialog.ResultAuthUser,
+                        authPassword: dialog.ResultAuthPassword,
                         // The GitHub picker closes the dialog itself, so its digest arrives through the map instead.
                         expectedSha256: dialog.ResultExpectedSha256 ?? dialog.ExpectedSha256.GetValueOrDefault(dialog.ResultUrl));
                 }

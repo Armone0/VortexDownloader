@@ -13,18 +13,25 @@ internal sealed class RawHttpServer : IAsyncDisposable
     internal sealed record Request(string Method, long? From, long? To, int GetNumber);
 
     /// <summary>What to do with one GET. CutAfter = body bytes sent before acting; Stall waits for the gate; CloseAfterCut drops the connection.</summary>
-    internal sealed record Plan(int Status = 0, long? CutAfter = null, Task? Stall = null, bool CloseAfterCut = false, Action? OnStalled = null);
+    internal sealed record Plan(int Status = 0, long? CutAfter = null, Task? Stall = null, bool CloseAfterCut = false, Action? OnStalled = null,
+        string? Location = null);
 
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _cts = new();
     private readonly byte[] _data;
     private readonly Func<Request, Plan> _plan;
     private readonly Task _acceptLoop;
+    private readonly string? _requiredAuth;
     private int _gets;
 
-    public RawHttpServer(byte[] data, Func<Request, Plan>? plan = null)
+    /// <summary>Authorization header of every request (null when absent), HEAD included.</summary>
+    public System.Collections.Concurrent.ConcurrentQueue<string?> SeenAuthorization { get; } = new();
+
+    /// <param name="requiredAuth">When set, any request without exactly this Authorization value gets 401.</param>
+    public RawHttpServer(byte[] data, Func<Request, Plan>? plan = null, string? requiredAuth = null)
     {
         _data = data;
+        _requiredAuth = requiredAuth;
         _plan = plan ?? (_ => new Plan());
         _listener.Start();
         _acceptLoop = Task.Run(AcceptLoopAsync);
@@ -58,6 +65,7 @@ internal sealed class RawHttpServer : IAsyncDisposable
                 if (requestLine == null) return;
                 string method = requestLine.Split(' ')[0];
                 long? from = null, to = null;
+                string? auth = null;
                 string? line;
                 while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync(_cts.Token).ConfigureAwait(false)))
                 {
@@ -68,6 +76,16 @@ internal sealed class RawHttpServer : IAsyncDisposable
                         if (parts[0].Length > 0) from = long.Parse(parts[0]);
                         if (parts.Length > 1 && parts[1].Length > 0) to = long.Parse(parts[1]);
                     }
+                    else if (line.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        auth = line["Authorization:".Length..].Trim();
+                    }
+                }
+                SeenAuthorization.Enqueue(auth);
+                if (_requiredAuth != null && auth != _requiredAuth)
+                {
+                    await WriteHeadAsync(stream, "401 Unauthorized", 0, "WWW-Authenticate: Basic realm=\"test\"\r\n").ConfigureAwait(false);
+                    return;
                 }
 
                 if (method == "HEAD")
@@ -78,6 +96,11 @@ internal sealed class RawHttpServer : IAsyncDisposable
 
                 int n = Interlocked.Increment(ref _gets);
                 var plan = _plan(new Request(method, from, to, n));
+                if (plan.Location != null)
+                {
+                    await WriteHeadAsync(stream, "302 Found", 0, $"Location: {plan.Location}\r\n").ConfigureAwait(false);
+                    return;
+                }
                 if (plan.Status != 0)
                 {
                     await WriteHeadAsync(stream, $"{plan.Status} Error", 0, null).ConfigureAwait(false);

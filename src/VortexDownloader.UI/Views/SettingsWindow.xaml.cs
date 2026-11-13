@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using VortexDownloader.Core.Common;
+using VortexDownloader.Core.Network;
 using VortexDownloader.UI.Services;
 using VortexDownloader.UI.ViewModels;
 
@@ -60,6 +61,12 @@ public partial class SettingsWindow : Window
         ChkAutoFolderByType.IsChecked = settings.AutoFolderByType;
         ChkWatchClipboard.IsChecked = settings.WatchClipboardLinks;
         ChkCheckUpdates.IsChecked = settings.CheckUpdatesOnStartup;
+
+        SelectComboBoxItemByTag(CmbProxyMode, settings.ProxyMode);
+        TxtProxyHost.Text = settings.ProxyHost;
+        TxtProxyPort.Text = settings.ProxyPort.ToString();
+        TxtProxyUser.Text = settings.ProxyUser;
+        TxtProxyPassword.Password = SecretProtector.Unprotect(settings.ProxyPasswordProtected) ?? "";
         TxtShortcuts.Text = MainWindow.ShortcutsHelp;
         if (Owner?.DataContext is MainViewModel vm)
         {
@@ -161,9 +168,39 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void CmbProxyMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProxyManualPanel == null) return; // fires during InitializeComponent
+        ProxyManualPanel.Visibility = SelectedProxyMode() == "Manual" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private string SelectedProxyMode() => (CmbProxyMode.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "System";
+
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
+        // Validated before the live settings object is touched.
+        string proxyMode = SelectedProxyMode();
+        int.TryParse(TxtProxyPort.Text.Trim(), out int proxyPort);
+        if (proxyMode == "Manual")
+        {
+            try
+            {
+                ProxyFactory.Create(ProxyMode.Manual, TxtProxyHost.Text, proxyPort);
+            }
+            catch (Exception ex) when (ex is ArgumentException or UriFormatException)
+            {
+                MessageBox.Show(this, LocalizationManager.GetString("Str_ProxyInvalid", "Proxy sunucusu ya da portu geçersiz."),
+                    LocalizationManager.GetString("Str_Proxy", "Proxy"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
         var settings = AppSettings.Current;
+        settings.ProxyMode = proxyMode;
+        settings.ProxyHost = TxtProxyHost.Text.Trim();
+        if (proxyPort is > 0 and <= 65535) settings.ProxyPort = proxyPort;
+        settings.ProxyUser = TxtProxyUser.Text.Trim();
+        settings.ProxyPasswordProtected = SecretProtector.Protect(TxtProxyPassword.Password);
 
         settings.Theme = ThemeManager.CurrentTheme;
         settings.Language = LocalizationManager.CurrentLanguage;

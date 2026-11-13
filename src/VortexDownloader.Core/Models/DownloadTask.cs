@@ -1,5 +1,7 @@
 using System.IO;
 using System.Text.Json.Serialization;
+using VortexDownloader.Core.Common;
+using VortexDownloader.Core.Network;
 
 namespace VortexDownloader.Core.Models;
 
@@ -42,6 +44,22 @@ public class DownloadTask
     public string? ExpectedSha256 { get; set; }
     /// <summary>Seconds spent in Downloading state (excludes queue/schedule/pause time); used for average speed stats.</summary>
     public double ActiveSeconds { get; set; }
+    /// <summary>HTTP Basic user name, sent only to <see cref="AuthOrigin"/>.</summary>
+    public string? AuthUser { get; set; }
+    /// <summary>scheme://host[:port] the user gave the credentials for; fixed at creation (a refreshed <see cref="Url"/> does not move it).</summary>
+    public string? AuthOrigin { get; set; }
+    [JsonIgnore]
+    public string? AuthPassword { get; set; }
+    /// <summary>tasks.json form of <see cref="AuthPassword"/>: DPAPI (current user), never plain text.</summary>
+    public string? AuthPasswordProtected
+    {
+        get => SecretProtector.Protect(AuthPassword);
+        set => AuthPassword = SecretProtector.Unprotect(value);
+    }
+
+    [JsonIgnore]
+    public HttpCredential? Credential =>
+        string.IsNullOrEmpty(AuthUser) || AuthOrigin == null ? null : new HttpCredential(AuthOrigin, AuthUser, AuthPassword ?? "");
 
     private readonly object _chunksLock = new();
 

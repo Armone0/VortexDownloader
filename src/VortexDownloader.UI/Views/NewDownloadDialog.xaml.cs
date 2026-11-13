@@ -23,6 +23,9 @@ public partial class NewDownloadDialog : Window
     public bool IsBatchMode { get; private set; }
     /// <summary>Extra URLs for the same file (single download only); the engine validates them.</summary>
     public List<string> ResultMirrorUrls { get; private set; } = [];
+    /// <summary>HTTP login for <see cref="ResultUrl"/> (single download only); the engine sends it only to that URL's origin.</summary>
+    public string? ResultAuthUser { get; private set; }
+    public string? ResultAuthPassword { get; private set; }
 
     // Entries picked in the ZIP preview: when set, Start fetches only these into the target folder
     private List<ZipEntryMetadata> _zipEntries = [];
@@ -65,7 +68,8 @@ public partial class NewDownloadDialog : Window
                 else if (urls.Count == 1)
                 {
                     UrlTextBox.Text = urls[0];
-                    _ = ProbeUrlAsync(urls[0]);
+                    MoveUserInfoToFields();
+                    _ = ProbeUrlAsync(UrlTextBox.Text.Trim());
                 }
             }
         }
@@ -82,6 +86,7 @@ public partial class NewDownloadDialog : Window
         bool isBatch = BatchModeCheckBox.IsChecked == true;
         IsBatchMode = isBatch;
         UpdateMirrorBox();
+        UpdateAuthBox();
 
         if (isBatch)
         {
@@ -108,6 +113,23 @@ public partial class NewDownloadDialog : Window
 
     private void MirrorCheckBox_CheckedChanged(object sender, RoutedEventArgs e) => UpdateMirrorBox();
 
+    private void AuthCheckBox_CheckedChanged(object sender, RoutedEventArgs e) => UpdateAuthBox();
+
+    private void UpdateAuthBox()
+    {
+        bool isBatch = BatchModeCheckBox.IsChecked == true;
+        AuthCheckBox.Visibility = isBatch ? Visibility.Collapsed : Visibility.Visible;
+
+        bool show = !isBatch && AuthCheckBox.IsChecked == true;
+        if (show == (AuthPanel.Visibility == Visibility.Visible)) return;
+        AuthPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        Height += show ? 72 : -72; // fixed-size window: labels + box + bottom margin
+    }
+
+    /// <summary>Login typed by the user (single download only), or null.</summary>
+    private string? EnteredAuthUser =>
+        BatchModeCheckBox.IsChecked != true && AuthCheckBox.IsChecked == true && AuthUserTextBox.Text.Trim() is { Length: > 0 } u ? u : null;
+
     private void UpdateMirrorBox()
     {
         bool isBatch = BatchModeCheckBox.IsChecked == true;
@@ -118,6 +140,23 @@ public partial class NewDownloadDialog : Window
         MirrorTextBox.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
         // Fixed-size window: make room for the box (height + bottom margin).
         Height += show ? 78 : -78;
+    }
+
+    private void UrlTextBox_LostFocus(object sender, RoutedEventArgs e) => MoveUserInfoToFields();
+
+    /// <summary>
+    /// Moves user:pass@ from a single URL into the login fields so it never shows in the URL box or on the card.
+    /// Run on commit (focus loss, Analyze, Start, clipboard prefill), not per keystroke, so typing is not interrupted.
+    /// </summary>
+    private void MoveUserInfoToFields()
+    {
+        if (BatchModeCheckBox.IsChecked == true || ParseUrls(UrlTextBox.Text).Count != 1) return;
+        string clean = HttpCredential.StripUserInfo(UrlTextBox.Text.Trim(), out var infoUser, out var infoPassword);
+        if (infoUser == null) return;
+        AuthUserTextBox.Text = infoUser;
+        AuthPasswordBox.Password = infoPassword ?? "";
+        AuthCheckBox.IsChecked = true;
+        UrlTextBox.Text = clean;
     }
 
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -197,6 +236,7 @@ public partial class NewDownloadDialog : Window
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
+        MoveUserInfoToFields();
         string url = UrlTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -291,7 +331,7 @@ public partial class NewDownloadDialog : Window
 
         try
         {
-            var meta = await _engine.InspectUrlAsync(url);
+            var meta = await _engine.InspectUrlAsync(url, authUser: EnteredAuthUser, authPassword: AuthPasswordBox.Password);
             if (!string.IsNullOrWhiteSpace(meta.SuggestedFileName) && (string.IsNullOrWhiteSpace(FileNameTextBox.Text) || FileNameTextBox.Text == "download.bin"))
             {
                 FileNameTextBox.Text = MainWindow.SanitizeFileName(meta.SuggestedFileName);
@@ -307,6 +347,11 @@ public partial class NewDownloadDialog : Window
             }
 
             RangeInfoTextBlock.Text = meta.SupportsRange ? "Range: Var (Çok Parçalı)" : "Range: Yok (Tek Parça)";
+            if (meta.AuthRequired)
+            {
+                RangeInfoTextBlock.Text = LocalizationManager.GetString("Str_AuthRequired", "Kimlik doğrulama gerekli / hatalı");
+                AuthCheckBox.IsChecked = true; // show the login fields
+            }
         }
         catch
         {
@@ -355,6 +400,7 @@ public partial class NewDownloadDialog : Window
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryReadScheduleAndHash()) return; // schedule + expected hash: NewDownloadDialog.Schedule.cs
+        MoveUserInfoToFields();
 
         if (_zipEntries.Count > 0 && _zipUrl != null)
         {
@@ -461,6 +507,8 @@ public partial class NewDownloadDialog : Window
 
             ResultUrl = urls[0];
             ResultMirrorUrls = MirrorCheckBox.IsChecked == true ? ParseUrls(MirrorTextBox.Text) : [];
+            ResultAuthUser = EnteredAuthUser;
+            ResultAuthPassword = ResultAuthUser != null ? AuthPasswordBox.Password : null;
             ResultDestinationPath = Path.Combine(folder, fileName);
             BatchItems.Add((ResultUrl, ResultDestinationPath));
         }
