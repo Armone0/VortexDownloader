@@ -80,7 +80,7 @@ public class ExtensionVerificationTests
 
         Assert.Equal(3, root.GetProperty("manifest_version").GetInt32());
         Assert.True(root.TryGetProperty("name", out _));
-        Assert.Equal("1.7.0", root.GetProperty("version").GetString());
+        Assert.Equal("1.8.0", root.GetProperty("version").GetString());
 
         // Validate Permissions
         var permissions = root.GetProperty("permissions").EnumerateArray()
@@ -151,7 +151,7 @@ public class ExtensionVerificationTests
 
         // Check for toggle switch element
         Assert.Contains("id=\"toggleIntercept\"", html);
-        Assert.Contains("v1.7.0", html);
+        Assert.Contains("v1.8.0", html);
     }
 
     [Fact]

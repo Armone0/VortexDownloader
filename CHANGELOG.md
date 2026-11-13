@@ -4,6 +4,28 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.9.2] - 2026-11-13
+
+> Tarayıcı eklentisi 1.8.0'a yükseldi (Firefox desteği).
+
+### Yeni
+- **Güncelleme bildirimi:** Açılıştan kısa süre sonra, günde en fazla bir kez GitHub'a yalnızca en son sürüm numarasını sorar. Yeni sürüm varsa sol menünün üstünde küçük bir kutu çıkar ("Sürüm notları", "Bu sürümü atla"). Hiçbir şey indirilmez ya da çalıştırılmaz; Ayarlar'dan kapatılabilir, orada elle kontrol butonu da var.
+- **Panodaki linkleri yakalama** (Ayarlar, varsayılan kapalı): Doğrudan bir dosya linki kopyalayınca indirmeden önce sorar. Normal web sayfaları yok sayılır, tam ekran oyun açıkken sessiz kalır.
+- **Proxy ayarı:** Sistem proxy'si (varsayılan) / proxy yok / elle (sunucu, port, isteğe bağlı kullanıcı adı ve şifre). Yeniden başlatınca geçerli olur; yerel ağ her zaman doğrudan bağlanır. yt-dlp de aynı ayarı kullanır. Şifre Windows'un DPAPI'si ile şifreli saklanır.
+- **Kullanıcı adı / şifre isteyen siteler (HTTP Basic):** Yeni İndirme'de isteğe bağlı alan; `https://kullanıcı:şifre@site/...` yapıştırılırsa bilgiler otomatik ayrılır. Yalnızca o sitenin sunucusuna gönderilir; aynalara ya da başka siteye yönlendirmelere gönderilmez. 401 yanıtı aynayı "ölü" saymaz, açık bir hata gösterir.
+- **Firefox desteği (deneysel, 121+):** Eklenti Firefox'ta da indirmeleri yakalar (Firefox'ta `onDeterminingFilename` olmadığı için arka plan betiği hiç çalışmıyordu).
+
+### Düzeltmeler
+- "Klasör" butonu artık `explorer.exe` başlatmıyor, Windows kabuğunun API'si ile dosyayı gösteriyor (bazı antivirüslerin davranış kurallarına takılabiliyordu).
+- Yeni İndirme'de ikinci bir link yapıştırınca dosya adı ve boyut önceki linkte kalıyordu; artık güncelleniyor (elle yazılan ad korunur).
+- `bridge.log` eklentiden gelen isteklerin gövdesini (sayfa çerezleriyle birlikte) yazıyordu; artık yalnızca uzunluğunu yazar.
+- GitHub sürümleri penceresinde dosya adları temanın yazı rengi yerine siyah görünüyordu.
+
+### Proje
+- GitHub Actions ile her push'ta build ve test (CI), tek komutla kurulum (`install.ps1`), demo GIF.
+
+---
+
 ## [1.9.1] - 2026-11-13
 
 ### Arayüz

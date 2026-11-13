@@ -1,4 +1,4 @@
-# VortexDownloader Browser Extension ⚡ (v1.7.0)
+# VortexDownloader Browser Extension ⚡ (v1.8.0)
 
 Companion Manifest V3 browser extension for Google Chrome, Microsoft Edge, Chromium-based browsers and (experimental) Firefox 121+.
 

@@ -49,7 +49,10 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 | 🔁 **Expired-link resume** | When a signed link expires, the downloaded data is kept. Download the file again from the page and Vortex continues where it stopped, checking the size and ETag/Last-Modified first. |
 | 🎮 **Game mode** | While a fullscreen game, film or presentation runs, downloads slow to 256 KB/s – 1 MB/s. Your own limit comes back afterwards. |
 | 🛡️ **Integrity & safety** | SHA-256 hash, Windows Defender scan, resume integrity checks (ETag, Last-Modified, length), and a disk-space check before each download. |
-| 🌐 **Browser capture** | A Manifest V3 extension catches downloads and sends cookies, referrer and user agent. A one-time pairing in the app is required. A floating button grabs page videos. |
+| 🌐 **Browser capture** | A Manifest V3 extension for Chrome, Edge and Brave (Firefox 121+ experimental) catches downloads and sends cookies, referrer and user agent. A one-time pairing in the app is required. A floating button grabs page videos. |
+| 📋 **Clipboard links** | Optional: copy a direct file link anywhere and Vortex asks whether to download it. Plain web pages are ignored. Off by default. |
+| 🔑 **Logins & proxy** | Username/password for sites that ask for one (sent only to that site, stored encrypted), and a system / none / manual proxy with optional login. |
+| 🔔 **Update notice** | Once a day, Vortex asks GitHub for the latest version number and shows a small notice when there is a new one. Nothing is downloaded or run; it can be turned off. |
 | 🎬 **Media** | Video and audio downloads through `yt-dlp` and `ffmpeg` (for example YouTube). Both are downloaded automatically the first time you use media. |
 | 📋 **Queue & batch** | Paste many URLs at once. Set how many downloads run at once (1–5 or unlimited), pause or resume them all, and filter by category. |
 | 🎯 **Speed limiter** | Token-bucket limit (1 / 5 / 10 MB/s or unlimited), applied across all downloads. |
@@ -154,6 +157,7 @@ dotnet publish src/VortexDownloader.UI -c Release -r win-x64 --self-contained tr
 
 ## 🗺️ Roadmap
 
+- [x] Update notice, clipboard links, proxy, site logins, Firefox (experimental) (v1.9.2)
 - [x] PS4 PKG info, GitHub release picker, send from phone (QR), scheduler, memory soak test (v1.9)
 - [x] ZIP & RAR file picking, multi-mirror, game mode (v1.8)
 - [x] Expired-link resume, Defender + SHA-256, extension pairing (v1.7)
@@ -202,6 +206,7 @@ Tek komutla kurmak için PowerShell'e yapıştır: `irm https://raw.githubuserco
 - Oyun açıkken indirmeyi kendiliğinden yavaşlatır.
 - İnen her dosyayı Windows Defender ile tarar.
 - PS4 `.pkg` dosyalarının bilgisini (oyun adı, sürüm, gereken yazılım) indirmeden gösterir, GitHub sürümlerinden dosya seçtirir ve telefondan QR ile bağlantı almayı sağlar.
+- Panoya kopyalanan dosya linklerini yakalayabilir (isteğe bağlı), proxy ve şifreli siteleri destekler, yeni sürüm çıkınca haber verir.
 
 Arayüz Türkçe ve İngilizce kullanılabilir. [Son sürümü indir](https://github.com/Armone0/VortexDownloader/releases/latest) · [Değişiklik günlüğü](CHANGELOG.md)
 
