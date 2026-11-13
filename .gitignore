@@ -120,3 +120,6 @@ secrets.json
 cookies.txt
 appsettings.Development.json
 appsettings.Production.json
+
+# Test archives made with WinRAR (the RAR tests need them)
+!tests/VortexDownloader.Tests/Fixtures/*.rar
