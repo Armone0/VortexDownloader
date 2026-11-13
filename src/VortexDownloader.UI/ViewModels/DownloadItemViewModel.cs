@@ -108,6 +108,7 @@ public class DownloadItemViewModel : ViewModelBase
                 OnPropertyChanged(nameof(CanResume));
                 OnPropertyChanged(nameof(IsActive));
                 OnPropertyChanged(nameof(IsDone));
+                OnPropertyChanged(nameof(IsPkgFile));
             }
         }
     }
@@ -204,6 +205,8 @@ public class DownloadItemViewModel : ViewModelBase
     }
 
     public bool IsDone => Status == DownloadStatus.Completed;
+    /// <summary>Finished PS4 .pkg: the card offers the PKG inspector.</summary>
+    public bool IsPkgFile => IsDone && DestinationPath.EndsWith(".pkg", StringComparison.OrdinalIgnoreCase);
     public bool HasChunkMap => _chunkFractions.Count > 1;
     public bool HasNoChunkMap => !HasChunkMap;
     public bool HasError => Status == DownloadStatus.Failed && !string.IsNullOrWhiteSpace(ErrorMessage);
