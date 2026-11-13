@@ -11,7 +11,7 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 [![Downloads](https://img.shields.io/github/downloads/Armone0/VortexDownloader/total?color=8EA191)](https://github.com/Armone0/VortexDownloader/releases)
 [![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows)](#-quick-start)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/9.0)
-[![Tests](https://img.shields.io/badge/tests-177%20passing-2EA043)](tests/)
+[![Tests](https://img.shields.io/badge/tests-307%20passing-2EA043)](tests/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 ### [⬇️ Download for Windows](https://github.com/Armone0/VortexDownloader/releases/latest)
@@ -42,6 +42,10 @@ Segmented downloads, browser capture, and file picking inside remote ZIP/RAR arc
 | ⚡ **Segmented engine** | 1–32 connections, dynamic chunk splitting, pooled buffers (`ArrayPool<byte>`), and HTTP/1.1 and HTTP/2 via `SocketsHttpHandler`. |
 | ⇄ **Multi-mirror** | Add mirror URLs for the same file. Chunks are spread across every valid mirror so speeds add up, and if one drops its chunks move to the others. |
 | 🗜️ **ZIP & RAR file picking** | Lists an archive's contents without downloading it. Picked files are fetched by Range, CRC-32 checked, and never overwrite existing files. RAR5 (RAR4 via the library, untested) and solid archives are supported. |
+| 🎮 **PS4 PKG info** | See a `.pkg`'s title, Title ID, content ID, version, required firmware, icon, file list and PARAM.SFO, even before downloading it. Unencrypted entries can be extracted; encrypted content is never decrypted. |
+| 🐙 **GitHub releases** | Paste a repo URL to browse its releases and pick assets. GitHub's SHA-256 digest is checked automatically after download. |
+| 📱 **Send from phone** | Scan a QR code and send a link from your phone on the same Wi-Fi. Off by default, runs only while the window is open (max 10 min), and every link needs your OK on the PC. |
+| ⏰ **Scheduler & tools** | Start a download at a set time, check it against an expected SHA-256, remux video to MP4 or pull out the audio with ffmpeg, and sort downloads into folders by type. |
 | 🔁 **Expired-link resume** | When a signed link expires, the downloaded data is kept. Download the file again from the page and Vortex continues where it stopped, checking the size and ETag/Last-Modified first. |
 | 🎮 **Game mode** | While a fullscreen game, film or presentation runs, downloads slow to 256 KB/s – 1 MB/s. Your own limit comes back afterwards. |
 | 🛡️ **Integrity & safety** | SHA-256 hash, Windows Defender scan, resume integrity checks (ETag, Last-Modified, length), and a disk-space check before each download. |
@@ -79,6 +83,7 @@ If the app is closed, the browser downloads the file normally. Nothing is lost.
 - **Per-install pairing.** Each install generates a random 256-bit token, and only extensions you approved in the app can queue downloads. Tokens are compared in constant time.
 - **Safe file writes.** File names are sanitized, archive paths can't escape the target folder (zip-slip protection), existing files are never overwritten, and decompressed output has a size cap.
 - **Cookies stay with their site.** In multi-mirror downloads, the main site's cookies and referrer are never sent to other mirror hosts.
+- **Send from phone is opt-in.** It listens on your private LAN address only while its window is open, needs a fresh random token, accepts only private-network clients, and never downloads without your confirmation.
 
 Found a vulnerability? Please open a private security advisory on GitHub instead of a public issue.
 
@@ -135,10 +140,10 @@ dotnet publish src/VortexDownloader.UI -c Release -r win-x64 --self-contained tr
 
 ## 🗺️ Roadmap
 
+- [x] PS4 PKG info, GitHub release picker, send from phone (QR), scheduler, memory soak test (v1.9)
 - [x] ZIP & RAR file picking, multi-mirror, game mode (v1.8)
 - [x] Expired-link resume, Defender + SHA-256, extension pairing (v1.7)
-- [ ] Send a link from your phone to the PC with a QR code (LAN)
-- [ ] Long-running memory soak test in CI
+- [ ] Run the soak test in CI
 - [ ] Chrome Web Store listing
 
 See the full history in [CHANGELOG.md](CHANGELOG.md).
@@ -180,9 +185,10 @@ Bug reports, ideas and pull requests are welcome. Please read [CONTRIBUTING.md](
 - ZIP ve RAR arşivlerinin içinden yalnızca istediğin dosyaları indirir.
 - Oyun açıkken indirmeyi kendiliğinden yavaşlatır.
 - İnen her dosyayı Windows Defender ile tarar.
+- PS4 `.pkg` dosyalarının bilgisini (oyun adı, sürüm, gereken yazılım) indirmeden gösterir, GitHub sürümlerinden dosya seçtirir ve telefondan QR ile bağlantı almayı sağlar.
 
 Arayüz Türkçe ve İngilizce kullanılabilir. [Son sürümü indir](https://github.com/Armone0/VortexDownloader/releases/latest) · [Değişiklik günlüğü](CHANGELOG.md)
 
 ## 📄 License
 
-[Apache License 2.0](LICENSE). Third-party: [SharpCompress](https://github.com/adamhathcock/sharpcompress) (MIT) for RAR reading and [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) for media.
+[Apache License 2.0](LICENSE). Third-party: [SharpCompress](https://github.com/adamhathcock/sharpcompress) (MIT) for RAR reading, [QRCoder](https://github.com/codebude/QRCoder) (MIT) for the phone QR code, and [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) for media.

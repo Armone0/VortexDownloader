@@ -4,6 +4,32 @@ Tüm sürüm güncellemeleri, hata düzeltmeleri ve planlanan yol haritası [Sem
 
 ---
 
+## [1.9.0] - 2026-11-13
+
+> Tarayıcı eklentisi değişmedi (1.7.0 olarak kalır).
+
+### Yeni
+- **PS4 PKG bilgisi:** Tarayıcıdan gelen ya da inmiş bir `.pkg` için oyun adı, Title ID, içerik kimliği, tür, sürüm, gereken sistem yazılımı, simge, dosya listesi ve tüm PARAM.SFO alanları gösterilir. Bağlantıdan, dosya inmeden okunabilir (çerezler iletilir). Şifresiz dosyalar seçilip çıkarılabilir; şifreli içerik çözülmez.
+- **GitHub sürüm seçici:** Yeni İndirme'ye bir GitHub depo adresi yapıştır, "🐙 GitHub sürümleri" ile sürümleri, notları ve dosyaları gör, istediklerini seç. GitHub dosyanın SHA-256 özetini veriyorsa indirme bitince otomatik karşılaştırılır.
+- **Telefondan gönder (QR):** Telefon aynı Wi-Fi'dayken QR kodu okut, bağlantıyı yapıştır; bilgisayarda onaylayınca kuyruğa girer. Yalnızca pencere açıkken (en fazla 10 dakika) ve yerel ağda çalışır, tek kullanımlık anahtar ister.
+- **Zamanlayıcı:** Yeni İndirme'de "Saat seç" ile indirmeyi belirli bir saatte başlat; kartta "⏰ 02:00'de başlayacak" görünür.
+- **Beklenen SHA-256:** Yeni İndirme'de beklenen hash'i gir; bitince kartta "✓ Hash eşleşti" ya da "✗ Hash eşleşmiyor" çıkar.
+- **ffmpeg hazır işlemleri:** Biten video/ses kartında "MP4'e çevir (yeniden kodlamadan)" ve "Sesi çıkar (M4A)". Kaynak dosyaya dokunulmaz.
+- **Dosya türüne göre klasörle** (Ayarlar, varsayılan kapalı) ve Ayarlar → Hakkında'da aylık istatistik satırı.
+- **Çoklu seçim ve kısayollar:** Ctrl/Shift ile birden çok kart seçip toplu duraklat/devam/sil/klasör. Ctrl+N, Ctrl+V, Del, Boşluk, Ctrl+A, Enter.
+
+### Güvenilirlik
+- 30 saniye veri gelmeyen bağlantı kendiliğinden yeniden kurulur (önceden duraklatana kadar takılı kalıyordu).
+- İlerleme kaydeden ama ara ara kopan bağlantılar artık 3 denemede pes etmez.
+- Disk dolu / dosya kilitli hatası artık sağlam aynaları "ölü" saymaz.
+- Durum dosyası diske zorla yazılır (elektrik kesintisinde boş kalmaz); bozuk dosya `tasks.json.corrupt` olarak saklanır, tek bozuk kayıt tüm listeyi silmez.
+- Bağlantı kopması, disk hatası, bozuk durum dosyası ve 300 indirmelik bellek/handle sızıntı testleri eklendi (`scripts/soak-test.ps1`).
+
+### Arayüz
+- Koyu açılır liste stili tüm pencerelerde ortak; kart rozetleri sığmayınca alt satıra geçer.
+
+---
+
 ## [1.8.0] - 2026-11-13
 
 > Tarayıcı eklentisi değişmedi (1.7.0 olarak kalır).
