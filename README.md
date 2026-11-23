@@ -161,7 +161,7 @@ dotnet publish src/VortexDownloader.UI -c Release -r win-x64 --self-contained tr
 - [x] PS4 PKG info, GitHub release picker, send from phone (QR), scheduler, memory soak test (v1.9)
 - [x] ZIP & RAR file picking, multi-mirror, game mode (v1.8)
 - [x] Expired-link resume, Defender + SHA-256, extension pairing (v1.7)
-- [ ] Run the soak test in CI
+- [x] Run the soak test in CI (on pushes to main)
 - [ ] Chrome Web Store listing
 
 See the full history in [CHANGELOG.md](CHANGELOG.md).
